@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const initialForm = {
   firstName: "",
@@ -36,6 +37,8 @@ function validate(form) {
 }
 
 export default function Register() {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState(initialForm);
   const [touched, setTouched] = useState({});
   const [status, setStatus] = useState({ type: "idle", message: "" });
@@ -94,7 +97,6 @@ export default function Register() {
 
       if (!response.ok) {
         if (data.errors) {
-          // Laravel validation errors
           setServerErrors(
             Object.fromEntries(
               Object.entries(data.errors).map(([k, v]) => [k, v[0]])
@@ -110,13 +112,18 @@ export default function Register() {
         throw new Error(data.message || "Registration failed.");
       }
 
+      // ✅ Save user info (used by VerifyEmail page)
+      localStorage.setItem("pawfection_user_email", data?.user?.email || form.email);
+
       setStatus({
         type: "success",
-        message: "Account created successfully. Please verify your email.",
+        message: "Account created successfully. Redirecting to verify page…",
       });
 
-      setForm(initialForm);
-      setTouched({});
+      // ✅ redirect after short delay
+      setTimeout(() => {
+        navigate("/verify-email");
+      }, 800);
     } catch (error) {
       setStatus({
         type: "error",
@@ -129,6 +136,7 @@ export default function Register() {
 
   const inputStyle = (error) => ({
     width: "100%",
+    boxSizing: "border-box", // ✅ stops overlap
     padding: "10px 12px",
     borderRadius: 12,
     border: `1px solid ${error ? "#f04438" : "#d0d5dd"}`,
@@ -216,7 +224,7 @@ export default function Register() {
               }}
             >
               {["firstName", "lastName"].map((field, i) => (
-                <div key={field}>
+                <div key={field} style={{ minWidth: 0 }}>
                   <div style={labelStyle}>
                     {i === 0 ? "First name" : "Last name"}
                   </div>
