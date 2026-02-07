@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Auth\Events\Registered;
 
 class RegisterController extends Controller
 {
+    // 🔹 Web registration (Blade form)
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -17,15 +19,22 @@ class RegisterController extends Controller
             'password' => ['required', 'confirmed', 'min:8'],
         ]);
 
-        User::create([
+        $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
 
-        return redirect()->back()->with('success', 'Registration successful');
+        // ✅ Send verification email
+        event(new Registered($user));
+
+        // ✅ Redirect somewhere meaningful
+        return redirect()
+            ->route('login')
+            ->with('success', 'Registration successful. Please verify your email, then log in.');
     }
 
+    // 🔹 API registration (React frontend)
     public function apiStore(Request $request)
     {
         $validated = $request->validate([
@@ -39,6 +48,9 @@ class RegisterController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
+
+        // ✅ Send verification email
+        event(new Registered($user));
 
         return response()->json([
             'message' => 'Registration successful. Please verify your email.',
