@@ -17,13 +17,19 @@ class RegisterController extends Controller
             'password' => ['required', 'confirmed', 'min:8'],
         ]);
 
-        User::create([
+        $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
 
-        return redirect()->back()->with('success', 'Registration successful');
+        // ✅ Explicitly send verification email
+        $user->sendEmailVerificationNotification();
+
+        return redirect()->back()->with(
+            'success',
+            'Registration successful. Please verify your email.'
+        );
     }
 
     public function apiStore(Request $request)
@@ -39,6 +45,9 @@ class RegisterController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
+
+        // ✅ Explicitly send verification email (THIS IS THE IMPORTANT LINE)
+        $user->sendEmailVerificationNotification();
 
         return response()->json([
             'message' => 'Registration successful. Please verify your email.',
