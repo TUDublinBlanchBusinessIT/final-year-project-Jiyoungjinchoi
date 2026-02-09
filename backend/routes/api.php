@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\AuthController;
 use App\Models\User;
 
 /*
@@ -18,11 +19,15 @@ Route::get('/health', function () {
     return response()->json(['status' => 'ok'], 200);
 });
 
-// ✅ Register (frontend POSTs to /api/register)
+// ✅ Register (User Story: Registration + Email Verification)
 Route::post('/register', [RegisterController::class, 'apiStore'])
-    ->middleware('throttle:10,1'); // optional protection (10 per minute)
+    ->middleware('throttle:10,1'); // 10 requests per minute
 
-// ✅ Resend verification email (meets User Story 1317)
+// ✅ Login (User Story 1337)
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:10,1'); // basic protection
+
+// ✅ Resend verification email (User Story 1317)
 Route::post('/email/verification-notification', function (Request $request) {
 
     $validated = $request->validate([
@@ -32,16 +37,22 @@ Route::post('/email/verification-notification', function (Request $request) {
     $user = User::where('email', $validated['email'])->first();
 
     if (!$user) {
-        return response()->json(['message' => 'User not found.'], 404);
+        return response()->json([
+            'message' => 'User not found.'
+        ], 404);
     }
 
     if ($user->hasVerifiedEmail()) {
-        return response()->json(['message' => 'Email already verified.'], 400);
+        return response()->json([
+            'message' => 'Email already verified.'
+        ], 400);
     }
 
     // Send the verification email
     $user->sendEmailVerificationNotification();
 
-    return response()->json(['message' => 'Verification email sent.'], 200);
+    return response()->json([
+        'message' => 'Verification email sent.'
+    ], 200);
 
-})->middleware('throttle:3,1'); // ✅ Rate limit: 3 requests per minute
+})->middleware('throttle:3,1'); // max 3 resends per minute
