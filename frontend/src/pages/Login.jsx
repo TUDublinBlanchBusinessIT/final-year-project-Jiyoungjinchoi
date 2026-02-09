@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const navigate = useNavigate();
+
   const [status, setStatus] = useState({ type: "idle", message: "" });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,15 +28,20 @@ export default function Login() {
         throw new Error(data.message || "Login failed.");
       }
 
+      // ✅ Save auth data
       localStorage.setItem("pawfection_token", data.token);
       localStorage.setItem("pawfection_user", JSON.stringify(data.user));
       localStorage.setItem("pawfection_user_email", data.user.email);
 
       setStatus({ type: "success", message: "Login successful 🎉" });
 
-      setTimeout(() => navigate("/verify-email"), 700);
+      // ✅ ALWAYS go to dashboard (no verify redirect here)
+      setTimeout(() => navigate("/dashboard"), 700);
     } catch (error) {
-      setStatus({ type: "error", message: error.message || "Failed to fetch" });
+      setStatus({
+        type: "error",
+        message: error.message || "Failed to fetch",
+      });
     }
   }
 
@@ -49,8 +55,8 @@ export default function Login() {
   return (
     <div
       style={{
-        height: "100vh", // ✅ prevents scroll
-        overflow: "hidden", // ✅ no scrollbar
+        height: "100vh",
+        overflow: "hidden",
         display: "grid",
         placeItems: "center",
         padding: 24,
@@ -63,10 +69,10 @@ export default function Login() {
       <div
         style={{
           width: "100%",
-          maxWidth: 480, // ✅ slightly tighter than 520
+          maxWidth: 480,
           background: "#fff",
           borderRadius: 22,
-          padding: 28, // ✅ balanced padding
+          padding: 28,
           boxShadow: "0 12px 35px rgba(0,0,0,.07)",
           textAlign: "center",
         }}
@@ -97,13 +103,7 @@ export default function Login() {
           </div>
         )}
 
-        <form
-          onSubmit={handleLogin}
-          style={{
-            marginTop: 18,
-            textAlign: "left",
-          }}
-        >
+        <form onSubmit={handleLogin} style={{ marginTop: 18, textAlign: "left" }}>
           <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>
             Email
           </label>
@@ -112,16 +112,15 @@ export default function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            placeholder="you@example.com"
             style={{
               width: "100%",
               padding: "11px 12px",
               borderRadius: 12,
               border: "1px solid #e5e7eb",
-              outline: "none",
               marginBottom: 14,
               boxSizing: "border-box",
             }}
-            placeholder="you@example.com"
           />
 
           <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>
@@ -132,15 +131,14 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            placeholder="••••••••"
             style={{
               width: "100%",
               padding: "11px 12px",
               borderRadius: 12,
               border: "1px solid #e5e7eb",
-              outline: "none",
               boxSizing: "border-box",
             }}
-            placeholder="••••••••"
           />
 
           <button
