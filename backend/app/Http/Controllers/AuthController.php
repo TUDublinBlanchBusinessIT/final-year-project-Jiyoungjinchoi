@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
 
 class AuthController extends Controller
 {
@@ -16,15 +15,15 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        // ❌ Invalid credentials
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        // ❌ Invalid credentials (generic message for wrong email OR wrong password)
+        if (! Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
-                'message' => 'Invalid credentials'
+                'message' => 'Invalid credentials',
             ], 401);
         }
 
         // ✅ Successful login
-        $user = User::where('email', $request->email)->firstOrFail();
+        $user = Auth::user();
 
         // Optional: remove old tokens (single-session login)
         $user->tokens()->delete();
@@ -35,7 +34,7 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Login successful',
             'user' => $user,
-            'token' => $token
+            'token' => $token,
         ], 200);
     }
 }
