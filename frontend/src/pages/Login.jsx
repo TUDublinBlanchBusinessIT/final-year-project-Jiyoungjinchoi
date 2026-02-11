@@ -8,6 +8,13 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // ✅ Clears old error when user tries again (typing)
+  function clearErrorIfNeeded() {
+    if (status.type === "error") {
+      setStatus({ type: "idle", message: "" });
+    }
+  }
+
   async function handleLogin(e) {
     e.preventDefault();
     setStatus({ type: "loading", message: "Logging in..." });
@@ -22,20 +29,31 @@ export default function Login() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
+      // ✅ Generic error message on invalid credentials (AC requirement)
       if (!response.ok) {
+        // optional: clear any existing saved auth (extra safety)
+        localStorage.removeItem("pawfection_token");
+        localStorage.removeItem("pawfection_user");
+        localStorage.removeItem("pawfection_user_email");
+
+        if (response.status === 401) {
+          throw new Error("Invalid credentials");
+        }
+
+        // Other errors (validation/server)
         throw new Error(data.message || "Login failed.");
       }
 
-      // ✅ Save auth data
+      // ✅ Save auth data ONLY on success
       localStorage.setItem("pawfection_token", data.token);
       localStorage.setItem("pawfection_user", JSON.stringify(data.user));
       localStorage.setItem("pawfection_user_email", data.user.email);
 
       setStatus({ type: "success", message: "Login successful 🎉" });
 
-      // ✅ ALWAYS go to dashboard (no verify redirect here)
+      // ✅ Go to dashboard
       setTimeout(() => navigate("/dashboard"), 700);
     } catch (error) {
       setStatus({
@@ -110,7 +128,10 @@ export default function Login() {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              clearErrorIfNeeded();
+              setEmail(e.target.value);
+            }}
             required
             placeholder="you@example.com"
             style={{
@@ -129,7 +150,10 @@ export default function Login() {
           <input
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              clearErrorIfNeeded();
+              setPassword(e.target.value);
+            }}
             required
             placeholder="••••••••"
             style={{
