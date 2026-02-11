@@ -1,19 +1,39 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function VerifyEmail() {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [status, setStatus] = useState({ type: "idle", message: "" });
   const [email, setEmail] = useState("");
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("pawfection_user_email");
+
+    // ✅ If user opened this page without coming from register, send them to login
     if (!savedEmail) {
-      navigate("/register");
+      navigate("/login");
       return;
     }
     setEmail(savedEmail);
-  }, [navigate]);
+
+    // ✅ If redirected here after clicking verification link, show success + send to login
+    const params = new URLSearchParams(location.search);
+    const verified = params.get("verified");
+
+    if (verified === "1") {
+      setStatus({
+        type: "success",
+        message: "Email verified successfully. Redirecting to login…",
+      });
+
+      // optional: clear email after verification
+      // localStorage.removeItem("pawfection_user_email");
+
+      setTimeout(() => navigate("/login"), 1200);
+    }
+  }, [navigate, location.search]);
 
   async function resendEmail() {
     setStatus({ type: "loading", message: "Resending verification email..." });
@@ -27,8 +47,6 @@ export default function VerifyEmail() {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          // ✅ Backend expects auth user normally. We'll still call it,
-          // but you MUST protect it properly later.
           body: JSON.stringify({ email }),
         }
       );
@@ -119,7 +137,7 @@ export default function VerifyEmail() {
 
         <div style={{ marginTop: 18 }}>
           <button
-            onClick={() => navigate("/register")}
+            onClick={() => navigate("/login")}
             style={{
               border: "none",
               background: "transparent",
@@ -129,7 +147,7 @@ export default function VerifyEmail() {
               fontWeight: 700,
             }}
           >
-            Back to Register
+            Back to Login
           </button>
         </div>
       </div>

@@ -27,6 +27,18 @@ Route::post('/register', [RegisterController::class, 'apiStore'])
 Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:10,1'); // basic protection
 
+// ✅ Logout (User Story 1342) - secure logout using Sanctum token
+Route::middleware('auth:sanctum')->post('/logout', function (Request $request) {
+
+    // Delete ONLY the token used for this request
+    $request->user()->currentAccessToken()->delete();
+
+    return response()->json([
+        'message' => 'Logged out'
+    ], 200);
+
+});
+
 // ✅ Resend verification email (User Story 1317)
 Route::post('/email/verification-notification', function (Request $request) {
 
