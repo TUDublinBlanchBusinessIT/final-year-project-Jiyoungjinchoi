@@ -17,11 +17,28 @@ export default function Dashboard() {
   const user = JSON.parse(localStorage.getItem("pawfection_user") || "{}");
   const isVerified = !!user.email_verified_at;
 
-  function logout() {
-    localStorage.removeItem("pawfection_token");
-    localStorage.removeItem("pawfection_user");
-    localStorage.removeItem("pawfection_user_email");
-    navigate("/login");
+  async function logout() {
+    const token = localStorage.getItem("pawfection_token");
+
+    try {
+      if (token) {
+        await fetch("http://127.0.0.1:8000/api/logout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+    } catch (err) {
+      console.error("Logout request failed:", err);
+      // Still continue to clear local auth below
+    } finally {
+      localStorage.removeItem("pawfection_token");
+      localStorage.removeItem("pawfection_user");
+      localStorage.removeItem("pawfection_user_email");
+      navigate("/login");
+    }
   }
 
   return (
