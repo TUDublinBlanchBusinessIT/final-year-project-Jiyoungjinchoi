@@ -14,6 +14,7 @@ export default function VerifyEmail() {
     return params.get("verified"); // "1", "0", or null
   }, [location.search]);
 
+  // Load saved email (used for resend)
   useEffect(() => {
     const savedEmail = localStorage.getItem("pawfection_user_email") || "";
     setEmail(savedEmail);
@@ -22,7 +23,10 @@ export default function VerifyEmail() {
   // ✅ If verification completed, show message and redirect to login
   useEffect(() => {
     if (verifiedParam === "1") {
-      setStatus({ type: "success", message: "Verification Completed ✅ You can now log in." });
+      setStatus({
+        type: "success",
+        message: "Verification Completed ✅ You can now log in.",
+      });
 
       const timer = setTimeout(() => {
         navigate("/login");
@@ -34,7 +38,8 @@ export default function VerifyEmail() {
     if (verifiedParam === "0") {
       setStatus({
         type: "error",
-        message: "Invalid or expired verification link. Please resend the verification email.",
+        message:
+          "Invalid or expired verification link. Please resend the verification email.",
       });
     }
   }, [verifiedParam, navigate]);
@@ -69,7 +74,7 @@ export default function VerifyEmail() {
 
       setStatus({
         type: "success",
-        message: data.message || "Verification email sent! Please check your email/log again.",
+        message: data.message || "Verification email sent! Please check again.",
       });
     } catch (error) {
       setStatus({ type: "error", message: error.message || "Failed to fetch" });
@@ -113,7 +118,7 @@ export default function VerifyEmail() {
           maxWidth: 520,
           background: cardBg,
           borderRadius: 22,
-          padding: 24,
+          padding: 28,
           boxShadow: "0 12px 35px rgba(0,0,0,.07)",
           textAlign: "center",
         }}
@@ -136,8 +141,8 @@ export default function VerifyEmail() {
         {status.type !== "idle" && (
           <div
             style={{
-              marginTop: 16,
-              padding: "10px 12px",
+              marginTop: 20,
+              padding: "12px 16px",
               borderRadius: 14,
               background: statusBg,
               border:
@@ -156,11 +161,14 @@ export default function VerifyEmail() {
                 ? "Please wait"
                 : "Attention"}
             </strong>
-            <div style={{ marginTop: 4 }}>{status.message}</div>
+            <div style={{ marginTop: 6 }}>{status.message}</div>
+            {verifiedParam === "1" && (
+              <div style={{ marginTop: 6 }}>Redirecting to login…</div>
+            )}
           </div>
         )}
 
-        {/* ✅ Success state: show a button to go to login immediately */}
+        {/* ✅ Success state: allow manual navigation too */}
         {verifiedParam === "1" && (
           <button
             onClick={() => navigate("/login")}
@@ -179,7 +187,7 @@ export default function VerifyEmail() {
           </button>
         )}
 
-        {/* ❌ Normal or failed state: allow resend */}
+        {/* ❌ Normal/failed state: allow resend */}
         {verifiedParam !== "1" && (
           <button
             onClick={resendEmail}
