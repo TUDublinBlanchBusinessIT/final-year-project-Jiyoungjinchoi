@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
+import LandingPage from "./pages/LandingPage";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import VerifyEmail from "./pages/VerifyEmail";
@@ -9,8 +10,8 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Default route */}
-        <Route path="/" element={<Navigate to="/login" />} />
+        {/* Landing Page (NEW DEFAULT PAGE) */}
+        <Route path="/" element={<LandingPage />} />
 
         {/* Auth routes */}
         <Route path="/register" element={<Register />} />
@@ -21,7 +22,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
 
         {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/login" />} />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );
