@@ -1,0 +1,218 @@
+/* Page background + font should match your login/register style */
+.pf-page {
+  min-height: 100vh;
+  color: #111827;
+  font-family: inherit; /* uses your global font */
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 228, 230, 0.6), transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(219, 234, 254, 0.6), transparent 45%),
+    radial-gradient(circle at 50% 90%, rgba(220, 252, 231, 0.6), transparent 45%);
+}
+
+/* Header */
+.pf-header {
+  max-width: 950px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pf-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pf-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.pf-brand {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+/* Nav links */
+.pf-nav {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pf-nav-link {
+  text-decoration: none;
+  color: #111827;
+  font-weight: 600;
+  padding-bottom: 4px;
+  border-bottom: 3px solid transparent;
+}
+
+.pf-nav-link:hover {
+  border-bottom: 3px solid #111827;
+}
+
+/* Divider line under header */
+.pf-divider {
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Main container */
+.pf-container {
+  max-width: 950px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+.pf-title {
+  text-align: center;
+  font-size: 36px;
+  font-weight: 900;
+  margin: 12px 0 18px;
+}
+
+/* Reusable card */
+.pf-card {
+  border: 2px solid #111827;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* Welcome */
+.pf-welcome {
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pf-welcome-text {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Buttons (match landing page vibe) */
+.pf-btn {
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 2px solid #111827;
+  background: #fff;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.pf-btn:hover {
+  transform: translateY(-1px);
+}
+
+.pf-btn-outline {
+  background: #fff;
+}
+
+/* Gradient primary buttons like landing page */
+.pf-btn-primary {
+  background: linear-gradient(90deg, #fb7185, #60a5fa);
+  color: #fff;
+  border: none;
+}
+
+.pf-btn-primary:hover {
+  opacity: 0.92;
+}
+
+/* Quick action row */
+.pf-actions {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+/* Sections */
+.pf-section {
+  margin-top: 20px;
+}
+
+.pf-section-title {
+  font-size: 22px;
+  font-weight: 900;
+  margin: 0 0 12px;
+}
+
+/* ✅ Pets section: single centered card */
+.pf-grid-3 {
+  display: flex;
+  justify-content: center;
+}
+
+.pf-pet-card {
+  padding: 16px;
+  min-height: 120px;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.pf-img-box {
+  width: 72px;
+  height: 72px;
+  border: 2px solid #111827;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+}
+
+/* Reminders list */
+.pf-reminders {
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.pf-reminder-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 6px;
+  gap: 12px;
+}
+
+.pf-reminder-row + .pf-reminder-row {
+  border-top: 1px solid #e5e7eb;
+}
+
+.pf-reminder-text {
+  font-weight: 700;
+}
+
+.pf-reminder-date {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+  .pf-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .pf-title {
+    font-size: 30px;
+  }
+
+  .pf-brand {
+    font-size: 24px;
+  }
+
+  .pf-pet-card {
+    max-width: 100%;
+  }
+}
