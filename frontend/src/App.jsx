@@ -4,6 +4,7 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import VerifyEmail from "./pages/VerifyEmail";
 import Dashboard from "./pages/Dashboard";
+import CreatePet from "./pages/CreatePet"; // ✅ NEW
 
 export default function App() {
   return (
@@ -19,6 +20,9 @@ export default function App() {
 
         {/* Dashboard */}
         <Route path="/dashboard" element={<Dashboard />} />
+
+        {/* ✅ Pets */}
+        <Route path="/pets/create" element={<CreatePet />} />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/login" />} />

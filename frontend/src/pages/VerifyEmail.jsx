@@ -19,29 +19,54 @@ export default function VerifyEmail() {
     setStatus({ type: "loading", message: "Resending verification email..." });
 
     try {
+      const token = localStorage.getItem("pawfection_token");
+
+      // If user is not logged in, we can still try using the email-based route
+      // (ONLY if backend supports it). Otherwise you need the token.
+      const headers = {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      };
+
+      // ✅ Add token if it exists (fixes most "Failed to fetch" + 401 issues)
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const response = await fetch(
         "http://127.0.0.1:8000/api/email/verification-notification",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          // ✅ Backend expects auth user normally. We'll still call it,
-          // but you MUST protect it properly later.
+          headers,
           body: JSON.stringify({ email }),
         }
       );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to resend email.");
+      // In case Laravel returns HTML error page, protect JSON parsing
+      const text = await response.text();
+      let data = {};
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        // Not JSON
       }
 
-      setStatus({ type: "success", message: data.message || "Email sent!" });
+      if (!response.ok) {
+        const msg =
+          data?.message ||
+          `Request failed (${response.status}). Check backend route/auth/CORS.`;
+        throw new Error(msg);
+      }
+
+      setStatus({
+        type: "success",
+        message: data.message || "Verification email sent!",
+      });
     } catch (error) {
-      setStatus({ type: "error", message: error.message || "Failed to fetch" });
+      setStatus({
+        type: "error",
+        message: error.message || "Failed to fetch",
+      });
     }
   }
 
