@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PetController;
 use App\Models\User;
 
 /*
@@ -14,18 +15,18 @@ use App\Models\User;
 | middleware group. They will be available under /api/...
 */
 
-// ✅ Health check (optional but useful)
+// ✅ Health check
 Route::get('/health', function () {
     return response()->json(['status' => 'ok'], 200);
 });
 
 // ✅ Register (User Story: Registration + Email Verification)
 Route::post('/register', [RegisterController::class, 'apiStore'])
-    ->middleware('throttle:10,1'); // 10 requests per minute
+    ->middleware('throttle:10,1');
 
 // ✅ Login (User Story 1337)
 Route::post('/login', [AuthController::class, 'login'])
-    ->middleware('throttle:10,1'); // basic protection
+    ->middleware('throttle:10,1');
 
 // ✅ Resend verification email (User Story 1317)
 Route::post('/email/verification-notification', function (Request $request) {
@@ -48,11 +49,21 @@ Route::post('/email/verification-notification', function (Request $request) {
         ], 400);
     }
 
-    // Send the verification email
     $user->sendEmailVerificationNotification();
 
     return response()->json([
         'message' => 'Verification email sent.'
     ], 200);
 
-})->middleware('throttle:3,1'); // max 3 resends per minute
+})->middleware('throttle:3,1');
+
+
+// ✅ Pets (User Story 1506 - Create Pet Profile)
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Get logged-in user's pets (for dashboard)
+    Route::get('/pets', [PetController::class, 'index']);
+
+    // Create a new pet profile
+    Route::post('/pets', [PetController::class, 'store']);
+});
