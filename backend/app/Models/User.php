@@ -30,4 +30,10 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
         ];
     }
+
+    // 👇 ADD THIS
+    public function pets()
+    {
+        return $this->hasMany(Pet::class);
+    }
 }
