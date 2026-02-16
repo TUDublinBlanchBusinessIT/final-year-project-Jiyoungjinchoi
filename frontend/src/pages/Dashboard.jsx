@@ -126,7 +126,7 @@ export default function Dashboard() {
         <div className="pf-actions">
           <button
             className="pf-btn pf-btn-primary"
-            onClick={() => navigate("/pets/create")}  // ✅ FIXED ROUTE
+            onClick={() => navigate("/pets/create")}
           >
             Add Pet
           </button>
@@ -177,31 +177,43 @@ export default function Dashboard() {
                   <div
                     key={pet.id}
                     className="pf-card pf-pet-card"
-                    style={{ maxWidth: 520 }}
+                    style={{ maxWidth: 520, justifyContent: "space-between" }}
                   >
-                    <div className="pf-img-box" style={{ overflow: "hidden" }}>
-                      {imgSrc ? (
-                        <img
-                          src={imgSrc}
-                          alt={pet.name}
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                      ) : (
-                        "img"
-                      )}
+                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                      <div className="pf-img-box" style={{ overflow: "hidden" }}>
+                        {imgSrc ? (
+                          <img
+                            src={imgSrc}
+                            alt={pet.name}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                        ) : (
+                          "img"
+                        )}
+                      </div>
+
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: 18 }}>
+                          {pet.name}
+                        </div>
+                        <div style={{ fontWeight: 700 }}>
+                          {pet.breed || pet.species || "Pet"}
+                        </div>
+                        <div style={{ marginTop: 4, fontSize: 14, fontWeight: 600 }}>
+                          {pet.age ? `${pet.age} years old` : "Age not set"}
+                          {pet.weight ? ` • ${pet.weight}kg` : ""}
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <div style={{ fontWeight: 900, fontSize: 18 }}>
-                        {pet.name}
-                      </div>
-                      <div style={{ fontWeight: 700 }}>
-                        {pet.breed || pet.species || "Pet"}
-                      </div>
-                      <div style={{ marginTop: 4, fontSize: 14, fontWeight: 600 }}>
-                        {pet.age ? `${pet.age} years old` : "Age not set"}
-                        {pet.weight ? ` • ${pet.weight}kg` : ""}
-                      </div>
+                    {/* ✅ EDIT BUTTON */}
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <button
+                        className="pf-btn pf-btn-outline"
+                        onClick={() => navigate(`/pets/${pet.id}/edit`)}
+                      >
+                        Edit
+                      </button>
                     </div>
                   </div>
                 );
