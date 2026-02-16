@@ -1,86 +1,100 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "./CreatePet.css";
 
 export default function CreatePet() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
     name: "",
+    species: "",
     breed: "",
-    age: "",
+    dob: "",
+    age: "", // ✅ add age
+    gender: "",
+    weight: "",
     notes: "",
   });
 
   const [photo, setPhoto] = useState(null);
-  const [errors, setErrors] = useState({});
-  const [apiError, setApiError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const token = localStorage.getItem("pawfection_token");
-
-  useEffect(() => {
-    // If not logged in, send user to login
-    if (!token) navigate("/login");
-  }, [token, navigate]);
-
-  const validate = () => {
-    const newErrors = {};
-
-    if (!form.name.trim()) newErrors.name = "Pet name is required.";
-    if (!form.breed.trim()) newErrors.breed = "Breed is required.";
-
-    if (!form.age || isNaN(form.age)) {
-      newErrors.age = "Age must be a number.";
-    } else if (Number(form.age) < 0 || Number(form.age) > 100) {
-      newErrors.age = "Age must be between 0 and 100.";
-    }
-
-    // Photo validation (optional but validated if provided)
-    if (photo) {
-      const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
-      const maxSize = 2 * 1024 * 1024; // 2MB
-
-      if (!allowedTypes.includes(photo.type)) {
-        newErrors.photo = "Photo must be JPG, PNG, or WEBP.";
-      }
-      if (photo.size > maxSize) {
-        newErrors.photo = "Photo must be under 2MB.";
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
   const onChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const onSubmit = async (e) => {
+  // ✅ calculate age from YYYY-MM-DD
+  const calcAgeFromDob = (dobStr) => {
+    if (!dobStr) return "";
+    const dob = new Date(dobStr);
+    if (Number.isNaN(dob.getTime())) return "";
+
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    return age < 0 ? "" : age;
+  };
+
+  const submit = async (e) => {
     e.preventDefault();
-    setApiError("");
+    setError("");
     setSuccess("");
 
-    if (!validate()) return;
+    if (!token) {
+      setError("You must be logged in.");
+      return;
+    }
+
+    if (!form.name.trim() || !form.species.trim()) {
+      setError("Please fill in required fields: Name and Species.");
+      return;
+    }
+
+    // ✅ If age not entered but DOB is, auto-calc age
+    const computedAge =
+      form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
+
+    // ✅ Backend currently requires age, so make sure we send it
+    if (computedAge === "" || Number.isNaN(Number(computedAge))) {
+      setError("Please enter Age, or select Date of Birth (so we can calculate it).");
+      return;
+    }
+
+    if (photo) {
+      const allowed = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+      if (!allowed.includes(photo.type)) {
+        setError("Photo must be JPG, PNG, or WEBP.");
+        return;
+      }
+      if (photo.size > 2 * 1024 * 1024) {
+        setError("Photo must be 2MB or less.");
+        return;
+      }
+    }
+
+    const fd = new FormData();
+    fd.append("name", form.name);
+    fd.append("species", form.species);
+    if (form.breed) fd.append("breed", form.breed);
+    if (form.dob) fd.append("dob", form.dob);
+    fd.append("age", String(computedAge)); // ✅ ALWAYS send age
+    if (form.gender) fd.append("gender", form.gender);
+    if (form.weight !== "") fd.append("weight", form.weight);
+    if (form.notes) fd.append("notes", form.notes);
+    if (photo) fd.append("photo", photo);
 
     setLoading(true);
-
     try {
-      const fd = new FormData();
-      fd.append("name", form.name);
-      fd.append("breed", form.breed);
-      fd.append("age", form.age);
-      fd.append("notes", form.notes);
-
-      if (photo) fd.append("photo", photo);
-
       const res = await fetch("http://127.0.0.1:8000/api/pets", {
         method: "POST",
         headers: {
-          Accept: "application/json",
           Authorization: `Bearer ${token}`,
-          // ✅ DO NOT set Content-Type manually with FormData
+          Accept: "application/json",
         },
         body: fd,
       });
@@ -88,16 +102,11 @@ export default function CreatePet() {
       const data = await res.json();
 
       if (!res.ok) {
-        // Laravel validation errors
-        if (data?.errors) {
-          const mapped = {};
-          Object.keys(data.errors).forEach((key) => {
-            mapped[key] = data.errors[key][0];
-          });
-          setErrors(mapped);
-        } else {
-          setApiError(data?.message || "Something went wrong.");
-        }
+        const msg =
+          data?.message ||
+          (data?.errors ? Object.values(data.errors).flat().join(" ") : "") ||
+          "Failed to create pet.";
+        setError(msg);
         setLoading(false);
         return;
       }
@@ -105,156 +114,142 @@ export default function CreatePet() {
       setSuccess("Pet created successfully!");
       setLoading(false);
 
-      // redirect back to dashboard after small moment
-      setTimeout(() => navigate("/dashboard"), 700);
+      // ✅ Go dashboard
+      setTimeout(() => navigate("/dashboard"), 600);
     } catch (err) {
+      setError("Failed to fetch. Is the backend running?");
       setLoading(false);
-      setApiError("Server error. Is your backend running?");
     }
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "24px",
-        background:
-          "radial-gradient(circle at top, rgba(255,255,255,0.12), rgba(0,0,0,0.9))",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "520px",
-          background: "rgba(255,255,255,0.08)",
-          border: "1px solid rgba(255,255,255,0.15)",
-          borderRadius: "16px",
-          padding: "24px",
-          backdropFilter: "blur(10px)",
-        }}
-      >
-        <h2 style={{ color: "white", marginBottom: "8px" }}>Create Pet Profile</h2>
-        <p style={{ color: "rgba(255,255,255,0.75)", marginBottom: "18px" }}>
+    <div className="pf-auth-page">
+      <div className="pf-auth-card">
+        <h1 className="pf-auth-title">Create Pet Profile</h1>
+        <p className="pf-auth-subtitle">
           Add your pet details so they appear on your dashboard.
         </p>
 
-        {apiError && (
-          <div style={{ background: "rgba(255,0,0,0.15)", color: "white", padding: "10px", borderRadius: "10px", marginBottom: "12px" }}>
-            {apiError}
+        {error && <div className="pf-alert pf-alert-error">{error}</div>}
+        {success && <div className="pf-alert pf-alert-success">{success}</div>}
+
+        <form onSubmit={submit} className="pf-form">
+          <div className="pf-grid">
+            <div className="pf-field">
+              <label>Name *</label>
+              <input
+                name="name"
+                value={form.name}
+                onChange={onChange}
+                placeholder="e.g. Bella"
+              />
+            </div>
+
+            <div className="pf-field">
+              <label>Species *</label>
+              <input
+                name="species"
+                value={form.species}
+                onChange={onChange}
+                placeholder="e.g. Dog"
+              />
+            </div>
+
+            <div className="pf-field">
+              <label>Breed</label>
+              <input
+                name="breed"
+                value={form.breed}
+                onChange={onChange}
+                placeholder="e.g. Husky"
+              />
+            </div>
+
+            <div className="pf-field">
+              <label>Date of Birth</label>
+              <input
+                type="date"
+                name="dob"
+                value={form.dob}
+                onChange={(e) => {
+                  const dob = e.target.value;
+                  const autoAge = calcAgeFromDob(dob);
+                  setForm((prev) => ({
+                    ...prev,
+                    dob,
+                    age: prev.age === "" ? String(autoAge) : prev.age, // ✅ only auto-fill if age empty
+                  }));
+                }}
+              />
+            </div>
+
+            {/* ✅ NEW AGE FIELD */}
+            <div className="pf-field">
+              <label>Age *</label>
+              <input
+                type="number"
+                min="0"
+                name="age"
+                value={form.age}
+                onChange={onChange}
+                placeholder="e.g. 3"
+              />
+            </div>
+
+            <div className="pf-field">
+              <label>Gender</label>
+              <select name="gender" value={form.gender} onChange={onChange}>
+                <option value="">Select</option>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Unknown">Unknown</option>
+              </select>
+            </div>
+
+            <div className="pf-field">
+              <label>Weight (kg)</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                name="weight"
+                value={form.weight}
+                onChange={onChange}
+                placeholder="e.g. 12.5"
+              />
+            </div>
+
+            <div className="pf-field pf-span-2">
+              <label>Notes</label>
+              <textarea
+                name="notes"
+                value={form.notes}
+                onChange={onChange}
+                rows={4}
+                placeholder="Anything important about your pet..."
+              />
+            </div>
+
+            <div className="pf-field pf-file pf-span-2">
+              <label>Photo (optional)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPhoto(e.target.files?.[0] || null)}
+              />
+              <span className="pf-help">JPG/PNG/WEBP, max 2MB</span>
+            </div>
           </div>
-        )}
 
-        {success && (
-          <div style={{ background: "rgba(0,255,0,0.12)", color: "white", padding: "10px", borderRadius: "10px", marginBottom: "12px" }}>
-            {success}
+          <div className="pf-actions-row">
+            <button className="pf-btn pf-btn-primary" type="submit" disabled={loading}>
+              {loading ? "Creating..." : "Create Pet"}
+            </button>
+
+            <button type="button" className="pf-btn" onClick={() => navigate("/dashboard")}>
+              Cancel
+            </button>
           </div>
-        )}
-
-        <form onSubmit={onSubmit}>
-          {/* Name */}
-          <div style={{ marginBottom: "12px" }}>
-            <label style={{ color: "white", display: "block", marginBottom: "6px" }}>Name *</label>
-            <input
-              name="name"
-              value={form.name}
-              onChange={onChange}
-              placeholder="e.g. Bella"
-              style={{ width: "100%", padding: "12px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.2)", background: "rgba(0,0,0,0.25)", color: "white" }}
-            />
-            {errors.name && <small style={{ color: "#ffb3b3" }}>{errors.name}</small>}
-          </div>
-
-          {/* Breed */}
-          <div style={{ marginBottom: "12px" }}>
-            <label style={{ color: "white", display: "block", marginBottom: "6px" }}>Breed *</label>
-            <input
-              name="breed"
-              value={form.breed}
-              onChange={onChange}
-              placeholder="e.g. Husky"
-              style={{ width: "100%", padding: "12px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.2)", background: "rgba(0,0,0,0.25)", color: "white" }}
-            />
-            {errors.breed && <small style={{ color: "#ffb3b3" }}>{errors.breed}</small>}
-          </div>
-
-          {/* Age */}
-          <div style={{ marginBottom: "12px" }}>
-            <label style={{ color: "white", display: "block", marginBottom: "6px" }}>Age *</label>
-            <input
-              name="age"
-              value={form.age}
-              onChange={onChange}
-              placeholder="e.g. 3"
-              type="number"
-              style={{ width: "100%", padding: "12px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.2)", background: "rgba(0,0,0,0.25)", color: "white" }}
-            />
-            {errors.age && <small style={{ color: "#ffb3b3" }}>{errors.age}</small>}
-          </div>
-
-          {/* Notes */}
-          <div style={{ marginBottom: "12px" }}>
-            <label style={{ color: "white", display: "block", marginBottom: "6px" }}>Notes</label>
-            <textarea
-              name="notes"
-              value={form.notes}
-              onChange={onChange}
-              placeholder="Any extra info..."
-              rows={3}
-              style={{ width: "100%", padding: "12px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.2)", background: "rgba(0,0,0,0.25)", color: "white" }}
-            />
-            {errors.notes && <small style={{ color: "#ffb3b3" }}>{errors.notes}</small>}
-          </div>
-
-          {/* Photo */}
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ color: "white", display: "block", marginBottom: "6px" }}>Photo (optional)</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setPhoto(e.target.files?.[0] || null)}
-              style={{ color: "white" }}
-            />
-            {errors.photo && <small style={{ color: "#ffb3b3" }}>{errors.photo}</small>}
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "14px",
-              border: "none",
-              cursor: "pointer",
-              color: "white",
-              fontWeight: 700,
-              background: "linear-gradient(135deg, #ff6b9e, #7c5cff)",
-              opacity: loading ? 0.7 : 1,
-            }}
-          >
-            {loading ? "Creating..." : "Create Pet"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate("/dashboard")}
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "14px",
-              border: "1px solid rgba(255,255,255,0.25)",
-              cursor: "pointer",
-              color: "white",
-              fontWeight: 600,
-              background: "transparent",
-              marginTop: "10px",
-            }}
-          >
-            Cancel
-          </button>
         </form>
       </div>
     </div>
