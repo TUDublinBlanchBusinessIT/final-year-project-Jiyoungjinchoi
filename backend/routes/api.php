@@ -20,15 +20,15 @@ Route::get('/health', function () {
     return response()->json(['status' => 'ok'], 200);
 });
 
-// ✅ Register (User Story: Registration + Email Verification)
+// ✅ Register
 Route::post('/register', [RegisterController::class, 'apiStore'])
     ->middleware('throttle:10,1');
 
-// ✅ Login (User Story 1337)
+// ✅ Login
 Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:10,1');
 
-// ✅ Resend verification email (User Story 1317)
+// ✅ Resend verification email
 Route::post('/email/verification-notification', function (Request $request) {
 
     $validated = $request->validate([
@@ -38,32 +38,33 @@ Route::post('/email/verification-notification', function (Request $request) {
     $user = User::where('email', $validated['email'])->first();
 
     if (!$user) {
-        return response()->json([
-            'message' => 'User not found.'
-        ], 404);
+        return response()->json(['message' => 'User not found.'], 404);
     }
 
     if ($user->hasVerifiedEmail()) {
-        return response()->json([
-            'message' => 'Email already verified.'
-        ], 400);
+        return response()->json(['message' => 'Email already verified.'], 400);
     }
 
     $user->sendEmailVerificationNotification();
 
-    return response()->json([
-        'message' => 'Verification email sent.'
-    ], 200);
+    return response()->json(['message' => 'Verification email sent.'], 200);
 
 })->middleware('throttle:3,1');
 
 
-// ✅ Pets (User Story 1506 - Create Pet Profile)
+// ✅ Pets (Create + Read + Edit)
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Get logged-in user's pets (for dashboard)
+    // List logged-in user's pets (Dashboard)
     Route::get('/pets', [PetController::class, 'index']);
 
-    // Create a new pet profile
+    // ✅ Show one pet (Edit page prefill)
+    Route::get('/pets/{pet}', [PetController::class, 'show']);
+
+    // Create pet
     Route::post('/pets', [PetController::class, 'store']);
+
+    // ✅ Update pet (Edit save)
+    Route::put('/pets/{pet}', [PetController::class, 'update']);
+    Route::patch('/pets/{pet}', [PetController::class, 'update']);
 });
