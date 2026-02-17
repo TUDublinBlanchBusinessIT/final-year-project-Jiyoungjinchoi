@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import "./CreatePet.css";
+import "./EditPet.css";
 
 export default function EditPet() {
   const navigate = useNavigate();

@@ -10,7 +10,7 @@ export default function CreatePet() {
     species: "",
     breed: "",
     dob: "",
-    age: "", // ✅ add age
+    age: "",
     gender: "",
     weight: "",
     notes: "",
@@ -27,7 +27,6 @@ export default function CreatePet() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // ✅ calculate age from YYYY-MM-DD
   const calcAgeFromDob = (dobStr) => {
     if (!dobStr) return "";
     const dob = new Date(dobStr);
@@ -55,11 +54,8 @@ export default function CreatePet() {
       return;
     }
 
-    // ✅ If age not entered but DOB is, auto-calc age
-    const computedAge =
-      form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
+    const computedAge = form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
 
-    // ✅ Backend currently requires age, so make sure we send it
     if (computedAge === "" || Number.isNaN(Number(computedAge))) {
       setError("Please enter Age, or select Date of Birth (so we can calculate it).");
       return;
@@ -82,7 +78,7 @@ export default function CreatePet() {
     fd.append("species", form.species);
     if (form.breed) fd.append("breed", form.breed);
     if (form.dob) fd.append("dob", form.dob);
-    fd.append("age", String(computedAge)); // ✅ ALWAYS send age
+    fd.append("age", String(computedAge));
     if (form.gender) fd.append("gender", form.gender);
     if (form.weight !== "") fd.append("weight", form.weight);
     if (form.notes) fd.append("notes", form.notes);
@@ -114,9 +110,8 @@ export default function CreatePet() {
       setSuccess("Pet created successfully!");
       setLoading(false);
 
-      // ✅ Go dashboard
       setTimeout(() => navigate("/dashboard"), 600);
-    } catch (err) {
+    } catch {
       setError("Failed to fetch. Is the backend running?");
       setLoading(false);
     }
@@ -177,13 +172,12 @@ export default function CreatePet() {
                   setForm((prev) => ({
                     ...prev,
                     dob,
-                    age: prev.age === "" ? String(autoAge) : prev.age, // ✅ only auto-fill if age empty
+                    age: prev.age === "" ? String(autoAge) : prev.age,
                   }));
                 }}
               />
             </div>
 
-            {/* ✅ NEW AGE FIELD */}
             <div className="pf-field">
               <label>Age *</label>
               <input
