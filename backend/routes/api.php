@@ -52,7 +52,7 @@ Route::post('/email/verification-notification', function (Request $request) {
 })->middleware('throttle:3,1');
 
 
-// ✅ Pets (Create + Read + Edit)
+// ✅ Pets (Create + Read + Edit + Delete)
 Route::middleware('auth:sanctum')->group(function () {
 
     // List logged-in user's pets (Dashboard)
@@ -67,4 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ✅ Update pet (Edit save)
     Route::put('/pets/{pet}', [PetController::class, 'update']);
     Route::patch('/pets/{pet}', [PetController::class, 'update']);
+
+    // ✅ Delete pet
+    Route::delete('/pets/{pet}', [PetController::class, 'destroy']);
 });

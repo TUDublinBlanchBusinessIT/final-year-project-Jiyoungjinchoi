@@ -108,4 +108,23 @@ class PetController extends Controller
             'pet' => $pet
         ], 200);
     }
+
+    // ✅ Delete a pet profile
+    public function destroy(Pet $pet)
+    {
+        if ($pet->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // ✅ Delete stored photo file (if exists)
+        if ($pet->photo_path && Storage::disk('public')->exists($pet->photo_path)) {
+            Storage::disk('public')->delete($pet->photo_path);
+        }
+
+        $pet->delete();
+
+        return response()->json([
+            'message' => 'Pet deleted successfully'
+        ], 200);
+    }
 }
