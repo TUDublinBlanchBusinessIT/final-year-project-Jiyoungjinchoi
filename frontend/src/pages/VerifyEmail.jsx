@@ -7,9 +7,22 @@ export default function VerifyEmail() {
   const [email, setEmail] = useState("");
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    // ✅ If user arrived here after clicking verification link
+    if (params.get("verified") === "1") {
+      setStatus({ type: "success", message: "Email verified successfully!" });
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+
+      return;
+    }
+
     const savedEmail = localStorage.getItem("pawfection_user_email");
     if (!savedEmail) {
-      navigate("/register");
+      navigate("/login");
       return;
     }
     setEmail(savedEmail);
@@ -144,7 +157,7 @@ export default function VerifyEmail() {
 
         <div style={{ marginTop: 18 }}>
           <button
-            onClick={() => navigate("/register")}
+            onClick={() => navigate("/login")}
             style={{
               border: "none",
               background: "transparent",
@@ -154,7 +167,7 @@ export default function VerifyEmail() {
               fontWeight: 700,
             }}
           >
-            Back to Register
+            Back to Login
           </button>
         </div>
       </div>

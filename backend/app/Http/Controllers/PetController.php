@@ -15,7 +15,7 @@ class PetController extends Controller
         return response()->json(Auth::user()->pets, 200);
     }
 
-    // ✅ Get a single pet (Edit page)
+    // ✅ Get a single pet (Edit / Overview page)
     public function show(Pet $pet)
     {
         if ($pet->user_id !== Auth::id()) {
@@ -33,6 +33,7 @@ class PetController extends Controller
             'species' => 'required|string|max:255',
             'breed'   => 'nullable|string|max:255',
             'dob'     => 'nullable|date',
+            'age'     => 'required|integer|min:0', // ✅ REQUIRED (DB has NOT NULL)
             'gender'  => 'nullable|string|max:50',
             'weight'  => 'nullable|numeric|min:0',
             'notes'   => 'nullable|string',
@@ -53,6 +54,7 @@ class PetController extends Controller
             'species'    => $validated['species'],
             'breed'      => $validated['breed'] ?? null,
             'dob'        => $validated['dob'] ?? null,
+            'age'        => $validated['age'], // ✅ FIXED
             'gender'     => $validated['gender'] ?? null,
             'weight'     => $validated['weight'] ?? null,
             'notes'      => $validated['notes'] ?? null,
@@ -77,6 +79,7 @@ class PetController extends Controller
             'species' => 'required|string|max:255',
             'breed'   => 'nullable|string|max:255',
             'dob'     => 'nullable|date',
+            'age'     => 'required|integer|min:0', // ✅ FIXED
             'gender'  => 'nullable|string|max:50',
             'weight'  => 'nullable|numeric|min:0',
             'notes'   => 'nullable|string',
@@ -97,6 +100,7 @@ class PetController extends Controller
         $pet->species = $validated['species'];
         $pet->breed = $validated['breed'] ?? null;
         $pet->dob = $validated['dob'] ?? null;
+        $pet->age = $validated['age']; // ✅ FIXED
         $pet->gender = $validated['gender'] ?? null;
         $pet->weight = $validated['weight'] ?? null;
         $pet->notes = $validated['notes'] ?? null;
