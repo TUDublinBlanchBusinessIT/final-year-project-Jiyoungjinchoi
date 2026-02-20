@@ -6,7 +6,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PetController;
 use App\Models\User;
-
+use App\Http\Controllers\PostController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -70,4 +70,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ✅ Delete pet
     Route::delete('/pets/{pet}', [PetController::class, 'destroy']);
+
+        // ✅ Community posts
+    Route::get('/posts', [PostController::class, 'index']);
+    Route::post('/posts', [PostController::class, 'store']);
 });
