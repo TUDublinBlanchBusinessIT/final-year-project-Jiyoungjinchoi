@@ -9,6 +9,7 @@ import CreatePet from "./pages/CreatePet";
 import EditPet from "./pages/EditPet";
 import MyPets from "./pages/MyPets";
 import PetOverview from "./pages/PetOverview";
+import Community from "./pages/Community";
 
 // Temporary placeholder pages (until you build them properly)
 function Placeholder({ title }) {
@@ -40,14 +41,16 @@ export default function App() {
         <Route path="/pets/:id/edit" element={<EditPet />} />
         <Route path="/pets/:id" element={<PetOverview />} />
 
-        {/* Sidebar pages (temporary placeholders) */}
+        {/* Sidebar pages */}
         <Route path="/mypets" element={<MyPets />} />
+        <Route path="/community" element={<Community />} />
+
+        {/* Still placeholders for now */}
         <Route path="/appointments" element={<Placeholder title="Appointments" />} />
         <Route path="/appointments/book" element={<Placeholder title="Book Appointment" />} />
         <Route path="/reminders" element={<Placeholder title="Reminders" />} />
         <Route path="/reminders/add" element={<Placeholder title="Add Reminder" />} />
         <Route path="/lostfound" element={<Placeholder title="Lost & Found" />} />
-        <Route path="/community" element={<Placeholder title="Community" />} />
         <Route path="/inventory" element={<Placeholder title="Inventory" />} />
         <Route path="/profile" element={<Placeholder title="Profile" />} />
 
