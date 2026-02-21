@@ -33,13 +33,11 @@ class PetController extends Controller
             'species' => 'required|string|max:255',
             'breed'   => 'nullable|string|max:255',
             'dob'     => 'nullable|date',
-            'age'     => 'required|integer|min:0', // ✅ REQUIRED (DB has NOT NULL)
+            'age'     => 'required|integer|min:0',
             'gender'  => 'nullable|string|max:50',
             'weight'  => 'nullable|numeric|min:0',
             'notes'   => 'nullable|string',
-
-            // Photo validation (type + size)
-            'photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'photo'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $photoPath = null;
@@ -54,7 +52,7 @@ class PetController extends Controller
             'species'    => $validated['species'],
             'breed'      => $validated['breed'] ?? null,
             'dob'        => $validated['dob'] ?? null,
-            'age'        => $validated['age'], // ✅ FIXED
+            'age'        => $validated['age'],
             'gender'     => $validated['gender'] ?? null,
             'weight'     => $validated['weight'] ?? null,
             'notes'      => $validated['notes'] ?? null,
@@ -79,16 +77,13 @@ class PetController extends Controller
             'species' => 'required|string|max:255',
             'breed'   => 'nullable|string|max:255',
             'dob'     => 'nullable|date',
-            'age'     => 'required|integer|min:0', // ✅ FIXED
+            'age'     => 'required|integer|min:0',
             'gender'  => 'nullable|string|max:50',
             'weight'  => 'nullable|numeric|min:0',
             'notes'   => 'nullable|string',
-
-            // Photo replace (optional)
-            'photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'photo'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
-        // If new photo uploaded, delete old one + store new one
         if ($request->hasFile('photo')) {
             if ($pet->photo_path && Storage::disk('public')->exists($pet->photo_path)) {
                 Storage::disk('public')->delete($pet->photo_path);
@@ -100,7 +95,7 @@ class PetController extends Controller
         $pet->species = $validated['species'];
         $pet->breed = $validated['breed'] ?? null;
         $pet->dob = $validated['dob'] ?? null;
-        $pet->age = $validated['age']; // ✅ FIXED
+        $pet->age = $validated['age'];
         $pet->gender = $validated['gender'] ?? null;
         $pet->weight = $validated['weight'] ?? null;
         $pet->notes = $validated['notes'] ?? null;
@@ -120,7 +115,6 @@ class PetController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // ✅ Delete stored photo file (if exists)
         if ($pet->photo_path && Storage::disk('public')->exists($pet->photo_path)) {
             Storage::disk('public')->delete($pet->photo_path);
         }

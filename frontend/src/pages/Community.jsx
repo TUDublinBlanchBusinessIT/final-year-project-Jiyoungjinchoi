@@ -17,6 +17,13 @@ export default function Community() {
   const [content, setContent] = useState("");
   const [image, setImage] = useState(null);
 
+  // ✅ Likes + Comments UI state (ADDED)
+  const [openComments, setOpenComments] = useState({}); // { [postId]: true/false }
+  const [commentsByPost, setCommentsByPost] = useState({}); // { [postId]: Comment[] }
+  const [commentDraft, setCommentDraft] = useState({}); // { [postId]: string }
+  const [likeBusy, setLikeBusy] = useState({}); // { [postId]: true/false }
+  const [commentBusy, setCommentBusy] = useState({}); // { [postId]: true/false }
+
   const token = localStorage.getItem("pawfection_token");
 
   useEffect(() => {
@@ -81,7 +88,10 @@ export default function Community() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
-  const canPost = useMemo(() => content.trim().length > 0 && content.trim().length <= 2000, [content]);
+  const canPost = useMemo(
+    () => content.trim().length > 0 && content.trim().length <= 2000,
+    [content]
+  );
 
   const submitPost = async (e) => {
     e.preventDefault();
@@ -154,6 +164,112 @@ export default function Community() {
     }
   };
 
+  // ✅ LIKE: toggle like (ADDED)
+  const toggleLike = async (postId) => {
+    if (!token) return navigate("/login");
+    if (likeBusy[postId]) return;
+
+    setLikeBusy((p) => ({ ...p, [postId]: true }));
+
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/posts/${postId}/like`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id !== postId) return p;
+
+          const prevLiked = !!p.liked_by_me;
+          const nextLiked = typeof data.liked === "boolean" ? data.liked : !prevLiked;
+
+          const nextCount =
+            typeof data.like_count === "number"
+              ? data.like_count
+              : Math.max(0, (p.like_count || 0) + (nextLiked ? 1 : -1));
+
+          return { ...p, liked_by_me: nextLiked, like_count: nextCount };
+        })
+      );
+    } finally {
+      setLikeBusy((p) => ({ ...p, [postId]: false }));
+    }
+  };
+
+  // ✅ COMMENTS: load comments for a post (ADDED)
+  const loadComments = async (postId) => {
+    if (!token) return navigate("/login");
+    if (commentsByPost[postId]) return; // already loaded
+
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/posts/${postId}/comments`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json().catch(() => []);
+      if (!res.ok) return;
+
+      setCommentsByPost((prev) => ({ ...prev, [postId]: Array.isArray(data) ? data : [] }));
+    } catch {
+      // silent
+    }
+  };
+
+  // ✅ COMMENTS: submit comment (ADDED)
+  const submitComment = async (postId) => {
+    if (!token) return navigate("/login");
+
+    const text = (commentDraft[postId] || "").trim();
+    if (!text) return;
+    if (commentBusy[postId]) return;
+
+    setCommentBusy((p) => ({ ...p, [postId]: true }));
+
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/posts/${postId}/comments`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: text }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+
+      const newComment = data.comment || data;
+
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: [newComment, ...(prev[postId] || [])],
+      }));
+
+      setCommentDraft((prev) => ({ ...prev, [postId]: "" }));
+
+      // Update comment count (visual)
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId ? { ...p, comment_count: (p.comment_count || 0) + 1 } : p
+        )
+      );
+    } finally {
+      setCommentBusy((p) => ({ ...p, [postId]: false }));
+    }
+  };
+
   const prettyDate = (iso) => {
     try {
       const d = new Date(iso);
@@ -176,13 +292,27 @@ export default function Community() {
         </div>
 
         <nav className="pf2-nav">
-          <Link className="pf2-nav-item" to="/dashboard">Dashboard</Link>
-          <Link className="pf2-nav-item" to="/mypets">My Pets</Link>
-          <Link className="pf2-nav-item" to="/appointments">Appointments</Link>
-          <Link className="pf2-nav-item" to="/reminders">Reminders</Link>
-          <Link className="pf2-nav-item" to="/lostfound">Lost &amp; Found</Link>
-          <Link className="pf2-nav-item active" to="/community">Community</Link>
-          <Link className="pf2-nav-item" to="/inventory">Inventory</Link>
+          <Link className="pf2-nav-item" to="/dashboard">
+            Dashboard
+          </Link>
+          <Link className="pf2-nav-item" to="/mypets">
+            My Pets
+          </Link>
+          <Link className="pf2-nav-item" to="/appointments">
+            Appointments
+          </Link>
+          <Link className="pf2-nav-item" to="/reminders">
+            Reminders
+          </Link>
+          <Link className="pf2-nav-item" to="/lostfound">
+            Lost &amp; Found
+          </Link>
+          <Link className="pf2-nav-item active" to="/community">
+            Community
+          </Link>
+          <Link className="pf2-nav-item" to="/inventory">
+            Inventory
+          </Link>
         </nav>
 
         <div className="pf2-sidebar-footer">
@@ -254,9 +384,7 @@ export default function Community() {
                   </button>
                 </div>
 
-                <div className="pfc-char">
-                  {content.trim().length}/2000
-                </div>
+                <div className="pfc-char">{content.trim().length}/2000</div>
               </form>
             </div>
 
@@ -270,7 +398,9 @@ export default function Community() {
               </div>
 
               {loading && <div className="pfc-empty">Loading posts…</div>}
-              {!loading && posts.length === 0 && <div className="pfc-empty">No posts yet. Be the first 🐾</div>}
+              {!loading && posts.length === 0 && (
+                <div className="pfc-empty">No posts yet. Be the first 🐾</div>
+              )}
 
               {!loading && posts.length > 0 && (
                 <div className="pfc-feedlist">
@@ -278,7 +408,9 @@ export default function Community() {
                     <div key={p.id} className="pfc-post">
                       <div className="pfc-posthead">
                         <div className="pfc-author">
-                          <div className="pfc-author-avatar">{(p?.user?.name?.[0] || "U").toUpperCase()}</div>
+                          <div className="pfc-author-avatar">
+                            {(p?.user?.name?.[0] || "U").toUpperCase()}
+                          </div>
                           <div>
                             <div className="pfc-author-name">{p?.user?.name || "User"}</div>
                             <div className="pfc-time">{prettyDate(p.created_at)}</div>
@@ -291,6 +423,78 @@ export default function Community() {
                       {p.image_url && (
                         <div className="pfc-imagewrap">
                           <img src={p.image_url} alt="Post" />
+                        </div>
+                      )}
+
+                      {/* ✅ Like + Comment actions (ADDED) */}
+                      <div className="pfc-actions">
+                        <button
+                          type="button"
+                          className={`pfc-actionbtn ${p.liked_by_me ? "is-liked" : ""}`}
+                          onClick={() => toggleLike(p.id)}
+                          disabled={!!likeBusy[p.id]}
+                          title="Like"
+                        >
+                          <span className="pfc-actionicon">{p.liked_by_me ? "❤️" : "🤍"}</span>
+                          <span>Like</span>
+                          <span className="pfc-count">{p.like_count || 0}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className={`pfc-actionbtn ${openComments[p.id] ? "is-open" : ""}`}
+                          onClick={() => {
+                            setOpenComments((prev) => ({ ...prev, [p.id]: !prev[p.id] }));
+                            if (!openComments[p.id]) loadComments(p.id);
+                          }}
+                          title="Comment"
+                        >
+                          <span className="pfc-actionicon">💬</span>
+                          <span>Comment</span>
+                          <span className="pfc-count">
+                            {p.comment_count || (commentsByPost[p.id]?.length ?? 0)}
+                          </span>
+                        </button>
+                      </div>
+
+                      {openComments[p.id] && (
+                        <div className="pfc-comments">
+                          <div className="pfc-commentbox">
+                            <input
+                              className="pfc-commentinput"
+                              value={commentDraft[p.id] || ""}
+                              onChange={(e) =>
+                                setCommentDraft((prev) => ({ ...prev, [p.id]: e.target.value }))
+                              }
+                              placeholder="Write a comment..."
+                            />
+                            <button
+                              type="button"
+                              className="pfc-commentsend"
+                              onClick={() => submitComment(p.id)}
+                              disabled={!!commentBusy[p.id]}
+                            >
+                              {commentBusy[p.id] ? "Sending..." : "Send"}
+                            </button>
+                          </div>
+
+                          {(commentsByPost[p.id] || []).length === 0 ? (
+                            <div className="pfc-empty pfc-empty-small">No comments yet.</div>
+                          ) : (
+                            <div className="pfc-commentlist">
+                              {(commentsByPost[p.id] || []).map((c) => (
+                                <div key={c.id} className="pfc-comment">
+                                  <div className="pfc-commentavatar">
+                                    {(c?.user?.name?.[0] || "U").toUpperCase()}
+                                  </div>
+                                  <div className="pfc-commentbody">
+                                    <div className="pfc-commentname">{c?.user?.name || "User"}</div>
+                                    <div className="pfc-commenttext">{c.content}</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

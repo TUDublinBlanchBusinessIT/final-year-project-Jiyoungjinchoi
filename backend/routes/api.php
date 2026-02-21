@@ -7,6 +7,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PetController;
 use App\Models\User;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\LikeController;
+use App\Http\Controllers\CommentController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -74,4 +76,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // ✅ Community posts
     Route::get('/posts', [PostController::class, 'index']);
     Route::post('/posts', [PostController::class, 'store']);
+
+    // ✅ Likes & Comments (User Story 1530)
+    Route::post('/posts/{post}/like', [LikeController::class, 'toggle']);
+    Route::get('/posts/{post}/comments', [CommentController::class, 'index']);
+    Route::post('/posts/{post}/comments', [CommentController::class, 'store']);
 });
