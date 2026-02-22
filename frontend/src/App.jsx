@@ -5,16 +5,30 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import VerifyEmail from "./pages/VerifyEmail";
 import Dashboard from "./pages/Dashboard";
-import CreatePet from "./pages/CreatePet"; // ✅ NEW
+import CreatePet from "./pages/CreatePet";
+import EditPet from "./pages/EditPet";
+import MyPets from "./pages/MyPets";
+import PetOverview from "./pages/PetOverview";
+import Community from "./pages/Community";
+
+// Temporary placeholder pages (until you build them properly)
+function Placeholder({ title }) {
+  return (
+    <div style={{ padding: 40 }}>
+      <h1>{title}</h1>
+      <p>This page is coming soon.</p>
+    </div>
+  );
+}
 
 export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Landing Page (NEW DEFAULT PAGE) */}
+        {/* Landing */}
         <Route path="/" element={<LandingPage />} />
 
-        {/* Auth routes */}
+        {/* Auth */}
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
@@ -22,8 +36,23 @@ export default function App() {
         {/* Dashboard */}
         <Route path="/dashboard" element={<Dashboard />} />
 
-        {/* ✅ Pets */}
+        {/* Pets */}
         <Route path="/pets/create" element={<CreatePet />} />
+        <Route path="/pets/:id/edit" element={<EditPet />} />
+        <Route path="/pets/:id" element={<PetOverview />} />
+
+        {/* Sidebar pages */}
+        <Route path="/mypets" element={<MyPets />} />
+        <Route path="/community" element={<Community />} />
+
+        {/* Still placeholders for now */}
+        <Route path="/appointments" element={<Placeholder title="Appointments" />} />
+        <Route path="/appointments/book" element={<Placeholder title="Book Appointment" />} />
+        <Route path="/reminders" element={<Placeholder title="Reminders" />} />
+        <Route path="/reminders/add" element={<Placeholder title="Add Reminder" />} />
+        <Route path="/lostfound" element={<Placeholder title="Lost & Found" />} />
+        <Route path="/inventory" element={<Placeholder title="Inventory" />} />
+        <Route path="/profile" element={<Placeholder title="Profile" />} />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" />} />

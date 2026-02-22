@@ -1,0 +1,116 @@
+/* Clean modern landing (minimal + glass) */
+
+.lp2-page{
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+
+  /* subtle pastel background like your screenshot */
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255,228,230,.45), transparent 46%),
+    radial-gradient(circle at 82% 25%, rgba(219,234,254,.45), transparent 52%),
+    radial-gradient(circle at 55% 88%, rgba(220,252,231,.42), transparent 55%),
+    linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.65));
+}
+
+.lp2-brand{
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 10;
+
+  font-weight: 900;
+  font-size: 14px;
+  color: rgba(17,24,39,0.85);
+
+  padding: 10px 12px;
+  border-radius: 12px;
+
+  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(17,24,39,0.06);
+  box-shadow: 0 10px 30px rgba(17,24,39,0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* Card (very clean glass) */
+.lp2-card{
+  width: 100%;
+  max-width: 520px;
+  padding: 26px;
+  border-radius: 22px;
+  text-align: center;
+
+  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(17,24,39,0.06);
+  box-shadow: 0 18px 60px rgba(17,24,39,0.08);
+
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.lp2-title{
+  margin: 0;
+  font-size: 28px;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+  color: rgba(17,24,39,0.92);
+}
+
+.lp2-subtitle{
+  margin: 10px 0 0;
+  font-size: 14px;
+  font-weight: 650;
+  color: rgba(17,24,39,0.60);
+}
+
+.lp2-actions{
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.lp2-btn{
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-weight: 900;
+  cursor: pointer;
+
+  border: 1px solid rgba(17,24,39,0.10);
+  background: rgba(255,255,255,0.70);
+  color: rgba(17,24,39,0.88);
+
+  box-shadow: 0 10px 26px rgba(17,24,39,0.06);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+
+.lp2-btn:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px rgba(17,24,39,0.09);
+}
+
+/* Keep it subtle: not tacky gradients */
+.lp2-primary{
+  border: none;
+  color: white;
+  background: linear-gradient(135deg, rgba(167,139,250,0.95), rgba(249,168,212,0.95));
+}
+
+.lp2-primary-alt{
+  border: none;
+  color: white;
+  background: linear-gradient(135deg, rgba(96,165,250,0.95), rgba(52,211,153,0.95));
+}
+
+.lp2-secondary{
+  background: rgba(255,255,255,0.72);
+}
+
+.lp2-tip{
+  margin-top: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(17,24,39,0.52);
+}

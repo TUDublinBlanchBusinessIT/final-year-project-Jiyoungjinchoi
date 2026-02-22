@@ -1,16 +1,16 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import "./CreatePet.css";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import "./EditPet.css";
 
-export default function CreatePet() {
+export default function EditPet() {
   const navigate = useNavigate();
+  const { id } = useParams();
 
   const [form, setForm] = useState({
     name: "",
     species: "",
     breed: "",
     dob: "",
-    age: "",
     gender: "",
     weight: "",
     notes: "",
@@ -18,25 +18,60 @@ export default function CreatePet() {
 
   const [photo, setPhoto] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   const token = localStorage.getItem("pawfection_token");
 
+  useEffect(() => {
+    const fetchPet = async () => {
+      setError("");
+
+      if (!token) {
+        setError("You must be logged in.");
+        setPageLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/api/pets/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data?.message || "Failed to load pet.");
+          setPageLoading(false);
+          return;
+        }
+
+        setForm({
+          name: data.name || "",
+          species: data.species || "",
+          breed: data.breed || "",
+          dob: data.dob || "",
+          gender: data.gender || "",
+          weight: data.weight ?? "",
+          notes: data.notes || "",
+        });
+
+        setPageLoading(false);
+      } catch {
+        setError("Failed to fetch pet. Is the backend running?");
+        setPageLoading(false);
+      }
+    };
+
+    fetchPet();
+  }, [id, token]);
+
   const onChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const calcAgeFromDob = (dobStr) => {
-    if (!dobStr) return "";
-    const dob = new Date(dobStr);
-    if (Number.isNaN(dob.getTime())) return "";
-
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-    return age < 0 ? "" : age;
   };
 
   const submit = async (e) => {
@@ -51,13 +86,6 @@ export default function CreatePet() {
 
     if (!form.name.trim() || !form.species.trim()) {
       setError("Please fill in required fields: Name and Species.");
-      return;
-    }
-
-    const computedAge = form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
-
-    if (computedAge === "" || Number.isNaN(Number(computedAge))) {
-      setError("Please enter Age, or select Date of Birth (so we can calculate it).");
       return;
     }
 
@@ -78,7 +106,6 @@ export default function CreatePet() {
     fd.append("species", form.species);
     if (form.breed) fd.append("breed", form.breed);
     if (form.dob) fd.append("dob", form.dob);
-    fd.append("age", String(computedAge));
     if (form.gender) fd.append("gender", form.gender);
     if (form.weight !== "") fd.append("weight", form.weight);
     if (form.notes) fd.append("notes", form.notes);
@@ -86,13 +113,16 @@ export default function CreatePet() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/pets", {
-        method: "POST",
+      const res = await fetch(`http://127.0.0.1:8000/api/pets/${id}`, {
+        method: "POST", // Laravel can accept POST + _method
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
-        body: fd,
+        body: (() => {
+          fd.append("_method", "PUT");
+          return fd;
+        })(),
       });
 
       const data = await res.json();
@@ -101,29 +131,38 @@ export default function CreatePet() {
         const msg =
           data?.message ||
           (data?.errors ? Object.values(data.errors).flat().join(" ") : "") ||
-          "Failed to create pet.";
+          "Failed to update pet.";
         setError(msg);
         setLoading(false);
         return;
       }
 
-      setSuccess("Pet created successfully!");
+      setSuccess("Pet updated successfully!");
       setLoading(false);
 
       setTimeout(() => navigate("/dashboard"), 600);
     } catch {
-      setError("Failed to fetch. Is the backend running?");
+      setError("Failed to update pet. Is the backend running?");
       setLoading(false);
     }
   };
 
+  if (pageLoading) {
+    return (
+      <div className="pf-auth-page">
+        <div className="pf-auth-card">
+          <h1 className="pf-auth-title">Edit Pet Profile</h1>
+          <p className="pf-auth-subtitle">Loading pet details…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="pf-auth-page">
       <div className="pf-auth-card">
-        <h1 className="pf-auth-title">Create Pet Profile</h1>
-        <p className="pf-auth-subtitle">
-          Add your pet details so they appear on your dashboard.
-        </p>
+        <h1 className="pf-auth-title">Edit Pet Profile</h1>
+        <p className="pf-auth-subtitle">Update your pet details.</p>
 
         {error && <div className="pf-alert pf-alert-error">{error}</div>}
         {success && <div className="pf-alert pf-alert-success">{success}</div>}
@@ -132,62 +171,22 @@ export default function CreatePet() {
           <div className="pf-grid">
             <div className="pf-field">
               <label>Name *</label>
-              <input
-                name="name"
-                value={form.name}
-                onChange={onChange}
-                placeholder="e.g. Bella"
-              />
+              <input name="name" value={form.name} onChange={onChange} />
             </div>
 
             <div className="pf-field">
               <label>Species *</label>
-              <input
-                name="species"
-                value={form.species}
-                onChange={onChange}
-                placeholder="e.g. Dog"
-              />
+              <input name="species" value={form.species} onChange={onChange} />
             </div>
 
             <div className="pf-field">
               <label>Breed</label>
-              <input
-                name="breed"
-                value={form.breed}
-                onChange={onChange}
-                placeholder="e.g. Husky"
-              />
+              <input name="breed" value={form.breed} onChange={onChange} />
             </div>
 
             <div className="pf-field">
               <label>Date of Birth</label>
-              <input
-                type="date"
-                name="dob"
-                value={form.dob}
-                onChange={(e) => {
-                  const dob = e.target.value;
-                  const autoAge = calcAgeFromDob(dob);
-                  setForm((prev) => ({
-                    ...prev,
-                    dob,
-                    age: prev.age === "" ? String(autoAge) : prev.age,
-                  }));
-                }}
-              />
-            </div>
-
-            <div className="pf-field">
-              <label>Age *</label>
-              <input
-                type="number"
-                min="0"
-                name="age"
-                value={form.age}
-                onChange={onChange}
-                placeholder="e.g. 3"
-              />
+              <input type="date" name="dob" value={form.dob} onChange={onChange} />
             </div>
 
             <div className="pf-field">
@@ -209,35 +208,24 @@ export default function CreatePet() {
                 name="weight"
                 value={form.weight}
                 onChange={onChange}
-                placeholder="e.g. 12.5"
               />
             </div>
 
             <div className="pf-field pf-span-2">
               <label>Notes</label>
-              <textarea
-                name="notes"
-                value={form.notes}
-                onChange={onChange}
-                rows={4}
-                placeholder="Anything important about your pet..."
-              />
+              <textarea name="notes" value={form.notes} onChange={onChange} rows={4} />
             </div>
 
             <div className="pf-field pf-file pf-span-2">
-              <label>Photo (optional)</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setPhoto(e.target.files?.[0] || null)}
-              />
+              <label>Replace Photo (optional)</label>
+              <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] || null)} />
               <span className="pf-help">JPG/PNG/WEBP, max 2MB</span>
             </div>
           </div>
 
           <div className="pf-actions-row">
             <button className="pf-btn pf-btn-primary" type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create Pet"}
+              {loading ? "Saving..." : "Save Changes"}
             </button>
 
             <button type="button" className="pf-btn" onClick={() => navigate("/dashboard")}>

@@ -1,0 +1,388 @@
+/* Community page: keep sidebar/topbar layout, change feed styling vibe */
+
+.pfc-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:18px;
+  padding:18px 18px 16px;
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(251,113,133,.18), transparent 45%),
+    radial-gradient(circle at 85% 25%, rgba(96,165,250,.18), transparent 45%),
+    radial-gradient(circle at 55% 95%, rgba(52,211,153,.18), transparent 45%),
+    rgba(255,255,255,.75);
+  border:1px solid rgba(0,0,0,.06);
+  box-shadow: 0 14px 35px rgba(0,0,0,.06);
+}
+
+.pfc-title{
+  font-size:30px;
+  margin:0;
+  letter-spacing:-.4px;
+}
+
+.pfc-subtitle{
+  margin:6px 0 0;
+  color:#54606f;
+}
+
+.pfc-badge{
+  font-weight:800;
+  padding:10px 12px;
+  border-radius:999px;
+  background:linear-gradient(90deg, rgba(251,113,133,.25), rgba(96,165,250,.25));
+  border:1px solid rgba(0,0,0,.06);
+}
+
+.pfc-grid{
+  display:grid;
+  grid-template-columns: 420px 1fr;
+  gap:16px;
+}
+
+@media (max-width: 1100px){
+  .pfc-grid{ grid-template-columns: 1fr; }
+}
+
+.pfc-card{
+  border-radius:18px;
+  background: rgba(255,255,255,.86);
+  border:1px solid rgba(0,0,0,.06);
+  box-shadow: 0 14px 35px rgba(0,0,0,.06);
+  overflow:hidden;
+}
+
+.pfc-card-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  padding:16px 16px 10px;
+  border-bottom:1px solid rgba(0,0,0,.06);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.75));
+}
+
+.pfc-card-title{
+  font-weight:900;
+  letter-spacing:-.2px;
+}
+
+.pfc-hint{
+  color:#667085;
+  font-size:13px;
+  margin-top:4px;
+}
+
+.pfc-alert{
+  margin:12px 16px 0;
+  padding:10px 12px;
+  border-radius:12px;
+  background:#fff7ed;
+  border:1px solid rgba(251,146,60,.3);
+  color:#7c2d12;
+  font-weight:700;
+}
+
+.pfc-composer{
+  padding-bottom:14px;
+}
+
+.pfc-textarea{
+  width:calc(100% - 32px);
+  margin:12px 16px 0;
+  padding:12px 12px;
+  border-radius:14px;
+  border:1px solid rgba(0,0,0,.12);
+  outline:none;
+  resize:vertical;
+  font-size:14px;
+  background:rgba(255,255,255,.95);
+}
+
+.pfc-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 16px 0;
+}
+
+.pfc-file{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px dashed rgba(0,0,0,.18);
+  cursor:pointer;
+  font-weight:800;
+  color:#374151;
+  background:rgba(255,255,255,.85);
+}
+
+.pfc-file input{
+  display:none;
+}
+
+.pfc-postbtn{
+  padding:10px 14px;
+  border-radius:14px;
+  border:none;
+  cursor:pointer;
+  color:white;
+  font-weight:900;
+  background: linear-gradient(90deg, #fb7185, #60a5fa);
+  box-shadow: 0 10px 20px rgba(0,0,0,.08);
+  opacity:1;
+}
+
+.pfc-postbtn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+.pfc-char{
+  padding:8px 16px 0;
+  color:#667085;
+  font-size:12px;
+  text-align:right;
+}
+
+.pfc-feed{
+  min-height:300px;
+}
+
+.pfc-refresh{
+  padding:8px 10px;
+  border-radius:12px;
+  border:1px solid rgba(0,0,0,.1);
+  background:rgba(255,255,255,.85);
+  cursor:pointer;
+  font-weight:800;
+}
+
+.pfc-empty{
+  padding:18px 16px;
+  color:#667085;
+  font-weight:700;
+}
+
+.pfc-feedlist{
+  padding:14px;
+  display:grid;
+  gap:12px;
+}
+
+.pfc-post{
+  border-radius:16px;
+  border:1px solid rgba(0,0,0,.08);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(251,113,133,.08), transparent 35%),
+    radial-gradient(circle at 100% 25%, rgba(96,165,250,.08), transparent 40%),
+    rgba(255,255,255,.92);
+  box-shadow: 0 10px 22px rgba(0,0,0,.05);
+  padding:14px;
+}
+
+.pfc-posthead{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.pfc-author{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.pfc-author-avatar{
+  width:36px;
+  height:36px;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  font-weight:900;
+  color:#111827;
+  background: linear-gradient(180deg, rgba(251,113,133,.25), rgba(96,165,250,.25));
+  border:1px solid rgba(0,0,0,.06);
+}
+
+.pfc-author-name{
+  font-weight:900;
+  line-height:1.1;
+}
+
+.pfc-time{
+  font-size:12px;
+  color:#667085;
+  margin-top:2px;
+}
+
+.pfc-content{
+  margin-top:10px;
+  color:#111827;
+  line-height:1.45;
+  white-space:pre-wrap;
+}
+
+.pfc-imagewrap{
+  margin-top:12px;
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid rgba(0,0,0,.08);
+  background:#fff;
+}
+
+.pfc-imagewrap img{
+  width:100%;
+  height:auto;
+  display:block;
+}
+/* --- Like/Comment actions (modern + soft) --- */
+.pfc-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.pfc-actionbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  font-weight: 700;
+  color: #111827;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.pfc-actionbtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.06);
+}
+
+.pfc-actionbtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pfc-actionbtn.is-liked {
+  border-color: rgba(251, 113, 133, 0.35);
+  background: linear-gradient(
+    90deg,
+    rgba(251, 113, 133, 0.14),
+    rgba(96, 165, 250, 0.14)
+  );
+}
+
+.pfc-actionbtn.is-open {
+  border-color: rgba(96, 165, 250, 0.35);
+  background: rgba(239, 246, 255, 0.7);
+}
+
+.pfc-actionicon {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+}
+
+.pfc-count {
+  margin-left: 2px;
+  font-weight: 800;
+  color: rgba(17, 24, 39, 0.65);
+}
+
+/* --- Comments panel --- */
+.pfc-comments {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.pfc-commentbox {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pfc-commentinput {
+  flex: 1;
+  border-radius: 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  outline: none;
+}
+
+.pfc-commentsend {
+  border-radius: 14px;
+  padding: 10px 14px;
+  border: none;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(90deg, #fb7185, #60a5fa);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.06);
+}
+
+.pfc-commentsend:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pfc-commentlist {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.pfc-comment {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.pfc-commentavatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  background: rgba(251, 113, 133, 0.18);
+  color: #111827;
+}
+
+.pfc-commentname {
+  font-weight: 900;
+  font-size: 13px;
+  color: #111827;
+}
+
+.pfc-commenttext {
+  margin-top: 2px;
+  font-size: 13px;
+  color: rgba(17, 24, 39, 0.75);
+}
+
+.pfc-empty-small {
+  margin-top: 10px;
+  font-size: 13px;
+  opacity: 0.75;
+}

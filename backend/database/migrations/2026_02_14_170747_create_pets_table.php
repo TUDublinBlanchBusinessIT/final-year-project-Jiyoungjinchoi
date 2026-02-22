@@ -6,33 +6,32 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('pets', function (Blueprint $table) {
             $table->id();
 
-            $table->unsignedBigInteger('user_id');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+
             $table->string('name');
-            $table->string('breed');
-            $table->integer('age');
-            $table->string('photo')->nullable();
+            $table->string('species');
+            $table->string('breed')->nullable();
+
+            $table->date('dob')->nullable();
+            $table->unsignedInteger('age'); // required
+
+            $table->string('gender')->nullable();
+            $table->decimal('weight', 6, 2)->nullable(); // e.g. 12.50 kg
+
             $table->text('notes')->nullable();
 
-            $table->timestamps();
+            // store path like "pets/abc.jpg"
+            $table->string('photo_path')->nullable();
 
-            $table->foreign('user_id')
-                  ->references('id')
-                  ->on('users')
-                  ->onDelete('cascade');
+            $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('pets');

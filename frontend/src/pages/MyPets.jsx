@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
 import "./Dashboard.css";
 
-export default function Dashboard() {
+export default function MyPets() {
   const navigate = useNavigate();
 
   const [userName, setUserName] = useState("User");
@@ -91,7 +91,9 @@ export default function Dashboard() {
       return;
     }
 
-    const ok = window.confirm(`Delete ${petName || "this pet"}? This cannot be undone.`);
+    const ok = window.confirm(
+      `Delete ${petName || "this pet"}? This cannot be undone.`
+    );
     if (!ok) return;
 
     setDeletingId(petId);
@@ -139,7 +141,11 @@ export default function Dashboard() {
     <div className="pf2-shell">
       {/* Sidebar */}
       <aside className="pf2-sidebar">
-        <div className="pf2-brand" onClick={() => navigate("/dashboard")} role="button">
+        <div
+          className="pf2-brand"
+          onClick={() => navigate("/dashboard")}
+          role="button"
+        >
           <img className="pf2-brand-logo" src={PawfectionLogo} alt="Pawfection" />
           <div className="pf2-brand-text">
             <div className="pf2-brand-title">Pawfection</div>
@@ -148,8 +154,8 @@ export default function Dashboard() {
         </div>
 
         <nav className="pf2-nav">
-          <Link className="pf2-nav-item active" to="/dashboard">Dashboard</Link>
-          <Link className="pf2-nav-item" to="/mypets">My Pets</Link>
+          <Link className="pf2-nav-item" to="/dashboard">Dashboard</Link>
+          <Link className="pf2-nav-item active" to="/mypets">My Pets</Link>
           <Link className="pf2-nav-item" to="/appointments">Appointments</Link>
           <Link className="pf2-nav-item" to="/reminders">Reminders</Link>
           <Link className="pf2-nav-item" to="/lostfound">Lost &amp; Found</Link>
@@ -169,7 +175,7 @@ export default function Dashboard() {
         {/* Topbar */}
         <header className="pf2-topbar">
           <div className="pf2-search">
-            <input placeholder="Search pets, appointments, reminders..." />
+            <input placeholder="Search pets..." />
           </div>
 
           <div className="pf2-topbar-right">
@@ -186,24 +192,18 @@ export default function Dashboard() {
         <main className="pf2-content">
           <div className="pf2-pagehead">
             <div>
-              <h1 className="pf2-title">Dashboard</h1>
-              <p className="pf2-subtitle">Overview of your pets and daily tasks.</p>
+              <h1 className="pf2-title">My Pets</h1>
+              <p className="pf2-subtitle">All pets linked to your account.</p>
             </div>
 
             <div className="pf2-actions">
               <button className="pf2-btn pf2-btn-primary" onClick={() => navigate("/pets/create")}>
                 + Add Pet
               </button>
-              <button className="pf2-btn" onClick={() => navigate("/appointments/book")}>
-                Book Appointment
-              </button>
-              <button className="pf2-btn" onClick={() => navigate("/reminders/add")}>
-                Add Reminder
-              </button>
             </div>
           </div>
 
-          {/* Stats */}
+          {/* Optional stats row (keeps it consistent with dashboard look) */}
           <section className="pf2-stats">
             {stats.map((s) => (
               <div key={s.label} className={`pf2-stat pf2-${s.tone}`}>
@@ -211,21 +211,18 @@ export default function Dashboard() {
                   <div className="pf2-stat-label">{s.label}</div>
                   <div className={`pf2-stat-icon pf2-icon-${s.tone}`}>{s.icon}</div>
                 </div>
-
                 <div className="pf2-stat-value">{s.value}</div>
                 <div className="pf2-stat-sub">{s.sub}</div>
               </div>
             ))}
           </section>
 
-          {/* Grid */}
           <section className="pf2-grid">
-            {/* Pets Widget */}
             <div className="pf2-card pf2-span-2">
               <div className="pf2-cardhead">
-                <h2>My Pets</h2>
-                <button className="pf2-btn pf2-btn-small" onClick={() => navigate("/mypets")}>
-                  View All
+                <h2>All Pets</h2>
+                <button className="pf2-btn pf2-btn-small" onClick={fetchPets}>
+                  Refresh
                 </button>
               </div>
 
@@ -239,7 +236,7 @@ export default function Dashboard() {
 
               {!petsLoading && !petsError && pets.length > 0 && (
                 <div className="pf2-petlist">
-                  {pets.slice(0, 4).map((pet) => {
+                  {pets.map((pet) => {
                     const imgSrc = getPetImageSrc(pet);
 
                     return (
@@ -263,6 +260,13 @@ export default function Dashboard() {
                         <div className="pf2-petactions">
                           <button
                             className="pf2-btn pf2-btn-small"
+                            onClick={() => navigate(`/pets/${pet.id}`)}
+                          >
+                            View
+                          </button>
+
+                          <button
+                            className="pf2-btn pf2-btn-small"
                             onClick={() => navigate(`/pets/${pet.id}/edit`)}
                           >
                             Edit
@@ -281,60 +285,6 @@ export default function Dashboard() {
                   })}
                 </div>
               )}
-            </div>
-
-            {/* Reminders Widget */}
-            <div className="pf2-card">
-              <div className="pf2-cardhead">
-                <h2>Reminders</h2>
-                <button className="pf2-btn pf2-btn-small" onClick={() => navigate("/reminders")}>
-                  Open
-                </button>
-              </div>
-
-              <div className="pf2-list">
-                <div className="pf2-listrow">
-                  <div>
-                    <div className="pf2-listtitle">Description of reminder</div>
-                    <div className="pf2-listsub">Next due</div>
-                  </div>
-                  <div className="pf2-badge">05/01/2025</div>
-                </div>
-
-                <div className="pf2-listrow">
-                  <div>
-                    <div className="pf2-listtitle">Description of reminder</div>
-                    <div className="pf2-listsub">Next due</div>
-                  </div>
-                  <div className="pf2-badge">21/04/2026</div>
-                </div>
-              </div>
-
-              <button
-                className="pf2-btn pf2-btn-primary pf2-full"
-                onClick={() => navigate("/reminders/add")}
-              >
-                + Add Reminder
-              </button>
-            </div>
-
-            {/* Appointments Widget */}
-            <div className="pf2-card">
-              <div className="pf2-cardhead">
-                <h2>Appointments</h2>
-                <button className="pf2-btn pf2-btn-small" onClick={() => navigate("/appointments")}>
-                  Open
-                </button>
-              </div>
-
-              <div className="pf2-empty">No upcoming appointments yet.</div>
-
-              <button
-                className="pf2-btn pf2-btn-primary pf2-full"
-                onClick={() => navigate("/appointments/book")}
-              >
-                Book Appointment
-              </button>
             </div>
           </section>
         </main>
