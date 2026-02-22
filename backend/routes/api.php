@@ -2,13 +2,16 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PetController;
-use App\Models\User;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\InventoryController;
+
+use App\Models\User;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -54,26 +57,18 @@ Route::post('/email/verification-notification', function (Request $request) {
 })->middleware('throttle:3,1');
 
 
-// ✅ Pets (Create + Read + Edit + Delete)
+// ✅ Protected routes
 Route::middleware('auth:sanctum')->group(function () {
 
-    // List logged-in user's pets (Dashboard)
+    // ✅ Pets (Create + Read + Edit + Delete)
     Route::get('/pets', [PetController::class, 'index']);
-
-    // ✅ Show one pet (Edit page prefill)
     Route::get('/pets/{pet}', [PetController::class, 'show']);
-
-    // Create pet
     Route::post('/pets', [PetController::class, 'store']);
-
-    // ✅ Update pet (Edit save)
     Route::put('/pets/{pet}', [PetController::class, 'update']);
     Route::patch('/pets/{pet}', [PetController::class, 'update']);
-
-    // ✅ Delete pet
     Route::delete('/pets/{pet}', [PetController::class, 'destroy']);
 
-        // ✅ Community posts
+    // ✅ Community posts
     Route::get('/posts', [PostController::class, 'index']);
     Route::post('/posts', [PostController::class, 'store']);
 
@@ -81,4 +76,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/posts/{post}/like', [LikeController::class, 'toggle']);
     Route::get('/posts/{post}/comments', [CommentController::class, 'index']);
     Route::post('/posts/{post}/comments', [CommentController::class, 'store']);
+
+    // ✅ Inventory (User Story 1531)
+    Route::get('/inventory', [InventoryController::class, 'index']);
+    Route::post('/inventory', [InventoryController::class, 'store']);
+
+    // ✅ UPDATE (Edit)
+    Route::put('/inventory/{inventoryItem}', [InventoryController::class, 'update']);
+    Route::patch('/inventory/{inventoryItem}', [InventoryController::class, 'update']);
+
+    // ✅ Restock + Delete
+    Route::post('/inventory/{inventoryItem}/restock', [InventoryController::class, 'restock']);
+    Route::delete('/inventory/{inventoryItem}', [InventoryController::class, 'destroy']);
 });

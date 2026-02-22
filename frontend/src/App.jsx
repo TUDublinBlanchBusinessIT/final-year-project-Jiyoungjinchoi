@@ -4,12 +4,14 @@ import LandingPage from "./pages/LandingPage";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import VerifyEmail from "./pages/VerifyEmail";
+
 import Dashboard from "./pages/Dashboard";
 import CreatePet from "./pages/CreatePet";
 import EditPet from "./pages/EditPet";
 import MyPets from "./pages/MyPets";
 import PetOverview from "./pages/PetOverview";
 import Community from "./pages/Community";
+import Inventory from "./pages/Inventory";
 
 // Temporary placeholder pages (until you build them properly)
 function Placeholder({ title }) {
@@ -44,6 +46,7 @@ export default function App() {
         {/* Sidebar pages */}
         <Route path="/mypets" element={<MyPets />} />
         <Route path="/community" element={<Community />} />
+        <Route path="/inventory" element={<Inventory />} />
 
         {/* Still placeholders for now */}
         <Route path="/appointments" element={<Placeholder title="Appointments" />} />
@@ -51,7 +54,6 @@ export default function App() {
         <Route path="/reminders" element={<Placeholder title="Reminders" />} />
         <Route path="/reminders/add" element={<Placeholder title="Add Reminder" />} />
         <Route path="/lostfound" element={<Placeholder title="Lost & Found" />} />
-        <Route path="/inventory" element={<Placeholder title="Inventory" />} />
         <Route path="/profile" element={<Placeholder title="Profile" />} />
 
         {/* Catch-all */}
