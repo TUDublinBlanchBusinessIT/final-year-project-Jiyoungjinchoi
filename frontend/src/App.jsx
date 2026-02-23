@@ -12,6 +12,7 @@ import MyPets from "./pages/MyPets";
 import PetOverview from "./pages/PetOverview";
 import Community from "./pages/Community";
 import Inventory from "./pages/Inventory";
+import Appointments from "./pages/Appointments";
 
 // Temporary placeholder pages (until you build them properly)
 function Placeholder({ title }) {
@@ -48,9 +49,11 @@ export default function App() {
         <Route path="/community" element={<Community />} />
         <Route path="/inventory" element={<Inventory />} />
 
+        {/* ✅ Appointments (NOW REAL PAGES) */}
+        <Route path="/appointments" element={<Appointments />} />
+        <Route path="/appointments/book" element={<Appointments />} />
+
         {/* Still placeholders for now */}
-        <Route path="/appointments" element={<Placeholder title="Appointments" />} />
-        <Route path="/appointments/book" element={<Placeholder title="Book Appointment" />} />
         <Route path="/reminders" element={<Placeholder title="Reminders" />} />
         <Route path="/reminders/add" element={<Placeholder title="Add Reminder" />} />
         <Route path="/lostfound" element={<Placeholder title="Lost & Found" />} />
