@@ -249,6 +249,24 @@
   background: rgba(239,68,68,0.06);
 }
 
+/* =========================================================
+   MyPets page button colours (match Inventory page styles)
+   ========================================================= */
+
+/* View button = same as Inventory "Soon" badge (orange) */
+.pf2-btn-soon{
+  border: 1px solid rgba(251,146,60,0.35) !important;
+  color: #7c2d12 !important;
+  background: rgba(255,237,213,.65) !important;
+}
+
+/* Edit button = same as Inventory Edit button (blue) */
+.pf2-btn-edit{
+  border: 1px solid rgba(59,130,246,0.35) !important;
+  color: #1d4ed8 !important;
+  background: rgba(59,130,246,0.08) !important;
+}
+
 /* ---------- Stats (COLORFUL like inspiration) ---------- */
 .pf2-stats{
   margin-top: 16px;

@@ -34,7 +34,7 @@ export default function MyPets() {
         },
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         const msg =
@@ -258,15 +258,17 @@ export default function MyPets() {
                         </div>
 
                         <div className="pf2-petactions">
+                          {/* ✅ View button = Soon colour */}
                           <button
-                            className="pf2-btn pf2-btn-small"
+                            className="pf2-btn pf2-btn-small pf2-btn-soon"
                             onClick={() => navigate(`/pets/${pet.id}`)}
                           >
                             View
                           </button>
 
+                          {/* ✅ Edit button = Inventory Edit blue */}
                           <button
-                            className="pf2-btn pf2-btn-small"
+                            className="pf2-btn pf2-btn-small pf2-btn-edit"
                             onClick={() => navigate(`/pets/${pet.id}/edit`)}
                           >
                             Edit
