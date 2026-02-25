@@ -16,27 +16,37 @@
   border-right: 1px solid rgba(17,24,39,0.06);
 }
 
+/* ✅ Logo ABOVE text (stack vertical) */
 .pf2-brand{
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 12px 10px;
   border-radius: var(--radius-md);
   cursor: pointer;
   user-select: none;
+  text-align: center;
 }
 
 .pf2-brand:hover{
   background: rgba(167,139,250,0.14);
 }
 
+/* ✅ 3x bigger logo */
 .pf2-brand-logo{
-  width: 42px;
-  height: 42px;
+  width: 126px;
+  height: 126px;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 18px;
   background: rgba(167,139,250,0.16);
-  padding: 6px;
+  padding: 10px;
+}
+
+.pf2-brand-text{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .pf2-brand-title{
@@ -79,23 +89,8 @@
   outline: 1px solid rgba(167,139,250,0.35);
 }
 
-.pf2-sidebar-footer{
-  margin-top: auto;
-  padding: 10px 6px 6px;
-}
+/* ✅ removed sidebar footer + ghost button styles (not needed anymore) */
 
-/* View profile button */
-.pf2-btn-ghost{
-  width: 100%;
-  border: 1px solid rgba(167,139,250,0.30);
-  background: rgba(167,139,250,0.14);
-  color: #4c1d95;
-  box-shadow: none;
-}
-.pf2-btn-ghost:hover{
-  background: rgba(167,139,250,0.20);
-  box-shadow: none;
-}
 
 /* ---------- Main area ---------- */
 .pf2-main{
@@ -249,24 +244,6 @@
   background: rgba(239,68,68,0.06);
 }
 
-/* =========================================================
-   MyPets page button colours (match Inventory page styles)
-   ========================================================= */
-
-/* View button = same as Inventory "Soon" badge (orange) */
-.pf2-btn-soon{
-  border: 1px solid rgba(251,146,60,0.35) !important;
-  color: #7c2d12 !important;
-  background: rgba(255,237,213,.65) !important;
-}
-
-/* Edit button = same as Inventory Edit button (blue) */
-.pf2-btn-edit{
-  border: 1px solid rgba(59,130,246,0.35) !important;
-  color: #1d4ed8 !important;
-  background: rgba(59,130,246,0.08) !important;
-}
-
 /* ---------- Stats (COLORFUL like inspiration) ---------- */
 .pf2-stats{
   margin-top: 16px;
@@ -285,7 +262,6 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* soft “blob” highlight */
 .pf2-stat::before{
   content: "";
   position: absolute;
@@ -296,7 +272,6 @@
   opacity: 0.95;
 }
 
-/* subtle secondary glow */
 .pf2-stat::after{
   content: "";
   position: absolute;
@@ -308,7 +283,6 @@
   filter: blur(2px);
 }
 
-/* keep text above blobs */
 .pf2-stat *{
   position: relative;
   z-index: 1;
@@ -341,7 +315,6 @@
   font-size: 13px;
 }
 
-/* Icon chip inside stat */
 .pf2-stat-icon{
   width: 38px;
   height: 38px;
@@ -358,7 +331,6 @@
 .pf2-icon-mint{ background: rgba(52,211,153,0.18); }
 .pf2-icon-peach{ background: rgba(249,168,212,0.20); }
 
-/* Individual pastel gradients */
 .pf2-blue::before{
   background: radial-gradient(circle at 30% 30%, rgba(96,165,250,0.55), rgba(96,165,250,0.10) 70%);
 }
@@ -402,6 +374,10 @@
   grid-column: span 2;
 }
 
+.pf2-span-all{
+  grid-column: 1 / -1;
+}
+
 .pf2-cardhead{
   display: flex;
   align-items: center;
@@ -420,6 +396,38 @@
   padding: 12px 0;
   color: var(--muted);
   font-weight: 650;
+}
+
+/* ---------- Welcome card ---------- */
+.pf2-welcome{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(167,139,250,.12), transparent 45%),
+    radial-gradient(circle at 80% 30%, rgba(249,168,212,.12), transparent 55%),
+    rgba(255,255,255,0.88);
+}
+
+.pf2-welcome-title{
+  font-size: 22px;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+  color: rgba(17,24,39,0.92);
+}
+
+/* ✅ bigger than before, still smaller than title */
+.pf2-welcome-sub{
+  font-size: 15px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.pf2-welcome-text{
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 700;
+  color: rgba(17,24,39,0.62);
 }
 
 /* ---------- Pets list ---------- */
@@ -486,59 +494,26 @@
   flex-shrink: 0;
 }
 
-/* ---------- Reminders widget ---------- */
-.pf2-list{
-  display: grid;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.pf2-listrow{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.70);
-}
-
-.pf2-listtitle{
-  font-weight: 950;
-}
-.pf2-listsub{
-  margin-top: 3px;
-  color: var(--muted);
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.pf2-badge{
-  padding: 8px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(167,139,250,0.35);
-  font-weight: 900;
-  font-size: 12px;
-  background: rgba(167,139,250,0.10);
-  white-space: nowrap;
-  color: #4c1d95;
-}
-
-.pf2-full{
-  width: 100%;
-}
-
 /* ---------- Responsive ---------- */
 @media (max-width: 1020px){
   .pf2-shell{ grid-template-columns: 84px 1fr; }
+
+  /* keep logo visible but compact in collapsed sidebar */
+  .pf2-brand-logo{
+    width: 64px;
+    height: 64px;
+    padding: 8px;
+  }
+
+  /* hide brand text when collapsed */
   .pf2-brand-text{ display: none; }
+
   .pf2-nav-item{ justify-content: center; }
-  .pf2-sidebar-footer{ display: none; }
 }
 
 @media (max-width: 860px){
   .pf2-stats{ grid-template-columns: 1fr; }
   .pf2-grid{ grid-template-columns: 1fr; }
   .pf2-span-2{ grid-column: span 1; }
+  .pf2-span-all{ grid-column: span 1; }
 }

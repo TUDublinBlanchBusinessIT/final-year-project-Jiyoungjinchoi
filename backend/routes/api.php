@@ -22,22 +22,18 @@ use App\Models\User;
 | middleware group. They will be available under /api/...
 */
 
-
 // ✅ Health check
 Route::get('/health', function () {
     return response()->json(['status' => 'ok'], 200);
 });
 
-
 // ✅ Register
 Route::post('/register', [RegisterController::class, 'apiStore'])
     ->middleware('throttle:10,1');
 
-
 // ✅ Login
 Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:10,1');
-
 
 // ✅ Resend verification email
 Route::post('/email/verification-notification', function (Request $request) {
@@ -63,13 +59,11 @@ Route::post('/email/verification-notification', function (Request $request) {
 })->middleware('throttle:3,1');
 
 
-
 /*
 |--------------------------------------------------------------------------
 | Protected Routes (Require Authentication via Sanctum)
 |--------------------------------------------------------------------------
 */
-
 Route::middleware('auth:sanctum')->group(function () {
 
     /*
@@ -93,6 +87,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/posts', [PostController::class, 'index']);
     Route::post('/posts', [PostController::class, 'store']);
 
+    // ✅ FIX: Delete post route (this fixes "route not found")
+    Route::delete('/posts/{post}', [PostController::class, 'destroy']);
+
 
     /*
     |--------------------------------------------------------------------------
@@ -100,8 +97,13 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::post('/posts/{post}/like', [LikeController::class, 'toggle']);
+
     Route::get('/posts/{post}/comments', [CommentController::class, 'index']);
     Route::post('/posts/{post}/comments', [CommentController::class, 'store']);
+
+    // ✅ Delete comment (use ONE of these; keeping both is okay if your controller supports both)
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
+    Route::delete('/posts/{post}/comments/{comment}', [CommentController::class, 'destroyForPost']);
 
 
     /*
@@ -121,37 +123,14 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     | 🏥 Appointment Booking (Functional Requirement 12.5)
     |--------------------------------------------------------------------------
-    | 1. Choose pet + service type
-    | 2. See local providers
-    | 3. View available slots
-    | 4. Create booking + verify availability
-    | 5. Confirmation returned
-    | 6. View/reschedule/cancel
-    | 7. Reminder scheduled (stored in reminder_at)
-    |--------------------------------------------------------------------------
     */
 
-    // FR6: List all appointments for logged-in user
     Route::get('/appointments', [AppointmentController::class, 'index']);
-
-    // Helper for React (pets + service types)
     Route::get('/appointments/options', [AppointmentController::class, 'options']);
-
-    // FR2: Provider search
     Route::get('/appointments/providers', [AppointmentController::class, 'providers']);
-
-    // FR3: View available slots for provider
     Route::get('/appointments/providers/{provider}/slots', [AppointmentController::class, 'slots']);
-
-    // FR4 + FR5 + FR7: Create appointment booking
     Route::post('/appointments', [AppointmentController::class, 'store']);
-
-    // View single appointment
     Route::get('/appointments/{appointment}', [AppointmentController::class, 'show']);
-
-    // FR6: Reschedule
     Route::put('/appointments/{appointment}', [AppointmentController::class, 'update']);
-
-    // FR6: Cancel
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy']);
 });

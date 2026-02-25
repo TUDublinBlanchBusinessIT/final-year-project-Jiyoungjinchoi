@@ -19,19 +19,24 @@ class PostController extends Controller
             ->latest()
             ->get()
             ->map(function ($post) use ($userId) {
-                // add image_url for frontend
+
+                // ✅ image_url for frontend
                 $post->image_url = $post->image_path
                     ? url('storage/' . $post->image_path)
                     : null;
 
-                // liked_by_me flag
+                // ✅ liked_by_me flag
                 $post->liked_by_me = $userId
                     ? $post->likes()->where('user_id', $userId)->exists()
                     : false;
 
-                // rename counts to match frontend usage (optional but nice)
-                $post->likes_count = $post->likes_count ?? 0;
-                $post->comments_count = $post->comments_count ?? 0;
+                // ✅ IMPORTANT: provide the exact fields React uses
+                $post->like_count = (int) ($post->likes_count ?? 0);
+                $post->comment_count = (int) ($post->comments_count ?? 0);
+
+                // (optional) keep old names too, in case other code uses them
+                $post->likes_count = (int) ($post->likes_count ?? 0);
+                $post->comments_count = (int) ($post->comments_count ?? 0);
 
                 return $post;
             });
@@ -61,12 +66,36 @@ class PostController extends Controller
 
         $post->load('user:id,name');
 
-        // return consistent shape
+        // ✅ return consistent shape
         $post->image_url = $post->image_path ? url('storage/' . $post->image_path) : null;
-        $post->likes_count = 0;
-        $post->comments_count = 0;
+
+        // ✅ IMPORTANT: send fields React uses
+        $post->like_count = 0;
+        $post->comment_count = 0;
         $post->liked_by_me = false;
 
+        // (optional) keep old keys too
+        $post->likes_count = 0;
+        $post->comments_count = 0;
+
         return response()->json($post, 201);
+    }
+
+    // ✅ Delete a post (FIXES your error)
+    public function destroy(Post $post)
+    {
+        // ✅ Only allow the owner to delete
+        if ($post->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // ✅ delete the stored image if exists
+        if ($post->image_path) {
+            Storage::disk('public')->delete($post->image_path);
+        }
+
+        $post->delete();
+
+        return response()->json(['message' => 'Post deleted'], 200);
     }
 }

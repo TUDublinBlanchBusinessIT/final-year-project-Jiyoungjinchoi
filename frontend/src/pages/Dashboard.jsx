@@ -14,7 +14,12 @@ export default function Dashboard() {
   const [petsError, setPetsError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
 
+  // Appointments state (for dashboard stats)
+  const [appointments, setAppointments] = useState([]);
+  const [apptsLoading, setApptsLoading] = useState(false);
+
   const token = localStorage.getItem("pawfection_token");
+  const apiBase = "http://127.0.0.1:8000/api";
 
   const fetchPets = async () => {
     if (!token) {
@@ -26,7 +31,7 @@ export default function Dashboard() {
     setPetsError("");
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/pets", {
+      const res = await fetch(`${apiBase}/pets`, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -34,7 +39,7 @@ export default function Dashboard() {
         },
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         const msg =
@@ -51,6 +56,38 @@ export default function Dashboard() {
       setPets([]);
     } finally {
       setPetsLoading(false);
+    }
+  };
+
+  const fetchAppointments = async () => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    setApptsLoading(true);
+
+    try {
+      const res = await fetch(`${apiBase}/appointments`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setAppointments([]);
+      } else {
+        const list = data?.data || [];
+        setAppointments(Array.isArray(list) ? list : []);
+      }
+    } catch {
+      setAppointments([]);
+    } finally {
+      setApptsLoading(false);
     }
   };
 
@@ -75,6 +112,16 @@ export default function Dashboard() {
     }
 
     fetchPets();
+    fetchAppointments();
+
+    // refresh when user returns to tab (after editing appointments)
+    const onFocus = () => {
+      fetchPets();
+      fetchAppointments();
+    };
+    window.addEventListener("focus", onFocus);
+
+    return () => window.removeEventListener("focus", onFocus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
@@ -98,7 +145,7 @@ export default function Dashboard() {
     setPetsError("");
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/pets/${petId}`, {
+      const res = await fetch(`${apiBase}/pets/${petId}`, {
         method: "DELETE",
         headers: {
           Accept: "application/json",
@@ -126,14 +173,29 @@ export default function Dashboard() {
     }
   };
 
+  const upcomingAppointmentsCount = useMemo(() => {
+    const now = new Date();
+    return (appointments || []).filter((a) => {
+      if (!a?.appointment_at) return false;
+      const d = new Date(a.appointment_at);
+      return !Number.isNaN(d.getTime()) && d >= now;
+    }).length;
+  }, [appointments]);
+
   const stats = useMemo(() => {
     const petCount = pets?.length || 0;
     return [
       { label: "Pets", value: String(petCount), sub: "Registered", tone: "blue", icon: "🐾" },
-      { label: "Appointments", value: "0", sub: "Upcoming", tone: "mint", icon: "📅" },
+      {
+        label: "Appointments",
+        value: apptsLoading ? "…" : String(upcomingAppointmentsCount),
+        sub: "Upcoming",
+        tone: "mint",
+        icon: "📅",
+      },
       { label: "Reminders", value: "0", sub: "Active", tone: "peach", icon: "⏰" },
     ];
-  }, [pets]);
+  }, [pets, upcomingAppointmentsCount, apptsLoading]);
 
   return (
     <div className="pf2-shell">
@@ -157,11 +219,7 @@ export default function Dashboard() {
           <Link className="pf2-nav-item" to="/inventory">Inventory</Link>
         </nav>
 
-        <div className="pf2-sidebar-footer">
-          <button className="pf2-btn pf2-btn-ghost" onClick={() => navigate("/profile")}>
-            View Profile
-          </button>
-        </div>
+        {/* ✅ removed View Profile button */}
       </aside>
 
       {/* Main */}
@@ -283,58 +341,18 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Reminders Widget */}
-            <div className="pf2-card">
-              <div className="pf2-cardhead">
-                <h2>Reminders</h2>
-                <button className="pf2-btn pf2-btn-small" onClick={() => navigate("/reminders")}>
-                  Open
-                </button>
+            {/* ✅ Welcome card BELOW My Pets (full width) */}
+            <div className="pf2-card pf2-welcome pf2-span-all">
+              <div className="pf2-welcome-title">Welcome to Pawfection</div>
+              <div className="pf2-welcome-sub">
+                Pawfection: A smart pet care, lost &amp; found pet and better dog lifestyle 🐶🐱
               </div>
-
-              <div className="pf2-list">
-                <div className="pf2-listrow">
-                  <div>
-                    <div className="pf2-listtitle">Description of reminder</div>
-                    <div className="pf2-listsub">Next due</div>
-                  </div>
-                  <div className="pf2-badge">05/01/2025</div>
-                </div>
-
-                <div className="pf2-listrow">
-                  <div>
-                    <div className="pf2-listtitle">Description of reminder</div>
-                    <div className="pf2-listsub">Next due</div>
-                  </div>
-                  <div className="pf2-badge">21/04/2026</div>
-                </div>
+              <div className="pf2-welcome-text">
+                The Pawfection is a mobile-friendly application for dog and cat owners in
+                Ireland. The goal of Pawfection is to make it easy for pet owners to use 
+                our platform to record, manage, and track essential information
+                related to their pets&apos; health, well-being, and safety.
               </div>
-
-              <button
-                className="pf2-btn pf2-btn-primary pf2-full"
-                onClick={() => navigate("/reminders/add")}
-              >
-                + Add Reminder
-              </button>
-            </div>
-
-            {/* Appointments Widget */}
-            <div className="pf2-card">
-              <div className="pf2-cardhead">
-                <h2>Appointments</h2>
-                <button className="pf2-btn pf2-btn-small" onClick={() => navigate("/appointments")}>
-                  Open
-                </button>
-              </div>
-
-              <div className="pf2-empty">No upcoming appointments yet.</div>
-
-              <button
-                className="pf2-btn pf2-btn-primary pf2-full"
-                onClick={() => navigate("/appointments/book")}
-              >
-                Book Appointment
-              </button>
             </div>
           </section>
         </main>

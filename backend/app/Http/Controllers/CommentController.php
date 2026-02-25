@@ -9,52 +9,72 @@ use Illuminate\Support\Facades\Auth;
 
 class CommentController extends Controller
 {
+    // ✅ List comments for a post
     public function index(Post $post)
     {
         $comments = Comment::with('user:id,name')
             ->where('post_id', $post->id)
             ->latest()
-            ->get()
-            ->map(function ($c) {
-                return [
-                    'id' => $c->id,
-                    'content' => $c->content,
-                    'created_at' => $c->created_at,
-                    'user' => [
-                        'id' => $c->user?->id,
-                        'name' => $c->user?->name ?? 'User',
-                    ],
-                ];
-            });
+            ->get();
 
         return response()->json($comments, 200);
     }
 
+    // ✅ Create comment for a post
     public function store(Request $request, Post $post)
     {
         $validated = $request->validate([
-            'content' => 'required|string|max:1000',
+            'content' => ['required', 'string', 'max:1000'],
         ]);
 
         $comment = Comment::create([
-            'user_id' => Auth::id(),
             'post_id' => $post->id,
+            'user_id' => Auth::id(),
             'content' => $validated['content'],
         ]);
 
         $comment->load('user:id,name');
 
         return response()->json([
-            'message' => 'Comment added',
-            'comment' => [
-                'id' => $comment->id,
-                'content' => $comment->content,
-                'created_at' => $comment->created_at,
-                'user' => [
-                    'id' => $comment->user?->id,
-                    'name' => $comment->user?->name ?? 'User',
-                ],
-            ],
+            'message' => 'Comment created',
+            'comment' => $comment,
         ], 201);
+    }
+
+    /**
+     * ✅ DELETE comment by ID
+     * Route: DELETE /api/comments/{comment}
+     */
+    public function destroy(Comment $comment)
+    {
+        // ✅ Only comment owner can delete
+        if ($comment->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $comment->delete();
+
+        return response()->json(['message' => 'Comment deleted'], 200);
+    }
+
+    /**
+     * ✅ DELETE comment inside a post (extra validation)
+     * Route: DELETE /api/posts/{post}/comments/{comment}
+     */
+    public function destroyForPost(Post $post, Comment $comment)
+    {
+        // ✅ Ensure comment belongs to this post (prevents deleting wrong comment)
+        if ((int)$comment->post_id !== (int)$post->id) {
+            return response()->json(['message' => 'Comment does not belong to this post'], 404);
+        }
+
+        // ✅ Only comment owner can delete
+        if ($comment->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $comment->delete();
+
+        return response()->json(['message' => 'Comment deleted'], 200);
     }
 }
