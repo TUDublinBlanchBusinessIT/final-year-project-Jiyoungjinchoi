@@ -5,22 +5,16 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\AuthController;
+
 use App\Http\Controllers\PetController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\LostPetController;
 
 use App\Models\User;
-
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-| These routes are loaded by RouteServiceProvider and assigned the "api"
-| middleware group. They will be available under /api/...
-*/
 
 // ✅ Health check
 Route::get('/health', function () {
@@ -66,11 +60,7 @@ Route::post('/email/verification-notification', function (Request $request) {
 */
 Route::middleware('auth:sanctum')->group(function () {
 
-    /*
-    |--------------------------------------------------------------------------
-    | 🐾 Pets (CRUD)
-    |--------------------------------------------------------------------------
-    */
+    // 🐾 Pets (CRUD)
     Route::get('/pets', [PetController::class, 'index']);
     Route::get('/pets/{pet}', [PetController::class, 'show']);
     Route::post('/pets', [PetController::class, 'store']);
@@ -78,39 +68,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/pets/{pet}', [PetController::class, 'update']);
     Route::delete('/pets/{pet}', [PetController::class, 'destroy']);
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | 🐾 Community Posts
-    |--------------------------------------------------------------------------
-    */
+    // 🐾 Community
     Route::get('/posts', [PostController::class, 'index']);
     Route::post('/posts', [PostController::class, 'store']);
-
-    // ✅ FIX: Delete post route (this fixes "route not found")
     Route::delete('/posts/{post}', [PostController::class, 'destroy']);
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | ❤️ Likes & Comments (User Story 1530)
-    |--------------------------------------------------------------------------
-    */
+    // ❤️ Likes & Comments
     Route::post('/posts/{post}/like', [LikeController::class, 'toggle']);
-
     Route::get('/posts/{post}/comments', [CommentController::class, 'index']);
     Route::post('/posts/{post}/comments', [CommentController::class, 'store']);
-
-    // ✅ Delete comment (use ONE of these; keeping both is okay if your controller supports both)
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
     Route::delete('/posts/{post}/comments/{comment}', [CommentController::class, 'destroyForPost']);
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | 📦 Inventory (User Story 1531)
-    |--------------------------------------------------------------------------
-    */
+    // 📦 Inventory
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::post('/inventory', [InventoryController::class, 'store']);
     Route::put('/inventory/{inventoryItem}', [InventoryController::class, 'update']);
@@ -118,13 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/inventory/{inventoryItem}/restock', [InventoryController::class, 'restock']);
     Route::delete('/inventory/{inventoryItem}', [InventoryController::class, 'destroy']);
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | 🏥 Appointment Booking (Functional Requirement 12.5)
-    |--------------------------------------------------------------------------
-    */
-
+    // 🏥 Appointments
     Route::get('/appointments', [AppointmentController::class, 'index']);
     Route::get('/appointments/options', [AppointmentController::class, 'options']);
     Route::get('/appointments/providers', [AppointmentController::class, 'providers']);
@@ -133,4 +97,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/appointments/{appointment}', [AppointmentController::class, 'show']);
     Route::put('/appointments/{appointment}', [AppointmentController::class, 'update']);
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy']);
+
+    // ✅ Lost & Found (User Story 1511)
+    Route::get('/lost-pets', [LostPetController::class, 'index']);
+    Route::post('/lost-pets', [LostPetController::class, 'store']);
 });
