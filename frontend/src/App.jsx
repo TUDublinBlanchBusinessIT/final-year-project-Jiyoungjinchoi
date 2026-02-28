@@ -14,6 +14,10 @@ import Community from "./pages/Community";
 import Inventory from "./pages/Inventory";
 import Appointments from "./pages/Appointments";
 
+// ✅ Lost & Found (1511)
+import LostFound from "./pages/LostFound";
+import ReportLostPet from "./pages/ReportLostPet";
+
 // Temporary placeholder pages (until you build them properly)
 function Placeholder({ title }) {
   return (
@@ -49,14 +53,19 @@ export default function App() {
         <Route path="/community" element={<Community />} />
         <Route path="/inventory" element={<Inventory />} />
 
-        {/* ✅ Appointments (NOW REAL PAGES) */}
+        {/* ✅ Appointments */}
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/appointments/book" element={<Appointments />} />
 
-        {/* Still placeholders for now */}
+        {/* Reminders (still placeholder) */}
         <Route path="/reminders" element={<Placeholder title="Reminders" />} />
         <Route path="/reminders/add" element={<Placeholder title="Add Reminder" />} />
-        <Route path="/lostfound" element={<Placeholder title="Lost & Found" />} />
+
+        {/* ✅ Lost & Found (REAL pages now) */}
+        <Route path="/lostfound" element={<LostFound />} />
+        <Route path="/lostfound/report" element={<ReportLostPet />} />
+
+        {/* Still placeholders */}
         <Route path="/profile" element={<Placeholder title="Profile" />} />
 
         {/* Catch-all */}
