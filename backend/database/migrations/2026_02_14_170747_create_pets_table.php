@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('breed')->nullable();
 
             $table->date('dob')->nullable();
-            $table->unsignedInteger('age'); // required
+            $table->unsignedInteger('age')->nullable(); // ✅ optional now
 
             $table->string('gender')->nullable();
             $table->decimal('weight', 6, 2)->nullable(); // e.g. 12.50 kg

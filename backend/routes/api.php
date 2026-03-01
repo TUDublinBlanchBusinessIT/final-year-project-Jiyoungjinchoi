@@ -98,7 +98,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/appointments/{appointment}', [AppointmentController::class, 'update']);
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy']);
 
-    // ✅ Lost & Found (User Story 1511)
+    // ✅ Lost & Found
     Route::get('/lost-pets', [LostPetController::class, 'index']);
     Route::post('/lost-pets', [LostPetController::class, 'store']);
+
+    // ✅ Sprint 1512: Mark Lost Pet as Resolved (NEW)
+    Route::patch('/lost-pets/{pet}/resolve', [LostPetController::class, 'resolve']);
 });
