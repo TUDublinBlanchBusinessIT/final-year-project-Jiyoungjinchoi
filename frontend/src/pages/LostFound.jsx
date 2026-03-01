@@ -40,12 +40,47 @@ export default function LostFound() {
     load();
   }, [navigate, token]);
 
+  async function markResolved(id) {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const ok = window.confirm("Mark this lost pet report as Resolved? This will archive it.");
+    if (!ok) return;
+
+    setStatus({ type: "loading", message: "Marking as Resolved..." });
+
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/lost-pets/${id}/resolve`, {
+        method: "PATCH",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message || "Failed to mark as resolved.");
+
+      // Archive behavior: remove from list so alerts stop
+      setItems((prev) => prev.filter((x) => x.id !== id));
+
+      setStatus({ type: "success", message: data.message || "Marked as Resolved." });
+    } catch (err) {
+      setStatus({ type: "error", message: err.message || "Something went wrong." });
+    }
+  }
+
   const statusBg =
     status.type === "success"
       ? "#f0fdf4"
       : status.type === "loading"
       ? "#eff6ff"
-      : "#fff7ed";
+      : status.type === "error"
+      ? "#fff7ed"
+      : "#fff";
 
   return (
     <div style={{ padding: 24 }}>
@@ -141,6 +176,26 @@ export default function LostFound() {
                 <div style={{ color: "#6b7280", marginTop: 6, fontSize: 13 }}>
                   {p.last_seen_location ? `Last seen: ${p.last_seen_location}` : ""}
                 </div>
+
+                {/* ✅ NEW: Mark as Resolved button */}
+                {p.status !== "Resolved" && (
+                  <div style={{ marginTop: 10 }}>
+                    <button
+                      onClick={() => markResolved(p.id)}
+                      style={{
+                        padding: "9px 12px",
+                        borderRadius: 12,
+                        border: "none",
+                        fontWeight: 900,
+                        cursor: "pointer",
+                        background: "#111827",
+                        color: "#fff",
+                      }}
+                    >
+                      Mark as Resolved
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))

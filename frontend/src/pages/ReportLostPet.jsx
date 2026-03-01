@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 
 export default function ReportLostPet() {
   const navigate = useNavigate();
-  const token = localStorage.getItem("pawfection_token");
 
   const [status, setStatus] = useState({ type: "idle", message: "" });
 
@@ -15,8 +14,11 @@ export default function ReportLostPet() {
   async function handleSubmit(e) {
     e.preventDefault();
 
+    const token = localStorage.getItem("pawfection_token");
+
     if (!token) {
-      navigate("/login");
+      setStatus({ type: "error", message: "You must be logged in. Redirecting to login..." });
+      setTimeout(() => navigate("/login"), 500);
       return;
     }
 
@@ -38,7 +40,7 @@ export default function ReportLostPet() {
 
     try {
       const form = new FormData();
-      if (cleanName) form.append("pet_name", cleanName); // ✅ only send if provided
+      if (cleanName) form.append("pet_name", cleanName);
       form.append("description", cleanDesc);
       form.append("last_seen_location", cleanLoc);
       form.append("photo", photo);
@@ -52,10 +54,17 @@ export default function ReportLostPet() {
         body: form,
       });
 
+      // If session/token is invalid, handle it cleanly
+      if (res.status === 401) {
+        localStorage.removeItem("pawfection_token");
+        setStatus({ type: "error", message: "Session expired. Please log in again." });
+        setTimeout(() => navigate("/login"), 700);
+        return;
+      }
+
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        // Laravel validation errors come in data.errors
         const firstError =
           data?.message ||
           (data?.errors && Object.values(data.errors)?.[0]?.[0]) ||
@@ -114,7 +123,7 @@ export default function ReportLostPet() {
               padding: 0,
             }}
           >
-            Back to Lost & Found
+            Back to Lost &amp; Found
           </button>
         </div>
 
