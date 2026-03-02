@@ -12,7 +12,10 @@ use App\Http\Controllers\LikeController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\AppointmentController;
+
+// ✅ Lost & Found
 use App\Http\Controllers\LostPetController;
+use App\Http\Controllers\SightingController;
 
 use App\Models\User;
 
@@ -98,10 +101,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/appointments/{appointment}', [AppointmentController::class, 'update']);
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy']);
 
-    // ✅ Lost & Found
+    // ✅ Lost & Found — Sprint 1511
     Route::get('/lost-pets', [LostPetController::class, 'index']);
     Route::post('/lost-pets', [LostPetController::class, 'store']);
 
-    // ✅ Sprint 1512: Mark Lost Pet as Resolved (NEW)
+    // ✅ Lost & Found — Sprint 1512 (Resolve)
     Route::patch('/lost-pets/{pet}/resolve', [LostPetController::class, 'resolve']);
+
+    // ✅ Lost & Found — Sprint 1513 (Submit Found/Sighting)
+    Route::get('/lost-pets/{pet}/sightings', [SightingController::class, 'index']);
+    Route::post('/lost-pets/{pet}/sightings', [SightingController::class, 'store']);
 });
