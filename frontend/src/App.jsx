@@ -14,9 +14,11 @@ import Community from "./pages/Community";
 import Inventory from "./pages/Inventory";
 import Appointments from "./pages/Appointments";
 
-// ✅ Lost & Found (1511)
+// ✅ Lost & Found
 import LostFound from "./pages/LostFound";
 import ReportLostPet from "./pages/ReportLostPet";
+import SubmitSighting from "./pages/SubmitSighting";
+import LostReportDetails from "./pages/LostReportDetails";
 
 // Temporary placeholder pages (until you build them properly)
 function Placeholder({ title }) {
@@ -61,9 +63,15 @@ export default function App() {
         <Route path="/reminders" element={<Placeholder title="Reminders" />} />
         <Route path="/reminders/add" element={<Placeholder title="Add Reminder" />} />
 
-        {/* ✅ Lost & Found (REAL pages now) */}
+        {/* ✅ Lost & Found */}
         <Route path="/lostfound" element={<LostFound />} />
         <Route path="/lostfound/report" element={<ReportLostPet />} />
+
+        {/* ✅ Lost report details (shows sightings updates) */}
+        <Route path="/lostfound/:id" element={<LostReportDetails />} />
+
+        {/* ✅ Sprint 1513 submit sighting */}
+        <Route path="/lostfound/:id/sighting" element={<SubmitSighting />} />
 
         {/* Still placeholders */}
         <Route path="/profile" element={<Placeholder title="Profile" />} />
