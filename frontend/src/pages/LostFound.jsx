@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
 import "./Dashboard.css";
-import "./Appointments.css"; // reuse same layout + card styles
+import "./Appointments.css";
 
 export default function LostFound() {
   const navigate = useNavigate();
@@ -18,12 +18,36 @@ export default function LostFound() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  // top search
+  const [query, setQuery] = useState("");
+
+  // ✅ Sprint 1514 filters
+  const [filters, setFilters] = useState({
+    species: "",
+    breed: "",
+    location: "",
+    radius_km: "",
+    sort: "date",
+    lat: "",
+    lng: "",
+  });
+
   const authHeaders = useMemo(() => {
     return {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
     };
   }, [token]);
+
+  const fieldStyle = {
+    width: "100%",
+    height: 42,
+    borderRadius: 12,
+    border: "1px solid #e5e7eb",
+    padding: "0 12px",
+    outline: "none",
+    background: "#fff",
+  };
 
   const loadUserName = () => {
     try {
@@ -43,6 +67,22 @@ export default function LostFound() {
     }
   };
 
+  const buildQuery = () => {
+    const params = new URLSearchParams();
+    if (filters.species) params.set("species", filters.species);
+    if (filters.breed) params.set("breed", filters.breed);
+    if (filters.location) params.set("location", filters.location);
+    if (filters.radius_km) params.set("radius_km", filters.radius_km);
+    if (filters.sort) params.set("sort", filters.sort);
+
+    if (filters.lat && filters.lng) {
+      params.set("lat", filters.lat);
+      params.set("lng", filters.lng);
+    }
+
+    return params.toString();
+  };
+
   const fetchLostPets = async () => {
     if (!token) return navigate("/login");
     setLoading(true);
@@ -50,7 +90,10 @@ export default function LostFound() {
     setSuccess("");
 
     try {
-      const res = await fetch(`${apiBase}/lost-pets`, {
+      const qs = buildQuery();
+      const url = qs ? `${apiBase}/lost-pets?${qs}` : `${apiBase}/lost-pets`;
+
+      const res = await fetch(url, {
         method: "GET",
         headers: authHeaders,
       });
@@ -77,6 +120,28 @@ export default function LostFound() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      setError("Geolocation not supported in this browser.");
+      return;
+    }
+
+    setSuccess("");
+    setError("");
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setFilters((p) => ({
+          ...p,
+          lat: String(pos.coords.latitude),
+          lng: String(pos.coords.longitude),
+        }));
+        setSuccess("Location detected ✅ Now you can use radius and sort by proximity.");
+      },
+      () => setError("Location permission denied.")
+    );
   };
 
   const markResolved = async (id) => {
@@ -108,7 +173,6 @@ export default function LostFound() {
         return;
       }
 
-      // Archived: remove from Active list
       setItems((prev) => prev.filter((x) => x.id !== id));
       setSuccess(data?.message || "Marked as Resolved.");
     } catch {
@@ -128,8 +192,7 @@ export default function LostFound() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Optional: basic search box like Appointments
-  const [query, setQuery] = useState("");
+  // local search on already-loaded results
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return items;
@@ -138,7 +201,15 @@ export default function LostFound() {
       const name = (p.pet_name || "").toLowerCase();
       const desc = (p.description || "").toLowerCase();
       const loc = (p.last_seen_location || "").toLowerCase();
-      return name.includes(q) || desc.includes(q) || loc.includes(q);
+      const breed = (p.breed || "").toLowerCase();
+      const species = (p.species || "").toLowerCase();
+      return (
+        name.includes(q) ||
+        desc.includes(q) ||
+        loc.includes(q) ||
+        breed.includes(q) ||
+        species.includes(q)
+      );
     });
   }, [items, query]);
 
@@ -155,8 +226,12 @@ export default function LostFound() {
         </div>
 
         <nav className="pf2-nav">
-          <Link className="pf2-nav-item" to="/dashboard">Dashboard</Link>
-          <Link className="pf2-nav-item" to="/mypets">My Pets</Link>
+          <Link className="pf2-nav-item" to="/dashboard">
+            Dashboard
+          </Link>
+          <Link className="pf2-nav-item" to="/mypets">
+            My Pets
+          </Link>
 
           <Link
             className={`pf2-nav-item ${location.pathname.includes("/appointments") ? "active" : ""}`}
@@ -165,7 +240,9 @@ export default function LostFound() {
             Appointments
           </Link>
 
-          <Link className="pf2-nav-item" to="/reminders">Reminders</Link>
+          <Link className="pf2-nav-item" to="/reminders">
+            Reminders
+          </Link>
 
           <Link
             className={`pf2-nav-item ${location.pathname.includes("/lostfound") ? "active" : ""}`}
@@ -174,8 +251,12 @@ export default function LostFound() {
             Lost &amp; Found
           </Link>
 
-          <Link className="pf2-nav-item" to="/community">Community</Link>
-          <Link className="pf2-nav-item" to="/inventory">Inventory</Link>
+          <Link className="pf2-nav-item" to="/community">
+            Community
+          </Link>
+          <Link className="pf2-nav-item" to="/inventory">
+            Inventory
+          </Link>
         </nav>
 
         <div className="pf2-sidebar-footer">
@@ -213,7 +294,7 @@ export default function LostFound() {
             <div>
               <h1 className="pfa-title">Lost &amp; Found</h1>
               <p className="pfa-subtitle">
-                Report a lost pet, submit sightings, and mark reports as resolved.
+                Search and filter lost reports by species, breed, location and radius.
               </p>
             </div>
           </div>
@@ -226,7 +307,7 @@ export default function LostFound() {
               <div className="pfa-cardtop">
                 <div>
                   <div className="pfa-cardtitle">Active lost reports</div>
-                  <div className="pfa-mini">Click a report to view updates (sightings).</div>
+                  <div className="pfa-mini">Apply filters, then click a report to view sightings updates.</div>
                 </div>
 
                 <div className="pfa-actions-right">
@@ -243,10 +324,164 @@ export default function LostFound() {
                 </div>
               </div>
 
+              {/* ✅ Sprint 1514 filter UI (neat layout) */}
+              <div style={{ padding: "0 18px 18px" }}>
+                <div
+                  style={{
+                    marginTop: 12,
+                    background: "#fff",
+                    border: "1px solid #eef0f4",
+                    borderRadius: 16,
+                    padding: 14,
+                    boxShadow: "0 10px 25px rgba(0,0,0,.04)",
+                  }}
+                >
+                  <div style={{ fontWeight: 800, marginBottom: 10, color: "#111827" }}>
+                    Filters
+                    <span style={{ fontWeight: 600, color: "#6b7280", marginLeft: 8 }}>
+                      (species, breed, location, radius, sort)
+                    </span>
+                  </div>
+
+                  {/* Row 1 */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "160px 1.2fr 1.2fr 160px 160px",
+                      gap: 10,
+                      alignItems: "center",
+                    }}
+                  >
+                    <select
+                      value={filters.species}
+                      onChange={(e) => setFilters((p) => ({ ...p, species: e.target.value }))}
+                      style={fieldStyle}
+                    >
+                      <option value="">All species</option>
+                      <option value="Dog">Dog</option>
+                      <option value="Cat">Cat</option>
+                      <option value="Other">Other</option>
+                    </select>
+
+                    <input
+                      placeholder="Breed contains..."
+                      value={filters.breed}
+                      onChange={(e) => setFilters((p) => ({ ...p, breed: e.target.value }))}
+                      style={fieldStyle}
+                    />
+
+                    <input
+                      placeholder="Location contains..."
+                      value={filters.location}
+                      onChange={(e) => setFilters((p) => ({ ...p, location: e.target.value }))}
+                      style={fieldStyle}
+                    />
+
+                    <select
+                      value={filters.radius_km}
+                      onChange={(e) => setFilters((p) => ({ ...p, radius_km: e.target.value }))}
+                      style={fieldStyle}
+                    >
+                      <option value="">Radius (any)</option>
+                      <option value="1">1 km</option>
+                      <option value="5">5 km</option>
+                      <option value="10">10 km</option>
+                      <option value="25">25 km</option>
+                    </select>
+
+                    <select
+                      value={filters.sort}
+                      onChange={(e) => setFilters((p) => ({ ...p, sort: e.target.value }))}
+                      style={fieldStyle}
+                    >
+                      <option value="date">Sort: newest</option>
+                      <option value="proximity">Sort: nearest</option>
+                    </select>
+                  </div>
+
+                  {/* Row 2 */}
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      flexWrap: "wrap",
+                      marginTop: 12,
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button className="pf2-btn" type="button" onClick={useMyLocation}>
+                        Use my location
+                      </button>
+
+                      <button
+                        className="pf2-btn pf2-btn-primary"
+                        type="button"
+                        onClick={fetchLostPets}
+                      >
+                        Apply filters
+                      </button>
+
+                      <button
+                        className="pf2-btn"
+                        type="button"
+                        onClick={() => {
+                          setFilters({
+                            species: "",
+                            breed: "",
+                            location: "",
+                            radius_km: "",
+                            sort: "date",
+                            lat: "",
+                            lng: "",
+                          });
+                          fetchLostPets();
+                        }}
+                      >
+                        Reset
+                      </button>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      {filters.lat && filters.lng ? (
+                        <span
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 800,
+                            color: "#16a34a",
+                            background: "#f0fdf4",
+                            border: "1px solid #bbf7d0",
+                            padding: "6px 10px",
+                            borderRadius: 999,
+                          }}
+                        >
+                          Using coords ✓
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: "#6b7280",
+                            background: "#f9fafb",
+                            border: "1px solid #e5e7eb",
+                            padding: "6px 10px",
+                            borderRadius: 999,
+                          }}
+                        >
+                          No coords (radius/proximity off)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {loading && <div className="pfa-empty">Loading lost pets…</div>}
 
               {!loading && filtered.length === 0 && (
-                <div className="pfa-empty">No active lost pet reports yet.</div>
+                <div className="pfa-empty">No matching lost reports found.</div>
               )}
 
               {!loading && filtered.length > 0 && (
@@ -267,8 +502,19 @@ export default function LostFound() {
                             {name} • <span className="pfa-chip">{status}</span>
                           </div>
 
+                          <div className="pfa-sub">
+                            {p.species ? `${p.species}` : "—"}
+                            {p.breed ? ` • ${p.breed}` : ""}
+                          </div>
+
                           <div className="pfa-sub">{p.description || "No description"}</div>
-                          <div className="pfa-sub">{p.last_seen_location ? `Last seen: ${p.last_seen_location}` : "—"}</div>
+                          <div className="pfa-sub">
+                            {p.last_seen_location ? `Last seen: ${p.last_seen_location}` : "—"}
+                          </div>
+
+                          {p.distance_km != null && (
+                            <div className="pfa-sub2">Distance: {p.distance_km} km</div>
+                          )}
                         </div>
 
                         <div className="pfa-right">

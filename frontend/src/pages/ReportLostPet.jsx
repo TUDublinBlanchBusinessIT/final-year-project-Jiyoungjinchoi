@@ -7,9 +7,47 @@ export default function ReportLostPet() {
   const [status, setStatus] = useState({ type: "idle", message: "" });
 
   const [petName, setPetName] = useState("");
+  const [species, setSpecies] = useState("Dog");
+  const [breed, setBreed] = useState("");
+
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
+
+  const [coords, setCoords] = useState({ lat: "", lng: "" });
+
   const [photo, setPhoto] = useState(null);
+
+  // ✅ separate loading states
+  const [locating, setLocating] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  function useMyLocation() {
+    if (!navigator.geolocation) {
+      setStatus({ type: "error", message: "Geolocation not supported in this browser." });
+      return;
+    }
+
+    setLocating(true);
+    setStatus({ type: "loading", message: "Getting your location..." });
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({
+          lat: String(pos.coords.latitude),
+          lng: String(pos.coords.longitude),
+        });
+        setStatus({ type: "success", message: "Location captured ✅ (used for radius/proximity search)" });
+        setLocating(false);
+
+        // optional: auto-hide message
+        setTimeout(() => setStatus({ type: "idle", message: "" }), 900);
+      },
+      () => {
+        setStatus({ type: "error", message: "Location permission denied." });
+        setLocating(false);
+      }
+    );
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -30,19 +68,34 @@ export default function ReportLostPet() {
     const cleanName = petName.trim();
     const cleanDesc = description.trim();
     const cleanLoc = location.trim();
+    const cleanBreed = breed.trim();
 
     if (!cleanDesc || !cleanLoc) {
       setStatus({ type: "error", message: "Description and location are required." });
       return;
     }
 
+    setSubmitting(true);
     setStatus({ type: "loading", message: "Submitting lost pet report..." });
 
     try {
       const form = new FormData();
+
       if (cleanName) form.append("pet_name", cleanName);
+
+      // ✅ 1514 fields
+      form.append("species", species);
+      if (cleanBreed) form.append("breed", cleanBreed);
+
       form.append("description", cleanDesc);
       form.append("last_seen_location", cleanLoc);
+
+      // ✅ coords optional
+      if (coords.lat && coords.lng) {
+        form.append("last_seen_lat", coords.lat);
+        form.append("last_seen_lng", coords.lng);
+      }
+
       form.append("photo", photo);
 
       const res = await fetch("http://127.0.0.1:8000/api/lost-pets", {
@@ -54,10 +107,10 @@ export default function ReportLostPet() {
         body: form,
       });
 
-      // If session/token is invalid, handle it cleanly
       if (res.status === 401) {
         localStorage.removeItem("pawfection_token");
         setStatus({ type: "error", message: "Session expired. Please log in again." });
+        setSubmitting(false);
         setTimeout(() => navigate("/login"), 700);
         return;
       }
@@ -73,9 +126,11 @@ export default function ReportLostPet() {
       }
 
       setStatus({ type: "success", message: "Lost pet reported ✅" });
+      setSubmitting(false);
       setTimeout(() => navigate("/lostfound"), 700);
     } catch (err) {
       setStatus({ type: "error", message: err.message || "Failed to fetch" });
+      setSubmitting(false);
     }
   }
 
@@ -153,9 +208,7 @@ export default function ReportLostPet() {
         )}
 
         <form onSubmit={handleSubmit} style={{ marginTop: 18 }}>
-          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>
-            Pet Name (optional)
-          </label>
+          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>Pet Name (optional)</label>
           <input
             value={petName}
             onChange={(e) => setPetName(e.target.value)}
@@ -170,14 +223,46 @@ export default function ReportLostPet() {
             }}
           />
 
-          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>
-            Description
-          </label>
+          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>Species</label>
+          <select
+            value={species}
+            onChange={(e) => setSpecies(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "11px 12px",
+              borderRadius: 12,
+              border: "1px solid #e5e7eb",
+              marginBottom: 14,
+              boxSizing: "border-box",
+              background: "#fff",
+            }}
+          >
+            <option value="Dog">Dog</option>
+            <option value="Cat">Cat</option>
+            <option value="Other">Other</option>
+          </select>
+
+          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>Breed (optional)</label>
+          <input
+            value={breed}
+            onChange={(e) => setBreed(e.target.value)}
+            placeholder="e.g., Golden Retriever"
+            style={{
+              width: "100%",
+              padding: "11px 12px",
+              borderRadius: 12,
+              border: "1px solid #e5e7eb",
+              marginBottom: 14,
+              boxSizing: "border-box",
+            }}
+          />
+
+          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>Description</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
-            placeholder="Describe your pet (colour, breed, collar, etc.)"
+            placeholder="Describe your pet (colour, collar, etc.)"
             rows={4}
             style={{
               width: "100%",
@@ -190,9 +275,7 @@ export default function ReportLostPet() {
             }}
           />
 
-          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>
-            Last Seen Location
-          </label>
+          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>Last Seen Location</label>
           <input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
@@ -203,14 +286,37 @@ export default function ReportLostPet() {
               padding: "11px 12px",
               borderRadius: 12,
               border: "1px solid #e5e7eb",
-              marginBottom: 14,
+              marginBottom: 10,
               boxSizing: "border-box",
             }}
           />
 
-          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>
-            Photo (required)
-          </label>
+          <button
+            type="button"
+            onClick={useMyLocation}
+            disabled={locating}
+            style={{
+              borderRadius: 12,
+              border: "1px solid #e5e7eb",
+              background: "#fff",
+              padding: "10px 12px",
+              fontWeight: 800,
+              cursor: locating ? "not-allowed" : "pointer",
+              marginBottom: 14,
+              width: "100%",
+              opacity: locating ? 0.7 : 1,
+            }}
+          >
+            {locating ? "Detecting location..." : "Use my location (optional)"}
+          </button>
+
+          {coords.lat && coords.lng && (
+            <div style={{ fontSize: 12, color: "#6b7280", marginTop: -8, marginBottom: 14 }}>
+              Saved coords: {coords.lat}, {coords.lng}
+            </div>
+          )}
+
+          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>Photo (required)</label>
           <input
             type="file"
             accept="image/*"
@@ -221,7 +327,7 @@ export default function ReportLostPet() {
 
           <button
             type="submit"
-            disabled={status.type === "loading"}
+            disabled={submitting}
             style={{
               width: "100%",
               padding: "12px 18px",
@@ -229,12 +335,12 @@ export default function ReportLostPet() {
               border: "none",
               fontWeight: 800,
               color: "#fff",
-              cursor: "pointer",
+              cursor: submitting ? "not-allowed" : "pointer",
               background: "linear-gradient(90deg,#fb7185,#60a5fa)",
-              opacity: status.type === "loading" ? 0.6 : 1,
+              opacity: submitting ? 0.6 : 1,
             }}
           >
-            Submit Report
+            {submitting ? "Submitting..." : "Submit Report"}
           </button>
         </form>
       </div>
