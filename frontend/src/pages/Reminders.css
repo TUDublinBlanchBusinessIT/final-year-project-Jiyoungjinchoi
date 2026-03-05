@@ -1,0 +1,93 @@
+.pfr-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0 14px;
+}
+
+.pfr-chip {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pfr-chip.active {
+  border-color: #c7c2ff;
+  background: #f2f1ff;
+  color: #4f46e5;
+}
+
+.pfr-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.pfr-row {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 14px;
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pfr-title {
+  font-weight: 800;
+  color: #111827;
+}
+
+.pfr-sub {
+  margin-top: 6px;
+  color: #374151;
+}
+
+.pfr-sub2 {
+  margin-top: 6px;
+  color: #6b7280;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.pfr-right {
+  display: flex;
+  align-items: flex-start;
+}
+
+.pfr-badge {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+.pfr-status {
+  background: #f9fafb;
+}
+
+.pfr-type-birthday {
+  background: #f2f1ff;
+  border-color: #dcd9ff;
+  color: #4f46e5;
+}
+
+.pfr-type-vaccine {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+.pfr-type-grooming {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}

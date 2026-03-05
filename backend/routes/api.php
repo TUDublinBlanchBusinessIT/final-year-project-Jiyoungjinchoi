@@ -12,6 +12,7 @@ use App\Http\Controllers\LikeController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\ReminderController;
 
 // ✅ Lost & Found
 use App\Http\Controllers\LostPetController;
@@ -111,4 +112,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // ✅ Lost & Found — Sprint 1513 (Submit Found/Sighting)
     Route::get('/lost-pets/{pet}/sightings', [SightingController::class, 'index']);
     Route::post('/lost-pets/{pet}/sightings', [SightingController::class, 'store']);
+
+        // ✅ Reminders
+    Route::get('/reminders', [ReminderController::class, 'index']);
+    Route::post('/reminders/generate', [ReminderController::class, 'generate']);
+
 });

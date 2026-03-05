@@ -13,6 +13,7 @@ import PetOverview from "./pages/PetOverview";
 import Community from "./pages/Community";
 import Inventory from "./pages/Inventory";
 import Appointments from "./pages/Appointments";
+import Reminders from "./pages/Reminders";
 
 // ✅ Lost & Found
 import LostFound from "./pages/LostFound";
@@ -60,7 +61,7 @@ export default function App() {
         <Route path="/appointments/book" element={<Appointments />} />
 
         {/* Reminders (still placeholder) */}
-        <Route path="/reminders" element={<Placeholder title="Reminders" />} />
+        <Route path="/reminders" element={<Reminders />} />
         <Route path="/reminders/add" element={<Placeholder title="Add Reminder" />} />
 
         {/* ✅ Lost & Found */}

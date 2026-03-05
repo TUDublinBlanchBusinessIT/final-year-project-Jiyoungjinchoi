@@ -49,4 +49,9 @@ class Pet extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function reminders()
+    {
+    return $this->hasMany(\App\Models\Reminder::class);
+    }
 }
