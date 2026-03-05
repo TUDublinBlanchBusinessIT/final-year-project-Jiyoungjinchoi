@@ -15,6 +15,12 @@ export default function EditPet() {
     age: "",
     weight: "",
 
+    // ✅ Reminder fields (NEW)
+    last_vaccination_date: "",
+    vaccine_interval_days: "365",
+    last_grooming_date: "",
+    grooming_interval_days: "30",
+
     eye_color: "",
     fur_type: "",
     markings: "",
@@ -84,14 +90,29 @@ export default function EditPet() {
           return;
         }
 
+        // ✅ prefer date_of_birth if present, fallback to dob
+        const dobValue = data.date_of_birth || data.dob || "";
+
         setForm({
           name: data.name || "",
           species: data.species || "",
           breed: data.breed || "",
           gender: data.gender || "",
-          dob: data.dob || "",
+          dob: dobValue,
           age: data.age !== undefined && data.age !== null ? String(data.age) : "",
           weight: data.weight !== undefined && data.weight !== null ? String(data.weight) : "",
+
+          // ✅ reminders
+          last_vaccination_date: data.last_vaccination_date || "",
+          vaccine_interval_days:
+            data.vaccine_interval_days !== undefined && data.vaccine_interval_days !== null
+              ? String(data.vaccine_interval_days)
+              : "365",
+          last_grooming_date: data.last_grooming_date || "",
+          grooming_interval_days:
+            data.grooming_interval_days !== undefined && data.grooming_interval_days !== null
+              ? String(data.grooming_interval_days)
+              : "30",
 
           eye_color: data.eye_color || "",
           fur_type: data.fur_type || "",
@@ -136,24 +157,28 @@ export default function EditPet() {
       return "Please enter Weight (kg).";
     }
 
-    const computedAge =
-      form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
+    const computedAge = form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
 
     if (computedAge === "" || Number.isNaN(Number(computedAge)) || Number(computedAge) < 0) {
       return "Please enter Age, or select Date of Birth (so we can calculate it).";
     }
 
     if (photo) {
-      if (!allowedPhotoTypes.includes(photo.type)) {
-        return "Photo must be JPG, PNG, or WEBP.";
-      }
-      if (photo.size > 2 * 1024 * 1024) {
-        return "Photo must be 2MB or less.";
-      }
+      if (!allowedPhotoTypes.includes(photo.type)) return "Photo must be JPG, PNG, or WEBP.";
+      if (photo.size > 2 * 1024 * 1024) return "Photo must be 2MB or less.";
     }
 
     if (form.microchip_number && form.microchip_number.length > 60) {
       return "Microchip number looks too long. Please double-check it.";
+    }
+
+    const vInt = Number(form.vaccine_interval_days);
+    if (form.vaccine_interval_days !== "" && (Number.isNaN(vInt) || vInt <= 0)) {
+      return "Vaccine interval must be a positive number of days.";
+    }
+    const gInt = Number(form.grooming_interval_days);
+    if (form.grooming_interval_days !== "" && (Number.isNaN(gInt) || gInt <= 0)) {
+      return "Grooming interval must be a positive number of days.";
     }
 
     return "";
@@ -170,8 +195,7 @@ export default function EditPet() {
       return;
     }
 
-    const computedAge =
-      form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
+    const computedAge = form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
 
     const fd = new FormData();
 
@@ -180,8 +204,19 @@ export default function EditPet() {
     fd.append("breed", form.breed.trim());
     fd.append("gender", form.gender);
     fd.append("age", String(computedAge));
-    if (form.dob) fd.append("dob", form.dob);
     fd.append("weight", String(form.weight));
+
+    // ✅ DOB mapping (send BOTH)
+    if (form.dob) {
+      fd.append("dob", form.dob);
+      fd.append("date_of_birth", form.dob);
+    }
+
+    // ✅ reminders
+    if (form.last_vaccination_date) fd.append("last_vaccination_date", form.last_vaccination_date);
+    if (form.vaccine_interval_days) fd.append("vaccine_interval_days", String(form.vaccine_interval_days));
+    if (form.last_grooming_date) fd.append("last_grooming_date", form.last_grooming_date);
+    if (form.grooming_interval_days) fd.append("grooming_interval_days", String(form.grooming_interval_days));
 
     if (form.eye_color) fd.append("eye_color", form.eye_color.trim());
     if (form.fur_type) fd.append("fur_type", form.fur_type.trim());
@@ -204,7 +239,7 @@ export default function EditPet() {
     setLoading(true);
     try {
       const res = await fetch(`http://127.0.0.1:8000/api/pets/${id}`, {
-        method: "POST", // Laravel accepts POST + _method
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -311,7 +346,7 @@ export default function EditPet() {
                     }));
                   }}
                 />
-                <span className="pf-help">If DOB is set, age can be calculated.</span>
+                <span className="pf-help">Used for birthday reminders.</span>
               </div>
 
               <div className="pf-field">
@@ -321,28 +356,72 @@ export default function EditPet() {
 
               <div className="pf-field">
                 <label>Weight (kg) *</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  name="weight"
-                  value={form.weight}
-                  onChange={onChange}
-                />
+                <input type="number" step="0.1" min="0" name="weight" value={form.weight} onChange={onChange} />
               </div>
 
               <div className="pf-field pf-file">
                 <label>Replace Photo (optional)</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setPhoto(e.target.files?.[0] || null)}
-                />
+                <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] || null)} />
                 <span className="pf-help">JPG/PNG/WEBP, max 2MB</span>
               </div>
             </div>
           </div>
 
+          {/* ✅ SECTION: Reminders */}
+          <div className="pf-section">
+            <div className="pf-section-head">
+              <h2 className="pf-section-title">Reminder Settings</h2>
+              <p className="pf-section-sub">
+                Update dates/intervals used to generate Vaccine & Grooming reminders.
+              </p>
+            </div>
+
+            <div className="pf-grid">
+              <div className="pf-field">
+                <label>Last Vaccination Date</label>
+                <input
+                  type="date"
+                  name="last_vaccination_date"
+                  value={form.last_vaccination_date}
+                  onChange={onChange}
+                />
+              </div>
+
+              <div className="pf-field">
+                <label>Vaccine Interval (days)</label>
+                <input
+                  type="number"
+                  min="1"
+                  name="vaccine_interval_days"
+                  value={form.vaccine_interval_days}
+                  onChange={onChange}
+                />
+              </div>
+
+              <div className="pf-field">
+                <label>Last Grooming Date</label>
+                <input
+                  type="date"
+                  name="last_grooming_date"
+                  value={form.last_grooming_date}
+                  onChange={onChange}
+                />
+              </div>
+
+              <div className="pf-field">
+                <label>Grooming Interval (days)</label>
+                <input
+                  type="number"
+                  min="1"
+                  name="grooming_interval_days"
+                  value={form.grooming_interval_days}
+                  onChange={onChange}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* keep your other sections exactly as before */}
           {/* SECTION: Physical features */}
           <div className="pf-section">
             <div className="pf-section-head">
@@ -378,12 +457,7 @@ export default function EditPet() {
             <div className="pf-grid">
               <div className="pf-field pf-span-2">
                 <label>Health Conditions</label>
-                <textarea
-                  name="health_conditions"
-                  value={form.health_conditions}
-                  onChange={onChange}
-                  rows={3}
-                />
+                <textarea name="health_conditions" value={form.health_conditions} onChange={onChange} rows={3} />
               </div>
 
               <div className="pf-field pf-span-2">
@@ -393,21 +467,12 @@ export default function EditPet() {
 
               <div className="pf-field pf-span-2">
                 <label>Vaccination History</label>
-                <textarea
-                  name="vaccination_history"
-                  value={form.vaccination_history}
-                  onChange={onChange}
-                  rows={3}
-                />
+                <textarea name="vaccination_history" value={form.vaccination_history} onChange={onChange} rows={3} />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Microchip Number</label>
-                <input
-                  name="microchip_number"
-                  value={form.microchip_number}
-                  onChange={onChange}
-                />
+                <input name="microchip_number" value={form.microchip_number} onChange={onChange} />
               </div>
             </div>
           </div>
@@ -447,12 +512,7 @@ export default function EditPet() {
 
               <div className="pf-field pf-span-2">
                 <label>Personality Traits</label>
-                <textarea
-                  name="personality_traits"
-                  value={form.personality_traits}
-                  onChange={onChange}
-                  rows={3}
-                />
+                <textarea name="personality_traits" value={form.personality_traits} onChange={onChange} rows={3} />
               </div>
 
               <div className="pf-field pf-span-2">

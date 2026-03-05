@@ -6,16 +6,22 @@ export default function CreatePet() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    // Required (per functional req)
+    // Required
     name: "",
     species: "", // Dog / Cat
     breed: "",
     gender: "",
-    dob: "",
+    dob: "", // UI field (we will send as date_of_birth too)
     age: "",
     weight: "",
 
-    // Additional (scope/req)
+    // ✅ Reminder fields (NEW)
+    last_vaccination_date: "",
+    vaccine_interval_days: "365",
+    last_grooming_date: "",
+    grooming_interval_days: "30",
+
+    // Additional
     eye_color: "",
     fur_type: "",
     markings: "",
@@ -65,7 +71,6 @@ export default function CreatePet() {
   const validate = () => {
     if (!token) return "You must be logged in.";
 
-    // Required fields (based on your functional requirement)
     if (!form.name.trim()) return "Please enter Pet Name.";
     if (!form.species.trim()) return "Please select Species (Dog or Cat).";
     if (!form.breed.trim()) return "Please enter Breed.";
@@ -74,30 +79,30 @@ export default function CreatePet() {
       return "Please enter Weight (kg).";
     }
 
-    // Need either Age or DOB (we can calculate age from DOB)
-    const computedAge =
-      form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
-
+    const computedAge = form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
     if (computedAge === "" || Number.isNaN(Number(computedAge)) || Number(computedAge) < 0) {
       return "Please enter Age, or select Date of Birth (so we can calculate it).";
     }
 
-    // Photo required per requirement #1 (photographs)
     if (!photo) return "Please upload at least 1 photo (required).";
 
-    // Photo validation (#4)
     if (photo) {
-      if (!allowedPhotoTypes.includes(photo.type)) {
-        return "Photo must be JPG, PNG, or WEBP.";
-      }
-      if (photo.size > 2 * 1024 * 1024) {
-        return "Photo must be 2MB or less.";
-      }
+      if (!allowedPhotoTypes.includes(photo.type)) return "Photo must be JPG, PNG, or WEBP.";
+      if (photo.size > 2 * 1024 * 1024) return "Photo must be 2MB or less.";
     }
 
-    // Microchip format (optional but sensible)
     if (form.microchip_number && form.microchip_number.length > 60) {
       return "Microchip number looks too long. Please double-check it.";
+    }
+
+    // ✅ Validate intervals if provided
+    const vInt = Number(form.vaccine_interval_days);
+    if (form.vaccine_interval_days !== "" && (Number.isNaN(vInt) || vInt <= 0)) {
+      return "Vaccine interval must be a positive number of days.";
+    }
+    const gInt = Number(form.grooming_interval_days);
+    if (form.grooming_interval_days !== "" && (Number.isNaN(gInt) || gInt <= 0)) {
+      return "Grooming interval must be a positive number of days.";
     }
 
     return "";
@@ -114,8 +119,7 @@ export default function CreatePet() {
       return;
     }
 
-    const computedAge =
-      form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
+    const computedAge = form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
 
     const fd = new FormData();
 
@@ -125,8 +129,19 @@ export default function CreatePet() {
     fd.append("breed", form.breed.trim());
     fd.append("gender", form.gender);
     fd.append("age", String(computedAge));
-    if (form.dob) fd.append("dob", form.dob);
     fd.append("weight", String(form.weight));
+
+    // ✅ DOB mapping (send BOTH for compatibility)
+    if (form.dob) {
+      fd.append("dob", form.dob); // keep legacy column if still used anywhere
+      fd.append("date_of_birth", form.dob); // ✅ used by reminders
+    }
+
+    // ✅ Reminders fields
+    if (form.last_vaccination_date) fd.append("last_vaccination_date", form.last_vaccination_date);
+    if (form.vaccine_interval_days) fd.append("vaccine_interval_days", String(form.vaccine_interval_days));
+    if (form.last_grooming_date) fd.append("last_grooming_date", form.last_grooming_date);
+    if (form.grooming_interval_days) fd.append("grooming_interval_days", String(form.grooming_interval_days));
 
     // additional
     if (form.eye_color) fd.append("eye_color", form.eye_color.trim());
@@ -145,7 +160,7 @@ export default function CreatePet() {
     if (form.personality_traits) fd.append("personality_traits", form.personality_traits.trim());
     if (form.notes) fd.append("notes", form.notes.trim());
 
-    // photo (required)
+    // photo
     fd.append("photo", photo);
 
     setLoading(true);
@@ -203,12 +218,7 @@ export default function CreatePet() {
             <div className="pf-grid">
               <div className="pf-field">
                 <label>Pet Name *</label>
-                <input
-                  name="name"
-                  value={form.name}
-                  onChange={onChange}
-                  placeholder="e.g. Bella"
-                />
+                <input name="name" value={form.name} onChange={onChange} placeholder="e.g. Bella" />
               </div>
 
               <div className="pf-field">
@@ -222,12 +232,7 @@ export default function CreatePet() {
 
               <div className="pf-field">
                 <label>Breed *</label>
-                <input
-                  name="breed"
-                  value={form.breed}
-                  onChange={onChange}
-                  placeholder="e.g. Husky"
-                />
+                <input name="breed" value={form.breed} onChange={onChange} placeholder="e.g. Husky" />
               </div>
 
               <div className="pf-field">
@@ -252,48 +257,88 @@ export default function CreatePet() {
                     setForm((prev) => ({
                       ...prev,
                       dob,
-                      // if age empty, auto-fill it (user can still edit)
                       age: prev.age === "" ? String(autoAge) : prev.age,
                     }));
                   }}
                 />
-                <span className="pf-help">If you choose DOB, we can calculate age.</span>
+                <span className="pf-help">Used for birthday reminders.</span>
               </div>
 
               <div className="pf-field">
                 <label>Age *</label>
-                <input
-                  type="number"
-                  min="0"
-                  name="age"
-                  value={form.age}
-                  onChange={onChange}
-                  placeholder="e.g. 3"
-                />
+                <input type="number" min="0" name="age" value={form.age} onChange={onChange} placeholder="e.g. 3" />
                 <span className="pf-help">Enter age if DOB is unknown.</span>
               </div>
 
               <div className="pf-field">
                 <label>Weight (kg) *</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  name="weight"
-                  value={form.weight}
-                  onChange={onChange}
-                  placeholder="e.g. 12.5"
-                />
+                <input type="number" step="0.1" min="0" name="weight" value={form.weight} onChange={onChange} placeholder="e.g. 12.5" />
               </div>
 
               <div className="pf-field pf-file">
                 <label>Photo *</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setPhoto(e.target.files?.[0] || null)}
-                />
+                <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] || null)} />
                 <span className="pf-help">JPG/PNG/WEBP, max 2MB</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ✅ SECTION: Reminders */}
+          <div className="pf-section">
+            <div className="pf-section-head">
+              <h2 className="pf-section-title">Reminder Settings</h2>
+              <p className="pf-section-sub">
+                These fields power automatic reminders (Vaccines & Grooming). Leave blank if unknown.
+              </p>
+            </div>
+
+            <div className="pf-grid">
+              <div className="pf-field">
+                <label>Last Vaccination Date</label>
+                <input
+                  type="date"
+                  name="last_vaccination_date"
+                  value={form.last_vaccination_date}
+                  onChange={onChange}
+                />
+                <span className="pf-help">Used to calculate next vaccine due.</span>
+              </div>
+
+              <div className="pf-field">
+                <label>Vaccine Interval (days)</label>
+                <input
+                  type="number"
+                  min="1"
+                  name="vaccine_interval_days"
+                  value={form.vaccine_interval_days}
+                  onChange={onChange}
+                  placeholder="e.g. 365"
+                />
+                <span className="pf-help">Default: 365 (annual).</span>
+              </div>
+
+              <div className="pf-field">
+                <label>Last Grooming Date</label>
+                <input
+                  type="date"
+                  name="last_grooming_date"
+                  value={form.last_grooming_date}
+                  onChange={onChange}
+                />
+                <span className="pf-help">Used to calculate next grooming due.</span>
+              </div>
+
+              <div className="pf-field">
+                <label>Grooming Interval (days)</label>
+                <input
+                  type="number"
+                  min="1"
+                  name="grooming_interval_days"
+                  value={form.grooming_interval_days}
+                  onChange={onChange}
+                  placeholder="e.g. 30"
+                />
+                <span className="pf-help">Default: 30.</span>
               </div>
             </div>
           </div>
@@ -308,32 +353,17 @@ export default function CreatePet() {
             <div className="pf-grid">
               <div className="pf-field">
                 <label>Eye Colour</label>
-                <input
-                  name="eye_color"
-                  value={form.eye_color}
-                  onChange={onChange}
-                  placeholder="e.g. Brown"
-                />
+                <input name="eye_color" value={form.eye_color} onChange={onChange} placeholder="e.g. Brown" />
               </div>
 
               <div className="pf-field">
                 <label>Fur Type / Length</label>
-                <input
-                  name="fur_type"
-                  value={form.fur_type}
-                  onChange={onChange}
-                  placeholder="e.g. Short, Long, Curly"
-                />
+                <input name="fur_type" value={form.fur_type} onChange={onChange} placeholder="e.g. Short, Long, Curly" />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Markings</label>
-                <input
-                  name="markings"
-                  value={form.markings}
-                  onChange={onChange}
-                  placeholder="e.g. White patch on chest"
-                />
+                <input name="markings" value={form.markings} onChange={onChange} placeholder="e.g. White patch on chest" />
               </div>
             </div>
           </div>
@@ -348,45 +378,22 @@ export default function CreatePet() {
             <div className="pf-grid">
               <div className="pf-field pf-span-2">
                 <label>Health Conditions</label>
-                <textarea
-                  name="health_conditions"
-                  value={form.health_conditions}
-                  onChange={onChange}
-                  rows={3}
-                  placeholder="e.g. Arthritis, sensitive stomach..."
-                />
+                <textarea name="health_conditions" value={form.health_conditions} onChange={onChange} rows={3} placeholder="e.g. Arthritis, sensitive stomach..." />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Allergies</label>
-                <textarea
-                  name="allergies"
-                  value={form.allergies}
-                  onChange={onChange}
-                  rows={3}
-                  placeholder="e.g. Chicken, pollen..."
-                />
+                <textarea name="allergies" value={form.allergies} onChange={onChange} rows={3} placeholder="e.g. Chicken, pollen..." />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Vaccination History</label>
-                <textarea
-                  name="vaccination_history"
-                  value={form.vaccination_history}
-                  onChange={onChange}
-                  rows={3}
-                  placeholder="e.g. Rabies (2025), DHPP (2025)..."
-                />
+                <textarea name="vaccination_history" value={form.vaccination_history} onChange={onChange} rows={3} placeholder="e.g. Rabies (2025), DHPP (2025)..." />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Microchip Number</label>
-                <input
-                  name="microchip_number"
-                  value={form.microchip_number}
-                  onChange={onChange}
-                  placeholder="e.g. 985112004123456"
-                />
+                <input name="microchip_number" value={form.microchip_number} onChange={onChange} placeholder="e.g. 985112004123456" />
               </div>
             </div>
           </div>
@@ -421,36 +428,18 @@ export default function CreatePet() {
 
               <div className="pf-field pf-span-2">
                 <label>Diet</label>
-                <textarea
-                  name="diet"
-                  value={form.diet}
-                  onChange={onChange}
-                  rows={3}
-                  placeholder="e.g. Dry food twice daily, occasional treats..."
-                />
+                <textarea name="diet" value={form.diet} onChange={onChange} rows={3} placeholder="e.g. Dry food twice daily..." />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Personality Traits</label>
-                <textarea
-                  name="personality_traits"
-                  value={form.personality_traits}
-                  onChange={onChange}
-                  rows={3}
-                  placeholder="e.g. Friendly, shy, energetic..."
-                />
+                <textarea name="personality_traits" value={form.personality_traits} onChange={onChange} rows={3} placeholder="e.g. Friendly, shy, energetic..." />
                 <span className="pf-help">Tip: use commas if you like (Friendly, Playful, Calm).</span>
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Notes</label>
-                <textarea
-                  name="notes"
-                  value={form.notes}
-                  onChange={onChange}
-                  rows={3}
-                  placeholder="Anything else important..."
-                />
+                <textarea name="notes" value={form.notes} onChange={onChange} rows={3} placeholder="Anything else important..." />
               </div>
             </div>
           </div>
