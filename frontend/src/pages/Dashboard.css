@@ -517,3 +517,29 @@
   .pf2-span-2{ grid-column: span 1; }
   .pf2-span-all{ grid-column: span 1; }
 }
+
+/* Fix dashboard upcoming reminder text overflow */
+.pf2-card .pf2-petrow {
+  align-items: flex-start;
+}
+
+.pf2-card .pf2-petleft {
+  min-width: 0;
+  flex: 1;
+}
+
+.pf2-card .pf2-petmeta {
+  min-width: 0;
+  flex: 1;
+}
+
+.pf2-card .pf2-petname,
+.pf2-card .pf2-petdesc {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.pf2-card .pf2-petdesc {
+  line-height: 1.4;
+}
