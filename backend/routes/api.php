@@ -116,5 +116,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // ✅ Reminders
     Route::get('/reminders', [ReminderController::class, 'index']);
     Route::post('/reminders/generate', [ReminderController::class, 'generate']);
+    Route::get('/reminders/upcoming', [ReminderController::class, 'upcoming']);
+Route::patch('/reminders/{reminder}/complete', [ReminderController::class, 'complete']);
+Route::patch('/reminders/{reminder}/snooze', [ReminderController::class, 'snooze']);
 
 });

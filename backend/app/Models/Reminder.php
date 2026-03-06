@@ -15,10 +15,12 @@ class Reminder extends Model
         'reminder_date',
         'status',
         'dedupe_key',
+        'notified_at',
     ];
 
     protected $casts = [
         'reminder_date' => 'date',
+        'notified_at' => 'datetime',
     ];
 
     public function pet()

@@ -14,9 +14,13 @@ export default function Dashboard() {
   const [petsError, setPetsError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
 
-  // Appointments state (for dashboard stats)
+  // Appointments state
   const [appointments, setAppointments] = useState([]);
   const [apptsLoading, setApptsLoading] = useState(false);
+
+  // ✅ Upcoming reminders state
+  const [upcomingReminders, setUpcomingReminders] = useState([]);
+  const [remindersLoading, setRemindersLoading] = useState(false);
 
   const token = localStorage.getItem("pawfection_token");
   const apiBase = "http://127.0.0.1:8000/api";
@@ -91,8 +95,39 @@ export default function Dashboard() {
     }
   };
 
+  // ✅ Upcoming reminders
+  const fetchUpcomingReminders = async () => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    setRemindersLoading(true);
+
+    try {
+      const res = await fetch(`${apiBase}/reminders/upcoming`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json().catch(() => ([]));
+
+      if (!res.ok) {
+        setUpcomingReminders([]);
+      } else {
+        setUpcomingReminders(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      setUpcomingReminders([]);
+    } finally {
+      setRemindersLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Load user name
     try {
       const savedUser = localStorage.getItem("pawfection_user");
       if (savedUser) {
@@ -113,11 +148,12 @@ export default function Dashboard() {
 
     fetchPets();
     fetchAppointments();
+    fetchUpcomingReminders();
 
-    // refresh when user returns to tab (after editing appointments)
     const onFocus = () => {
       fetchPets();
       fetchAppointments();
+      fetchUpcomingReminders();
     };
     window.addEventListener("focus", onFocus);
 
@@ -182,6 +218,13 @@ export default function Dashboard() {
     }).length;
   }, [appointments]);
 
+  // ✅ Active reminder count
+  const activeReminderCount = useMemo(() => {
+    return (upcomingReminders || []).filter(
+      (r) => (r?.status || "").toLowerCase() !== "completed"
+    ).length;
+  }, [upcomingReminders]);
+
   const stats = useMemo(() => {
     const petCount = pets?.length || 0;
     return [
@@ -193,9 +236,22 @@ export default function Dashboard() {
         tone: "mint",
         icon: "📅",
       },
-      { label: "Reminders", value: "0", sub: "Active", tone: "peach", icon: "⏰" },
+      {
+        label: "Reminders",
+        value: remindersLoading ? "…" : String(activeReminderCount),
+        sub: "Upcoming",
+        tone: "peach",
+        icon: "⏰",
+      },
     ];
-  }, [pets, upcomingAppointmentsCount, apptsLoading]);
+  }, [pets, upcomingAppointmentsCount, apptsLoading, activeReminderCount, remindersLoading]);
+
+  const formatDate = (iso) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("en-IE", { year: "numeric", month: "short", day: "2-digit" });
+  };
 
   return (
     <div className="pf2-shell">
@@ -218,8 +274,6 @@ export default function Dashboard() {
           <Link className="pf2-nav-item" to="/community">Community</Link>
           <Link className="pf2-nav-item" to="/inventory">Inventory</Link>
         </nav>
-
-        {/* ✅ removed View Profile button */}
       </aside>
 
       {/* Main */}
@@ -255,8 +309,8 @@ export default function Dashboard() {
               <button className="pf2-btn" onClick={() => navigate("/appointments/book")}>
                 Book Appointment
               </button>
-              <button className="pf2-btn" onClick={() => navigate("/reminders/add")}>
-                Add Reminder
+              <button className="pf2-btn" onClick={() => navigate("/reminders")}>
+                View Reminders
               </button>
             </div>
           </div>
@@ -341,7 +395,45 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* ✅ Welcome card BELOW My Pets (full width) */}
+            {/* ✅ Upcoming Reminders widget */}
+            <div className="pf2-card">
+              <div className="pf2-cardhead">
+                <h2>Upcoming Reminders</h2>
+                <button className="pf2-btn pf2-btn-small" onClick={() => navigate("/reminders")}>
+                  View All
+                </button>
+              </div>
+
+              {remindersLoading && <div className="pf2-empty">Loading reminders…</div>}
+
+              {!remindersLoading && upcomingReminders.length === 0 && (
+                <div className="pf2-empty">
+                  No upcoming reminders.
+                </div>
+              )}
+
+              {!remindersLoading && upcomingReminders.length > 0 && (
+                <div className="pf2-petlist">
+                  {upcomingReminders.slice(0, 5).map((r) => (
+                    <div key={r.id} className="pf2-petrow">
+                      <div className="pf2-petleft">
+                        <div className="pf2-petimg">
+                          <span>⏰</span>
+                        </div>
+
+                        <div className="pf2-petmeta">
+                          <div className="pf2-petname">{r.title}</div>
+                          <div className="pf2-petdesc">{r.message || "Reminder"}</div>
+                          <div className="pf2-petdesc">Due: {formatDate(r.reminder_date)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Welcome card */}
             <div className="pf2-card pf2-welcome pf2-span-all">
               <div className="pf2-welcome-title">Welcome to Pawfection</div>
               <div className="pf2-welcome-sub">
@@ -349,7 +441,7 @@ export default function Dashboard() {
               </div>
               <div className="pf2-welcome-text">
                 The Pawfection is a mobile-friendly application for dog and cat owners in
-                Ireland. The goal of Pawfection is to make it easy for pet owners to use 
+                Ireland. The goal of Pawfection is to make it easy for pet owners to use
                 our platform to record, manage, and track essential information
                 related to their pets&apos; health, well-being, and safety.
               </div>

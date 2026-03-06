@@ -101,6 +101,58 @@ export default function Reminders() {
     }
   };
 
+  const completeReminder = async (id) => {
+    if (!token) return navigate("/login");
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await fetch(`${apiBase}/reminders/${id}/complete`, {
+        method: "PATCH",
+        headers: authHeaders,
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data?.message || "Failed to mark reminder as done.");
+      } else {
+        setSuccess("Reminder marked as completed!");
+        await fetchReminders();
+      }
+    } catch {
+      setError("Server error. Is your backend running?");
+    }
+  };
+
+  const snoozeReminder = async (id, days) => {
+    if (!token) return navigate("/login");
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await fetch(`${apiBase}/reminders/${id}/snooze`, {
+        method: "PATCH",
+        headers: {
+          ...authHeaders,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ days }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data?.message || "Failed to snooze reminder.");
+      } else {
+        setSuccess(`Reminder snoozed by ${days} day(s)!`);
+        await fetchReminders();
+      }
+    } catch {
+      setError("Server error. Is your backend running?");
+    }
+  };
+
   const formatDate = (iso) => {
     if (!iso) return "—";
     const d = new Date(iso);
@@ -135,6 +187,7 @@ export default function Reminders() {
 
     if (filter === "upcoming") {
       list = list.filter((r) => {
+        if ((r.status || "").toLowerCase() === "completed") return false;
         const d = new Date(r.reminder_date);
         d.setHours(0, 0, 0, 0);
         return d >= today;
@@ -210,7 +263,7 @@ export default function Reminders() {
             <div>
               <h1 className="pfa-title">Reminders</h1>
               <p className="pfa-subtitle">
-                Automatic reminders based on pet data (Vaccine, Grooming, Birthday) — stored in the database.
+                Manage reminders by marking them as done, snoozing them, and tracking upcoming pet care tasks.
               </p>
             </div>
           </div>
@@ -223,7 +276,7 @@ export default function Reminders() {
               <div className="pfa-cardtop">
                 <div>
                   <div className="pfa-cardtitle">Your reminders</div>
-                  <div className="pfa-mini">Generate and view reminders created from your pet data.</div>
+                  <div className="pfa-mini">Generate, snooze, complete, and review reminders from your pet data.</div>
                 </div>
 
                 <div className="pfa-actions-right">
@@ -287,6 +340,31 @@ export default function Reminders() {
                         <span className="pfr-badge pfr-status">
                           {r.status || "pending"}
                         </span>
+
+                        {(r.status || "").toLowerCase() !== "completed" && (
+                          <>
+                            <button
+                              className="pf2-btn pf2-btn-small"
+                              onClick={() => snoozeReminder(r.id, 1)}
+                            >
+                              Snooze 1d
+                            </button>
+
+                            <button
+                              className="pf2-btn pf2-btn-small"
+                              onClick={() => snoozeReminder(r.id, 7)}
+                            >
+                              Snooze 7d
+                            </button>
+
+                            <button
+                              className="pf2-btn pf2-btn-small pf2-btn-primary"
+                              onClick={() => completeReminder(r.id)}
+                            >
+                              Mark done
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
