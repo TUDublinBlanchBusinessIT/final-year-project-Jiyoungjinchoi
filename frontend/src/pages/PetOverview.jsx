@@ -75,6 +75,20 @@ function getGuidanceTips(pet) {
   return [];
 }
 
+const detailRowStyle = {
+  padding: "10px 0",
+  borderBottom: "1px solid #ececec",
+};
+
+const sectionCardStyle = {
+  marginTop: 18,
+  minHeight: 160,
+  background: "#fafafa",
+  border: "1px solid #eeeeee",
+  borderRadius: 14,
+  padding: 18,
+};
+
 export default function PetOverview() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -96,6 +110,22 @@ export default function PetOverview() {
 
   const calculatedAge = useMemo(() => calculateAge(pet?.dob), [pet?.dob]);
   const guidanceTips = useMemo(() => getGuidanceTips(pet), [pet]);
+
+  const upcomingReminders = useMemo(() => {
+    if (!Array.isArray(pet?.reminders)) return [];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return pet.reminders
+      .filter((reminder) => {
+        if (!reminder?.reminder_date) return false;
+        const reminderDate = new Date(reminder.reminder_date);
+        if (Number.isNaN(reminderDate.getTime())) return false;
+        return reminderDate >= today;
+      })
+      .slice(0, 5);
+  }, [pet]);
 
   useEffect(() => {
     const load = async () => {
@@ -141,19 +171,62 @@ export default function PetOverview() {
       </button>
 
       <div style={{ marginTop: 16 }} className="pf2-card">
-        {loading && <div className="pf2-empty">Loading...</div>}
-        {!loading && err && <div className="pf2-empty">{err}</div>}
+        {loading && (
+          <div className="pf2-empty" style={{ padding: "24px 0", opacity: 0.75 }}>
+            Loading...
+          </div>
+        )}
+
+        {!loading && err && (
+          <div className="pf2-empty" style={{ padding: "24px 0", opacity: 0.75 }}>
+            {err}
+          </div>
+        )}
 
         {!loading && !err && pet && (
           <>
-            <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-              <div className="pf2-petimg" style={{ width: 72, height: 72 }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 20,
+                alignItems: "center",
+                flexWrap: "wrap",
+                paddingBottom: 18,
+                borderBottom: "1px solid #ececec",
+              }}
+            >
+              <div
+                className="pf2-petimg"
+                style={{
+                  width: 84,
+                  height: 84,
+                  borderRadius: 20,
+                  overflow: "hidden",
+                  flexShrink: 0,
+                }}
+              >
                 {imgSrc ? <img src={imgSrc} alt={pet.name} /> : <span>🐾</span>}
               </div>
 
               <div>
-                <h1 style={{ margin: 0 }}>{pet.name}</h1>
-                <div style={{ opacity: 0.75, marginTop: 6 }}>
+                <h1
+                  style={{
+                    margin: 0,
+                    fontSize: "2.2rem",
+                    lineHeight: 1.1,
+                    fontWeight: 800,
+                  }}
+                >
+                  {pet.name}
+                </h1>
+
+                <div
+                  style={{
+                    opacity: 0.8,
+                    marginTop: 8,
+                    fontSize: "1.05rem",
+                  }}
+                >
                   {pet.species || "Pet"}
                   {pet.breed ? ` • ${pet.breed}` : ""}
                   {calculatedAge !== null ? ` • ${calculatedAge} yrs` : ""}
@@ -169,7 +242,15 @@ export default function PetOverview() {
             </div>
 
             {/* Tabs */}
-            <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                marginTop: 20,
+                marginBottom: 8,
+                flexWrap: "wrap",
+              }}
+            >
               {TABS.map((t) => (
                 <button
                   key={t}
@@ -182,16 +263,16 @@ export default function PetOverview() {
             </div>
 
             {/* Content */}
-            <div style={{ marginTop: 18, minHeight: 140 }}>
+            <div style={sectionCardStyle}>
               {tab === "Overview" && (
                 <div>
-                  <div>
+                  <div style={detailRowStyle}>
                     <b>Notes:</b> {pet.notes?.trim() ? pet.notes : "No notes added"}
                   </div>
-                  <div style={{ marginTop: 8 }}>
+                  <div style={detailRowStyle}>
                     <b>Date of Birth:</b> {formatDate(pet.dob)}
                   </div>
-                  <div style={{ marginTop: 8 }}>
+                  <div style={{ paddingTop: 10 }}>
                     <b>Gender:</b> {pet.gender || "-"}
                   </div>
                 </div>
@@ -201,18 +282,20 @@ export default function PetOverview() {
                 <div>
                   {pet.vaccination_status || pet.last_vet_visit || pet.medical_notes ? (
                     <>
-                      <div>
+                      <div style={detailRowStyle}>
                         <b>Vaccination Status:</b> {pet.vaccination_status || "-"}
                       </div>
-                      <div style={{ marginTop: 8 }}>
+                      <div style={detailRowStyle}>
                         <b>Last Vet Visit:</b> {formatDate(pet.last_vet_visit)}
                       </div>
-                      <div style={{ marginTop: 8 }}>
+                      <div style={{ paddingTop: 10 }}>
                         <b>Medical Notes:</b> {pet.medical_notes || "-"}
                       </div>
                     </>
                   ) : (
-                    <div className="pf2-empty">No health records available.</div>
+                    <div className="pf2-empty" style={{ padding: "20px 0", opacity: 0.72 }}>
+                      No health records available.
+                    </div>
                   )}
                 </div>
               )}
@@ -221,18 +304,20 @@ export default function PetOverview() {
                 <div>
                   {pet.food_type || pet.feeding_schedule || pet.allergies ? (
                     <>
-                      <div>
+                      <div style={detailRowStyle}>
                         <b>Food Type:</b> {pet.food_type || "-"}
                       </div>
-                      <div style={{ marginTop: 8 }}>
+                      <div style={detailRowStyle}>
                         <b>Feeding Schedule:</b> {pet.feeding_schedule || "-"}
                       </div>
-                      <div style={{ marginTop: 8 }}>
+                      <div style={{ paddingTop: 10 }}>
                         <b>Allergies:</b> {pet.allergies || "None"}
                       </div>
                     </>
                   ) : (
-                    <div className="pf2-empty">No diet information added.</div>
+                    <div className="pf2-empty" style={{ padding: "20px 0", opacity: 0.72 }}>
+                      No diet information added.
+                    </div>
                   )}
                 </div>
               )}
@@ -241,40 +326,47 @@ export default function PetOverview() {
                 <div>
                   {pet.temperament || pet.behaviour_notes ? (
                     <>
-                      <div>
+                      <div style={detailRowStyle}>
                         <b>Temperament:</b> {pet.temperament || "-"}
                       </div>
-                      <div style={{ marginTop: 8 }}>
+                      <div style={{ paddingTop: 10 }}>
                         <b>Behaviour Notes:</b> {pet.behaviour_notes || "-"}
                       </div>
                     </>
                   ) : (
-                    <div className="pf2-empty">No behaviour information added.</div>
+                    <div className="pf2-empty" style={{ padding: "20px 0", opacity: 0.72 }}>
+                      No behaviour information added.
+                    </div>
                   )}
                 </div>
               )}
 
               {tab === "Reminders" && (
                 <div>
-                  {Array.isArray(pet.reminders) && pet.reminders.length > 0 ? (
-                    pet.reminders
-                      .filter((reminder) => {
-                        if (!reminder?.reminder_date) return false;
-                        return new Date(reminder.reminder_date) >= new Date();
-                      })
-                      .slice(0, 5)
-                      .map((reminder) => (
-                        <div key={reminder.id} style={{ marginBottom: 10 }}>
-                          <div>
-                            <b>Title:</b> {reminder.title || "-"}
-                          </div>
-                          <div style={{ marginTop: 4 }}>
-                            <b>Date:</b> {formatDate(reminder.reminder_date)}
-                          </div>
+                  {upcomingReminders.length > 0 ? (
+                    upcomingReminders.map((reminder) => (
+                      <div
+                        key={reminder.id}
+                        style={{
+                          marginBottom: 12,
+                          padding: 12,
+                          background: "#ffffff",
+                          border: "1px solid #ececec",
+                          borderRadius: 12,
+                        }}
+                      >
+                        <div>
+                          <b>Title:</b> {reminder.title || "-"}
                         </div>
-                      ))
+                        <div style={{ marginTop: 6, opacity: 0.85 }}>
+                          <b>Date:</b> {formatDate(reminder.reminder_date)}
+                        </div>
+                      </div>
+                    ))
                   ) : (
-                    <div className="pf2-empty">No upcoming reminders.</div>
+                    <div className="pf2-empty" style={{ padding: "20px 0", opacity: 0.72 }}>
+                      No upcoming reminders.
+                    </div>
                   )}
                 </div>
               )}
@@ -282,15 +374,26 @@ export default function PetOverview() {
               {tab === "Guidance" && (
                 <div>
                   {guidanceTips.length > 0 ? (
-                    <div>
+                    <div style={{ display: "grid", gap: 12 }}>
                       {guidanceTips.map((tip, index) => (
-                        <div key={index} style={{ marginBottom: 10 }}>
+                        <div
+                          key={index}
+                          style={{
+                            padding: 14,
+                            background: "#ffffff",
+                            border: "1px solid #ececec",
+                            borderRadius: 12,
+                            lineHeight: 1.5,
+                          }}
+                        >
                           • {tip}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="pf2-empty">No guidance available.</div>
+                    <div className="pf2-empty" style={{ padding: "20px 0", opacity: 0.72 }}>
+                      No guidance available.
+                    </div>
                   )}
                 </div>
               )}
