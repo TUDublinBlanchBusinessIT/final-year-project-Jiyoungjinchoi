@@ -4,6 +4,77 @@ import "./Dashboard.css";
 
 const TABS = ["Overview", "Health", "Diet", "Behaviour", "Reminders", "Guidance"];
 
+function calculateAge(dob) {
+  if (!dob) return null;
+
+  const birthDate = new Date(dob);
+  if (Number.isNaN(birthDate.getTime())) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age--;
+  }
+
+  return age >= 0 ? age : null;
+}
+
+function formatDate(dateString) {
+  if (!dateString) return "-";
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return dateString;
+
+  return date.toLocaleDateString("en-GB");
+}
+
+function getGuidanceTips(pet) {
+  const species = (pet?.species || "").toLowerCase();
+  const breed = (pet?.breed || "").toLowerCase();
+
+  if (breed.includes("husky")) {
+    return [
+      "Huskies need regular daily exercise to stay healthy and happy.",
+      "Frequent brushing helps manage shedding and keeps the coat healthy.",
+    ];
+  }
+
+  if (breed.includes("persian")) {
+    return [
+      "Persian cats benefit from regular grooming to prevent matting.",
+      "Keep their feeding and care routine consistent to reduce stress.",
+    ];
+  }
+
+  if (breed.includes("poodle")) {
+    return [
+      "Poodles benefit from regular grooming and coat maintenance.",
+      "Daily play and mental stimulation help prevent boredom.",
+    ];
+  }
+
+  if (species === "dog") {
+    return [
+      "Dogs benefit from daily exercise, fresh water, and regular check-ups.",
+      "Consistent routines can help with behaviour and wellbeing.",
+    ];
+  }
+
+  if (species === "cat") {
+    return [
+      "Cats need a calm environment, fresh water, and regular litter cleaning.",
+      "Routine grooming and play can support their health and mood.",
+    ];
+  }
+
+  return [];
+}
+
 export default function PetOverview() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -22,6 +93,9 @@ export default function PetOverview() {
     if (pet?.photo) return `http://127.0.0.1:8000/storage/${pet.photo}`;
     return null;
   }, [pet]);
+
+  const calculatedAge = useMemo(() => calculateAge(pet?.dob), [pet?.dob]);
+  const guidanceTips = useMemo(() => getGuidanceTips(pet), [pet]);
 
   useEffect(() => {
     const load = async () => {
@@ -67,12 +141,12 @@ export default function PetOverview() {
       </button>
 
       <div style={{ marginTop: 16 }} className="pf2-card">
-        {loading && <div className="pf2-empty">Loading…</div>}
+        {loading && <div className="pf2-empty">Loading...</div>}
         {!loading && err && <div className="pf2-empty">{err}</div>}
 
         {!loading && !err && pet && (
           <>
-            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
               <div className="pf2-petimg" style={{ width: 72, height: 72 }}>
                 {imgSrc ? <img src={imgSrc} alt={pet.name} /> : <span>🐾</span>}
               </div>
@@ -82,7 +156,7 @@ export default function PetOverview() {
                 <div style={{ opacity: 0.75, marginTop: 6 }}>
                   {pet.species || "Pet"}
                   {pet.breed ? ` • ${pet.breed}` : ""}
-                  {pet.age ? ` • ${pet.age} yrs` : ""}
+                  {calculatedAge !== null ? ` • ${calculatedAge} yrs` : ""}
                   {pet.weight ? ` • ${pet.weight}kg` : ""}
                 </div>
               </div>
@@ -108,18 +182,116 @@ export default function PetOverview() {
             </div>
 
             {/* Content */}
-            <div style={{ marginTop: 18 }}>
+            <div style={{ marginTop: 18, minHeight: 140 }}>
               {tab === "Overview" && (
                 <div>
-                  <div><b>Notes:</b> {pet.notes || "-"}</div>
-                  <div style={{ marginTop: 8 }}><b>Date of Birth:</b> {pet.dob || "-"}</div>
-                  <div style={{ marginTop: 8 }}><b>Gender:</b> {pet.gender || "-"}</div>
+                  <div>
+                    <b>Notes:</b> {pet.notes?.trim() ? pet.notes : "No notes added"}
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <b>Date of Birth:</b> {formatDate(pet.dob)}
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <b>Gender:</b> {pet.gender || "-"}
+                  </div>
                 </div>
               )}
 
-              {tab !== "Overview" && (
-                <div className="pf2-empty">
-                  {tab} content coming soon (this is where you’ll extend fields later).
+              {tab === "Health" && (
+                <div>
+                  {pet.vaccination_status || pet.last_vet_visit || pet.medical_notes ? (
+                    <>
+                      <div>
+                        <b>Vaccination Status:</b> {pet.vaccination_status || "-"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <b>Last Vet Visit:</b> {formatDate(pet.last_vet_visit)}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <b>Medical Notes:</b> {pet.medical_notes || "-"}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="pf2-empty">No health records available.</div>
+                  )}
+                </div>
+              )}
+
+              {tab === "Diet" && (
+                <div>
+                  {pet.food_type || pet.feeding_schedule || pet.allergies ? (
+                    <>
+                      <div>
+                        <b>Food Type:</b> {pet.food_type || "-"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <b>Feeding Schedule:</b> {pet.feeding_schedule || "-"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <b>Allergies:</b> {pet.allergies || "None"}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="pf2-empty">No diet information added.</div>
+                  )}
+                </div>
+              )}
+
+              {tab === "Behaviour" && (
+                <div>
+                  {pet.temperament || pet.behaviour_notes ? (
+                    <>
+                      <div>
+                        <b>Temperament:</b> {pet.temperament || "-"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <b>Behaviour Notes:</b> {pet.behaviour_notes || "-"}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="pf2-empty">No behaviour information added.</div>
+                  )}
+                </div>
+              )}
+
+              {tab === "Reminders" && (
+                <div>
+                  {Array.isArray(pet.reminders) && pet.reminders.length > 0 ? (
+                    pet.reminders
+                      .filter((reminder) => {
+                        if (!reminder?.reminder_date) return false;
+                        return new Date(reminder.reminder_date) >= new Date();
+                      })
+                      .slice(0, 5)
+                      .map((reminder) => (
+                        <div key={reminder.id} style={{ marginBottom: 10 }}>
+                          <div>
+                            <b>Title:</b> {reminder.title || "-"}
+                          </div>
+                          <div style={{ marginTop: 4 }}>
+                            <b>Date:</b> {formatDate(reminder.reminder_date)}
+                          </div>
+                        </div>
+                      ))
+                  ) : (
+                    <div className="pf2-empty">No upcoming reminders.</div>
+                  )}
+                </div>
+              )}
+
+              {tab === "Guidance" && (
+                <div>
+                  {guidanceTips.length > 0 ? (
+                    <div>
+                      {guidanceTips.map((tip, index) => (
+                        <div key={index} style={{ marginBottom: 10 }}>
+                          • {tip}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="pf2-empty">No guidance available.</div>
+                  )}
                 </div>
               )}
             </div>

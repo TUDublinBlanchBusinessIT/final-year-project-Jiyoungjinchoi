@@ -15,7 +15,7 @@ export default function EditPet() {
     age: "",
     weight: "",
 
-    // ✅ Reminder fields (NEW)
+    // Reminder fields
     last_vaccination_date: "",
     vaccine_interval_days: "365",
     last_grooming_date: "",
@@ -36,6 +36,15 @@ export default function EditPet() {
 
     personality_traits: "",
     notes: "",
+
+    // Fields used by PetOverview tabs
+    vaccination_status: "",
+    last_vet_visit: "",
+    medical_notes: "",
+    food_type: "",
+    feeding_schedule: "",
+    temperament: "",
+    behaviour_notes: "",
   });
 
   const [photo, setPhoto] = useState(null);
@@ -90,7 +99,6 @@ export default function EditPet() {
           return;
         }
 
-        // ✅ prefer date_of_birth if present, fallback to dob
         const dobValue = data.date_of_birth || data.dob || "";
 
         setForm({
@@ -102,7 +110,7 @@ export default function EditPet() {
           age: data.age !== undefined && data.age !== null ? String(data.age) : "",
           weight: data.weight !== undefined && data.weight !== null ? String(data.weight) : "",
 
-          // ✅ reminders
+          // reminder-related
           last_vaccination_date: data.last_vaccination_date || "",
           vaccine_interval_days:
             data.vaccine_interval_days !== undefined && data.vaccine_interval_days !== null
@@ -122,6 +130,13 @@ export default function EditPet() {
           allergies: data.allergies || "",
           vaccination_history: data.vaccination_history || "",
           microchip_number: data.microchip_number || "",
+          vaccination_status: data.vaccination_status || "",
+          last_vet_visit: data.last_vet_visit || "",
+          medical_notes: data.medical_notes || "",
+          food_type: data.food_type || "",
+          feeding_schedule: data.feeding_schedule || "",
+          temperament: data.temperament || "",
+          behaviour_notes: data.behaviour_notes || "",
 
           exercise_level: data.exercise_level || "",
           activity_level: data.activity_level || "",
@@ -129,6 +144,15 @@ export default function EditPet() {
 
           personality_traits: data.personality_traits || "",
           notes: data.notes || "",
+
+          // fields used by PetOverview tabs
+          vaccination_status: data.vaccination_status || "",
+          last_vet_visit: data.last_vet_visit || "",
+          medical_notes: data.medical_notes || "",
+          food_type: data.food_type || "",
+          feeding_schedule: data.feeding_schedule || "",
+          temperament: data.temperament || "",
+          behaviour_notes: data.behaviour_notes || "",
         });
 
         setPageLoading(false);
@@ -176,6 +200,7 @@ export default function EditPet() {
     if (form.vaccine_interval_days !== "" && (Number.isNaN(vInt) || vInt <= 0)) {
       return "Vaccine interval must be a positive number of days.";
     }
+
     const gInt = Number(form.grooming_interval_days);
     if (form.grooming_interval_days !== "" && (Number.isNaN(gInt) || gInt <= 0)) {
       return "Grooming interval must be a positive number of days.";
@@ -206,13 +231,11 @@ export default function EditPet() {
     fd.append("age", String(computedAge));
     fd.append("weight", String(form.weight));
 
-    // ✅ DOB mapping (send BOTH)
     if (form.dob) {
       fd.append("dob", form.dob);
       fd.append("date_of_birth", form.dob);
     }
 
-    // ✅ reminders
     if (form.last_vaccination_date) fd.append("last_vaccination_date", form.last_vaccination_date);
     if (form.vaccine_interval_days) fd.append("vaccine_interval_days", String(form.vaccine_interval_days));
     if (form.last_grooming_date) fd.append("last_grooming_date", form.last_grooming_date);
@@ -229,25 +252,31 @@ export default function EditPet() {
 
     if (form.exercise_level) fd.append("exercise_level", form.exercise_level);
     if (form.activity_level) fd.append("activity_level", form.activity_level);
-
     if (form.diet) fd.append("diet", form.diet.trim());
     if (form.personality_traits) fd.append("personality_traits", form.personality_traits.trim());
     if (form.notes) fd.append("notes", form.notes.trim());
+
+    if (form.vaccination_status) fd.append("vaccination_status", form.vaccination_status);
+    if (form.last_vet_visit) fd.append("last_vet_visit", form.last_vet_visit);
+    if (form.medical_notes) fd.append("medical_notes", form.medical_notes.trim());
+    if (form.food_type) fd.append("food_type", form.food_type.trim());
+    if (form.feeding_schedule) fd.append("feeding_schedule", form.feeding_schedule.trim());
+    if (form.temperament) fd.append("temperament", form.temperament);
+    if (form.behaviour_notes) fd.append("behaviour_notes", form.behaviour_notes.trim());
 
     if (photo) fd.append("photo", photo);
 
     setLoading(true);
     try {
+      fd.append("_method", "PUT");
+
       const res = await fetch(`http://127.0.0.1:8000/api/pets/${id}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
-        body: (() => {
-          fd.append("_method", "PUT");
-          return fd;
-        })(),
+        body: fd,
       });
 
       const data = await res.json().catch(() => ({}));
@@ -277,7 +306,7 @@ export default function EditPet() {
       <div className="pf-auth-page">
         <div className="pf-auth-card">
           <h1 className="pf-auth-title">Edit Pet Profile</h1>
-          <p className="pf-auth-subtitle">Loading pet details…</p>
+          <p className="pf-auth-subtitle">Loading pet details...</p>
         </div>
       </div>
     );
@@ -293,7 +322,6 @@ export default function EditPet() {
         {success && <div className="pf-alert pf-alert-success">{success}</div>}
 
         <form onSubmit={submit} className="pf-form">
-          {/* SECTION: Basics */}
           <div className="pf-section">
             <div className="pf-section-head">
               <h2 className="pf-section-title">Basic Info</h2>
@@ -303,7 +331,7 @@ export default function EditPet() {
             <div className="pf-grid">
               <div className="pf-field">
                 <label>Pet Name *</label>
-                <input name="name" value={form.name} onChange={onChange} />
+                <input name="name" value={form.name} onChange={onChange} placeholder="e.g. Max" />
               </div>
 
               <div className="pf-field">
@@ -317,7 +345,7 @@ export default function EditPet() {
 
               <div className="pf-field">
                 <label>Breed *</label>
-                <input name="breed" value={form.breed} onChange={onChange} />
+                <input name="breed" value={form.breed} onChange={onChange} placeholder="e.g. Husky" />
               </div>
 
               <div className="pf-field">
@@ -351,12 +379,20 @@ export default function EditPet() {
 
               <div className="pf-field">
                 <label>Age *</label>
-                <input type="number" min="0" name="age" value={form.age} onChange={onChange} />
+                <input type="number" min="0" name="age" value={form.age} onChange={onChange} placeholder="e.g. 3" />
               </div>
 
               <div className="pf-field">
                 <label>Weight (kg) *</label>
-                <input type="number" step="0.1" min="0" name="weight" value={form.weight} onChange={onChange} />
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  name="weight"
+                  value={form.weight}
+                  onChange={onChange}
+                  placeholder="e.g. 18.5"
+                />
               </div>
 
               <div className="pf-field pf-file">
@@ -367,7 +403,6 @@ export default function EditPet() {
             </div>
           </div>
 
-          {/* ✅ SECTION: Reminders */}
           <div className="pf-section">
             <div className="pf-section-head">
               <h2 className="pf-section-title">Reminder Settings</h2>
@@ -385,6 +420,7 @@ export default function EditPet() {
                   value={form.last_vaccination_date}
                   onChange={onChange}
                 />
+                <span className="pf-help">Example: last vaccine appointment date.</span>
               </div>
 
               <div className="pf-field">
@@ -395,6 +431,7 @@ export default function EditPet() {
                   name="vaccine_interval_days"
                   value={form.vaccine_interval_days}
                   onChange={onChange}
+                  placeholder="e.g. 365"
                 />
               </div>
 
@@ -406,6 +443,7 @@ export default function EditPet() {
                   value={form.last_grooming_date}
                   onChange={onChange}
                 />
+                <span className="pf-help">Example: most recent grooming date.</span>
               </div>
 
               <div className="pf-field">
@@ -416,13 +454,12 @@ export default function EditPet() {
                   name="grooming_interval_days"
                   value={form.grooming_interval_days}
                   onChange={onChange}
+                  placeholder="e.g. 30"
                 />
               </div>
             </div>
           </div>
 
-          {/* keep your other sections exactly as before */}
-          {/* SECTION: Physical features */}
           <div className="pf-section">
             <div className="pf-section-head">
               <h2 className="pf-section-title">Physical Features</h2>
@@ -432,22 +469,21 @@ export default function EditPet() {
             <div className="pf-grid">
               <div className="pf-field">
                 <label>Eye Colour</label>
-                <input name="eye_color" value={form.eye_color} onChange={onChange} />
+                <input name="eye_color" value={form.eye_color} onChange={onChange} placeholder="e.g. Brown" />
               </div>
 
               <div className="pf-field">
                 <label>Fur Type / Length</label>
-                <input name="fur_type" value={form.fur_type} onChange={onChange} />
+                <input name="fur_type" value={form.fur_type} onChange={onChange} placeholder="e.g. Thick double coat" />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Markings</label>
-                <input name="markings" value={form.markings} onChange={onChange} />
+                <input name="markings" value={form.markings} onChange={onChange} placeholder="e.g. White chest and black tail tip" />
               </div>
             </div>
           </div>
 
-          {/* SECTION: Health */}
           <div className="pf-section">
             <div className="pf-section-head">
               <h2 className="pf-section-title">Health & Safety</h2>
@@ -455,29 +491,81 @@ export default function EditPet() {
             </div>
 
             <div className="pf-grid">
+              <div className="pf-field">
+                <label>Vaccination Status</label>
+                <select name="vaccination_status" value={form.vaccination_status} onChange={onChange}>
+                  <option value="">Select</option>
+                  <option value="Up to date">Up to date</option>
+                  <option value="Not updated">Not updated</option>
+                </select>
+              </div>
+
+              <div className="pf-field">
+                <label>Last Vet Visit</label>
+                <input
+                  type="date"
+                  name="last_vet_visit"
+                  value={form.last_vet_visit}
+                  onChange={onChange}
+                />
+              </div>
+
+              <div className="pf-field pf-span-2">
+                <label>Medical Notes</label>
+                <textarea
+                  name="medical_notes"
+                  value={form.medical_notes}
+                  onChange={onChange}
+                  rows={3}
+                  placeholder="e.g. Healthy overall, no current concerns"
+                />
+              </div>
+
               <div className="pf-field pf-span-2">
                 <label>Health Conditions</label>
-                <textarea name="health_conditions" value={form.health_conditions} onChange={onChange} rows={3} />
+                <textarea
+                  name="health_conditions"
+                  value={form.health_conditions}
+                  onChange={onChange}
+                  rows={3}
+                  placeholder="e.g. Mild arthritis"
+                />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Allergies</label>
-                <textarea name="allergies" value={form.allergies} onChange={onChange} rows={3} />
+                <textarea
+                  name="allergies"
+                  value={form.allergies}
+                  onChange={onChange}
+                  rows={3}
+                  placeholder="e.g. Chicken, pollen"
+                />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Vaccination History</label>
-                <textarea name="vaccination_history" value={form.vaccination_history} onChange={onChange} rows={3} />
+                <textarea
+                  name="vaccination_history"
+                  value={form.vaccination_history}
+                  onChange={onChange}
+                  rows={3}
+                  placeholder="e.g. Rabies - Jan 2026, Booster due Jan 2027"
+                />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Microchip Number</label>
-                <input name="microchip_number" value={form.microchip_number} onChange={onChange} />
+                <input
+                  name="microchip_number"
+                  value={form.microchip_number}
+                  onChange={onChange}
+                  placeholder="e.g. 981020000123456"
+                />
               </div>
             </div>
           </div>
 
-          {/* SECTION: Lifestyle */}
           <div className="pf-section">
             <div className="pf-section-head">
               <h2 className="pf-section-title">Lifestyle</h2>
@@ -485,6 +573,33 @@ export default function EditPet() {
             </div>
 
             <div className="pf-grid">
+              <div className="pf-field">
+                <label>Food Type</label>
+                <input name="food_type" value={form.food_type} onChange={onChange} placeholder="e.g. Dry kibble" />
+              </div>
+
+              <div className="pf-field">
+                <label>Feeding Schedule</label>
+                <input
+                  name="feeding_schedule"
+                  value={form.feeding_schedule}
+                  onChange={onChange}
+                  placeholder="e.g. Twice daily"
+                />
+              </div>
+
+              <div className="pf-field">
+                <label>Temperament</label>
+                <select name="temperament" value={form.temperament} onChange={onChange}>
+                  <option value="">Select</option>
+                  <option value="Calm">Calm</option>
+                  <option value="Active">Active</option>
+                  <option value="Anxious">Anxious</option>
+                  <option value="Friendly">Friendly</option>
+                  <option value="Shy">Shy</option>
+                </select>
+              </div>
+
               <div className="pf-field">
                 <label>Exercise Level</label>
                 <select name="exercise_level" value={form.exercise_level} onChange={onChange}>
@@ -506,18 +621,47 @@ export default function EditPet() {
               </div>
 
               <div className="pf-field pf-span-2">
+                <label>Behaviour Notes</label>
+                <textarea
+                  name="behaviour_notes"
+                  value={form.behaviour_notes}
+                  onChange={onChange}
+                  rows={3}
+                  placeholder="e.g. Friendly with people, nervous around loud noises"
+                />
+              </div>
+
+              <div className="pf-field pf-span-2">
                 <label>Diet</label>
-                <textarea name="diet" value={form.diet} onChange={onChange} rows={3} />
+                <textarea
+                  name="diet"
+                  value={form.diet}
+                  onChange={onChange}
+                  rows={3}
+                  placeholder="e.g. Dry food in morning, wet food in evening"
+                />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Personality Traits</label>
-                <textarea name="personality_traits" value={form.personality_traits} onChange={onChange} rows={3} />
+                <textarea
+                  name="personality_traits"
+                  value={form.personality_traits}
+                  onChange={onChange}
+                  rows={3}
+                  placeholder="e.g. Playful, loyal, energetic"
+                />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Notes</label>
-                <textarea name="notes" value={form.notes} onChange={onChange} rows={3} />
+                <textarea
+                  name="notes"
+                  value={form.notes}
+                  onChange={onChange}
+                  rows={3}
+                  placeholder="e.g. Loves long walks and chew toys"
+                />
               </div>
             </div>
           </div>

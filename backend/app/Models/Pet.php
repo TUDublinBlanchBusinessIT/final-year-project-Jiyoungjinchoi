@@ -13,34 +13,45 @@ class Pet extends Model
     protected $fillable = [
         'user_id',
 
-        // Core fields in your pets table
+        // Core fields
         'name',
         'species',
         'breed',
+        'dob',
+        'age',
+        'gender',
+        'weight',
+        'notes',
+        'photo_path',
+
+        // Pet profile tab fields
+        'vaccination_status',
+        'last_vet_visit',
+        'medical_notes',
+        'food_type',
+        'feeding_schedule',
+        'allergies',
+        'temperament',
+        'behaviour_notes',
 
         // Lost & Found fields
         'is_lost',
         'lost_status',
         'lost_description',
         'last_seen_location',
-
-        // ✅ Sprint 1514: coords for radius/proximity search
         'last_seen_lat',
         'last_seen_lng',
-
         'lost_photo_path',
         'reported_lost_at',
-
-        // ✅ Sprint 1512: resolved + archived support
         'resolved_at',
         'archived_at',
     ];
 
     protected $casts = [
+        'dob' => 'date',
+        'last_vet_visit' => 'date',
         'is_lost' => 'boolean',
         'reported_lost_at' => 'datetime',
-
-        // ✅ Sprint 1512: cast timestamps
         'resolved_at' => 'datetime',
         'archived_at' => 'datetime',
     ];
@@ -52,6 +63,6 @@ class Pet extends Model
 
     public function reminders()
     {
-    return $this->hasMany(\App\Models\Reminder::class);
+        return $this->hasMany(\App\Models\Reminder::class);
     }
 }
