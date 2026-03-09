@@ -14,6 +14,7 @@ import Community from "./pages/Community";
 import Inventory from "./pages/Inventory";
 import Appointments from "./pages/Appointments";
 import Reminders from "./pages/Reminders";
+import ViewProfile from "./pages/ViewProfile";
 
 // ✅ Lost & Found
 import LostFound from "./pages/LostFound";
@@ -60,9 +61,12 @@ export default function App() {
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/appointments/book" element={<Appointments />} />
 
-        {/* Reminders (still placeholder) */}
+        {/* Reminders */}
         <Route path="/reminders" element={<Reminders />} />
-        <Route path="/reminders/add" element={<Placeholder title="Add Reminder" />} />
+        <Route
+          path="/reminders/add"
+          element={<Placeholder title="Add Reminder" />}
+        />
 
         {/* ✅ Lost & Found */}
         <Route path="/lostfound" element={<LostFound />} />
@@ -74,8 +78,8 @@ export default function App() {
         {/* ✅ Sprint 1513 submit sighting */}
         <Route path="/lostfound/:id/sighting" element={<SubmitSighting />} />
 
-        {/* Still placeholders */}
-        <Route path="/profile" element={<Placeholder title="Profile" />} />
+        {/* ✅ Profile */}
+        <Route path="/profile" element={<ViewProfile />} />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" />} />
