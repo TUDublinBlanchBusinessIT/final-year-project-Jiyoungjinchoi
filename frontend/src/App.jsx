@@ -15,6 +15,7 @@ import Inventory from "./pages/Inventory";
 import Appointments from "./pages/Appointments";
 import Reminders from "./pages/Reminders";
 import ViewProfile from "./pages/ViewProfile";
+import UpgradePremium from "./pages/UpgradePremium";
 
 // ✅ Lost & Found
 import LostFound from "./pages/LostFound";
@@ -80,6 +81,7 @@ export default function App() {
 
         {/* ✅ Profile */}
         <Route path="/profile" element={<ViewProfile />} />
+        <Route path="/upgrade" element={<UpgradePremium />} />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" />} />

@@ -3,11 +3,31 @@
   padding: 40px 24px;
   background: linear-gradient(135deg, #fdf2f4 0%, #eef7ff 100%);
   font-family: Arial, sans-serif;
+  position: relative;
 }
 
 .view-profile-container {
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.profile-logo {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  display: flex;
+  align-items: center;
+  z-index: 10;
+}
+
+.profile-logo img {
+  height: 48px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.profile-logo img:hover {
+  transform: scale(1.05);
 }
 
 .profile-header-card {
@@ -19,6 +39,7 @@
   gap: 24px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
   margin-bottom: 24px;
+  margin-top: 40px;
 }
 
 .profile-avatar {
@@ -125,63 +146,52 @@
 }
 
 .profile-primary-btn,
-.profile-outline-btn,
-.settings-btn {
+.profile-danger-btn {
   border-radius: 14px;
   padding: 14px 20px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: 0.2s ease;
+  border: none;
 }
 
 .profile-primary-btn {
   background: linear-gradient(135deg, #c79cf2 0%, #f4a8c9 100%);
   color: #fff;
-  border: none;
 }
 
-.profile-outline-btn {
-  background: #fff;
-  color: #14213d;
-  border: 1px solid #ddd;
+.profile-primary-btn:hover,
+.profile-danger-btn:hover {
+  transform: translateY(-1px);
 }
 
-.settings-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  max-width: 320px;
+.profile-danger-btn {
+  background: #d9534f;
+  color: #fff;
 }
 
-.settings-btn {
-  background: #fff;
-  border: 1px solid #ddd;
-  color: #14213d;
-  text-align: left;
-}
-
-.settings-btn.danger {
-  color: #c0392b;
-  border-color: #f1c0c0;
-}
-
-.memorial-text {
-  font-size: 18px;
-  color: #5b6475;
-  margin-bottom: 24px;
-  font-style: italic;
-}
-
-.memorial-box {
-  margin-bottom: 24px;
-  background: #fff9fb;
+.subscription-message {
+  margin-top: 18px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2e7d32;
 }
 
 @media (max-width: 768px) {
+  .profile-logo {
+    top: 16px;
+    left: 16px;
+  }
+
+  .profile-logo img {
+    height: 40px;
+  }
+
   .profile-header-card {
     flex-direction: column;
     align-items: flex-start;
+    margin-top: 50px;
   }
 
   .profile-header-text h1 {

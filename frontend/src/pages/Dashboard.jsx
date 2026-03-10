@@ -274,6 +274,12 @@ export default function Dashboard() {
           <Link className="pf2-nav-item" to="/community">Community</Link>
           <Link className="pf2-nav-item" to="/inventory">Inventory</Link>
         </nav>
+
+        <div className="pf2-sidebar-footer">
+          <button className="pf2-btn pf2-btn-ghost" onClick={() => navigate("/profile")}>
+            View Profile
+          </button>
+        </div>
       </aside>
 
       {/* Main */}

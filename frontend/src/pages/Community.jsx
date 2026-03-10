@@ -18,15 +18,15 @@ export default function Community() {
   const [image, setImage] = useState(null);
 
   // Likes + Comments UI state
-  const [openComments, setOpenComments] = useState({}); // { [postId]: true/false }
-  const [commentsByPost, setCommentsByPost] = useState({}); // { [postId]: Comment[] }
-  const [commentDraft, setCommentDraft] = useState({}); // { [postId]: string }
-  const [likeBusy, setLikeBusy] = useState({}); // { [postId]: true/false }
-  const [commentBusy, setCommentBusy] = useState({}); // { [postId]: true/false }
+  const [openComments, setOpenComments] = useState({});
+  const [commentsByPost, setCommentsByPost] = useState({});
+  const [commentDraft, setCommentDraft] = useState({});
+  const [likeBusy, setLikeBusy] = useState({});
+  const [commentBusy, setCommentBusy] = useState({});
 
   // Delete busy states
-  const [deletePostBusy, setDeletePostBusy] = useState({}); // { [postId]: true/false }
-  const [deleteCommentBusy, setDeleteCommentBusy] = useState({}); // { [commentId]: true/false }
+  const [deletePostBusy, setDeletePostBusy] = useState({});
+  const [deleteCommentBusy, setDeleteCommentBusy] = useState({});
 
   const token = localStorage.getItem("pawfection_token");
   const apiBase = "http://127.0.0.1:8000/api";
@@ -39,7 +39,6 @@ export default function Community() {
   }, [token]);
 
   useEffect(() => {
-    // load user name (same logic as Dashboard)
     try {
       const savedUser = localStorage.getItem("pawfection_user");
       if (savedUser) {
@@ -57,7 +56,6 @@ export default function Community() {
     }
   }, []);
 
-  // ✅ Build correct image URL (handles relative URLs + image_path/image fields)
   const resolvePostImage = (post) => {
     const raw =
       post?.image_url ||
@@ -69,16 +67,13 @@ export default function Community() {
 
     if (!raw) return null;
 
-    // already absolute
     if (typeof raw === "string" && (raw.startsWith("http://") || raw.startsWith("https://")))
       return raw;
 
-    // if backend gives "/storage/xxx"
     if (typeof raw === "string" && raw.startsWith("/")) {
       return `http://127.0.0.1:8000${raw}`;
     }
 
-    // if backend gives "storage/xxx" or "posts/xxx"
     if (typeof raw === "string") {
       return `http://127.0.0.1:8000/storage/${raw}`.replace("/storage/storage/", "/storage/");
     }
@@ -187,8 +182,6 @@ export default function Community() {
 
       setContent("");
       setImage(null);
-
-      // ✅ refresh from server to ensure the new post image_url etc. come from backend
       await fetchPosts();
     } catch {
       setError("Failed to post. Is the backend running?");
@@ -197,7 +190,6 @@ export default function Community() {
     }
   };
 
-  // ✅ LIKE: toggle like (now always re-fetch posts so counts match DB)
   const toggleLike = async (postId) => {
     if (!token) return navigate("/login");
     if (likeBusy[postId]) return;
@@ -221,14 +213,12 @@ export default function Community() {
         return;
       }
 
-      // ✅ refresh so the UI shows what is stored in DB
       await fetchPosts();
     } finally {
       setLikeBusy((p) => ({ ...p, [postId]: false }));
     }
   };
 
-  // ✅ COMMENTS: load comments for a post
   const loadComments = async (postId) => {
     if (!token) return navigate("/login");
     if (commentsByPost[postId]) return;
@@ -248,7 +238,6 @@ export default function Community() {
     }
   };
 
-  // ✅ COMMENTS: submit comment
   const submitComment = async (postId) => {
     if (!token) return navigate("/login");
 
@@ -293,7 +282,6 @@ export default function Community() {
     }
   };
 
-  // ✅ DELETE POST (tries common Laravel endpoints + refreshes feed)
   const deletePost = async (postId) => {
     if (!token) return navigate("/login");
     if (deletePostBusy[postId]) return;
@@ -307,7 +295,7 @@ export default function Community() {
     const attempts = [
       { method: "DELETE", url: `${apiBase}/posts/${postId}` },
       { method: "POST", url: `${apiBase}/posts/${postId}/delete` },
-      { method: "POST", url: `${apiBase}/posts/${postId}`, body: { _method: "DELETE" } }, // Laravel override
+      { method: "POST", url: `${apiBase}/posts/${postId}`, body: { _method: "DELETE" } },
     ];
 
     try {
@@ -326,7 +314,6 @@ export default function Community() {
         const data = await res.json().catch(() => ({}));
 
         if (res.ok) {
-          // close comments UI
           setOpenComments((prev) => ({ ...prev, [postId]: false }));
           setCommentsByPost((prev) => {
             const copy = { ...prev };
@@ -352,7 +339,6 @@ export default function Community() {
     }
   };
 
-  // ✅ DELETE COMMENT (tries common patterns)
   const deleteComment = async (postId, commentId) => {
     if (!token) return navigate("/login");
     if (deleteCommentBusy[commentId]) return;
@@ -445,7 +431,11 @@ export default function Community() {
           <Link className="pf2-nav-item" to="/inventory">Inventory</Link>
         </nav>
 
-        {/* ✅ removed View Profile button as requested */}
+        <div className="pf2-sidebar-footer">
+          <button className="pf2-btn pf2-btn-ghost" onClick={() => navigate("/profile")}>
+            View Profile
+          </button>
+        </div>
       </aside>
 
       {/* Main */}
@@ -553,8 +543,6 @@ export default function Community() {
                               src={imgSrc}
                               alt="Post"
                               onError={(e) => {
-                                // show useful hint in console if image fails
-                                // eslint-disable-next-line no-console
                                 console.log("Image failed to load:", imgSrc);
                                 e.currentTarget.style.display = "none";
                               }}
@@ -562,7 +550,6 @@ export default function Community() {
                           </div>
                         )}
 
-                        {/* Like + Comment + Delete */}
                         <div className="pfc-actions">
                           <button
                             type="button"

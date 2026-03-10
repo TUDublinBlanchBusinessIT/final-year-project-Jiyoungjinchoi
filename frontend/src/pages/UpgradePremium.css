@@ -1,0 +1,144 @@
+.upgrade-page {
+  min-height: 100vh;
+  padding: 40px 24px;
+  background: linear-gradient(135deg, #fdf2f4 0%, #eef7ff 100%);
+  font-family: Arial, sans-serif;
+}
+
+.upgrade-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.upgrade-header-card {
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 32px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+}
+
+.upgrade-header-card h1 {
+  margin: 0 0 10px 0;
+  font-size: 40px;
+  color: #14213d;
+}
+
+.upgrade-header-card p {
+  margin: 0;
+  font-size: 18px;
+  color: #5b6475;
+}
+
+.upgrade-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 24px;
+}
+
+.premium-card,
+.payment-card {
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 32px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.premium-card h2,
+.payment-card h2 {
+  margin-top: 0;
+  color: #14213d;
+  font-size: 28px;
+}
+
+.price {
+  font-size: 30px;
+  font-weight: 700;
+  color: #c06acb;
+  margin-bottom: 20px;
+}
+
+.premium-benefits {
+  padding-left: 20px;
+  color: #5b6475;
+  line-height: 1.9;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: #14213d;
+  margin-bottom: 8px;
+}
+
+.form-group input {
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  padding: 14px;
+  font-size: 15px;
+  outline: none;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.summary-box {
+  background: #faf8fc;
+  border: 1px solid #eee;
+  border-radius: 18px;
+  padding: 18px;
+  margin: 24px 0;
+}
+
+.summary-box h3 {
+  margin-top: 0;
+  color: #14213d;
+}
+
+.upgrade-btn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #c79cf2 0%, #f4a8c9 100%);
+  color: white;
+}
+
+.secure-text {
+  text-align: center;
+  margin-top: 14px;
+  color: #7a7890;
+  font-size: 14px;
+}
+
+.upgrade-message {
+  margin-top: 16px;
+  text-align: center;
+  font-weight: 600;
+  color: #2e7d32;
+}
+
+@media (max-width: 768px) {
+  .upgrade-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .upgrade-header-card h1 {
+    font-size: 32px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}

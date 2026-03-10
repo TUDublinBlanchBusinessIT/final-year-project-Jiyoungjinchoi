@@ -113,11 +113,36 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/lost-pets/{pet}/sightings', [SightingController::class, 'index']);
     Route::post('/lost-pets/{pet}/sightings', [SightingController::class, 'store']);
 
-        // ✅ Reminders
+    // ✅ Reminders
     Route::get('/reminders', [ReminderController::class, 'index']);
     Route::post('/reminders/generate', [ReminderController::class, 'generate']);
     Route::get('/reminders/upcoming', [ReminderController::class, 'upcoming']);
-Route::patch('/reminders/{reminder}/complete', [ReminderController::class, 'complete']);
-Route::patch('/reminders/{reminder}/snooze', [ReminderController::class, 'snooze']);
+    Route::patch('/reminders/{reminder}/complete', [ReminderController::class, 'complete']);
+    Route::patch('/reminders/{reminder}/snooze', [ReminderController::class, 'snooze']);
 
+        // ✅ Upgrade to Premium
+    Route::post('/upgrade-premium', function (Request $request) {
+        $user = $request->user();
+        $user->account_type = 'Premium';
+        $user->subscription_started_at = now();
+        $user->save();
+
+        return response()->json([
+            'message' => 'Membership upgraded successfully.',
+            'user' => $user
+        ]);
+    });
+
+    // ✅ Cancel Premium
+    Route::post('/cancel-premium', function (Request $request) {
+        $user = $request->user();
+        $user->account_type = 'Basic';
+        $user->subscription_started_at = null;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Subscription cancelled successfully.',
+            'user' => $user
+        ]);
+    });
 });
