@@ -72,7 +72,6 @@ class InventoryController extends Controller
         return response()->json(['item' => $item], 201);
     }
 
-    // ✅ NEW: Update (Edit)
     public function update(Request $request, InventoryItem $inventoryItem)
     {
         $user = $request->user();
@@ -125,6 +124,42 @@ class InventoryController extends Controller
 
         return response()->json([
             'message' => 'Restocked successfully.',
+            'item' => $inventoryItem,
+        ], 200);
+    }
+
+    public function consume(Request $request, InventoryItem $inventoryItem)
+    {
+        $user = $request->user();
+
+        if ($inventoryItem->user_id !== $user->id) {
+            return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        if (!in_array($inventoryItem->category, ['Food', 'Supplement', 'Medication'])) {
+            return response()->json([
+                'message' => 'Usage logging is only available for Food, Supplement, and Medication.'
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'quantity_used' => ['required', 'numeric', 'min:0.01'],
+        ]);
+
+        $quantityUsed = (float) $validated['quantity_used'];
+        $currentQuantity = (float) $inventoryItem->current_quantity;
+
+        if ($quantityUsed > $currentQuantity) {
+            return response()->json([
+                'message' => 'Used amount cannot be greater than current stock.'
+            ], 422);
+        }
+
+        $inventoryItem->current_quantity = $currentQuantity - $quantityUsed;
+        $inventoryItem->save();
+
+        return response()->json([
+            'message' => 'Usage logged successfully.',
             'item' => $inventoryItem,
         ], 200);
     }

@@ -27,7 +27,7 @@ export default function Inventory() {
     remind_before_days: 7,
   });
 
-  // ✅ Edit state
+  // edit state
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({
     name: "",
@@ -38,13 +38,19 @@ export default function Inventory() {
     remind_before_days: 7,
   });
 
+  // usage state
+  const [usageOpenId, setUsageOpenId] = useState(null);
+  const [usageAmount, setUsageAmount] = useState("");
+
   // load user name like Dashboard
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem("pawfection_user");
       if (savedUser) {
         const userObj = JSON.parse(savedUser);
-        if (userObj?.name && typeof userObj.name === "string") setUserName(userObj.name);
+        if (userObj?.name && typeof userObj.name === "string") {
+          setUserName(userObj.name);
+        }
       } else {
         const fallbackName =
           localStorage.getItem("pawfection_user_name") ||
@@ -66,7 +72,9 @@ export default function Inventory() {
       const res = await fetch("http://127.0.0.1:8000/api/inventory", {
         headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
       });
+
       const data = await res.json().catch(() => []);
+
       if (!res.ok) {
         setError(data?.message || "Failed to load inventory.");
         setItems([]);
@@ -89,6 +97,10 @@ export default function Inventory() {
   const onChange = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
   const onEditChange = (e) => setEditForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
+  const isConsumableCategory = (category) => {
+    return ["Food", "Supplement", "Medication"].includes(category);
+  };
+
   const createItem = async (e) => {
     e.preventDefault();
     if (!token) return navigate("/login");
@@ -96,10 +108,12 @@ export default function Inventory() {
     setError("");
 
     if (!form.name.trim()) return setError("Please enter product name.");
-    if (form.current_quantity === "" || Number.isNaN(Number(form.current_quantity)))
+    if (form.current_quantity === "" || Number.isNaN(Number(form.current_quantity))) {
       return setError("Please enter current quantity.");
-    if (form.daily_usage === "" || Number.isNaN(Number(form.daily_usage)))
+    }
+    if (form.daily_usage === "" || Number.isNaN(Number(form.daily_usage))) {
       return setError("Please enter daily usage.");
+    }
 
     try {
       const res = await fetch("http://127.0.0.1:8000/api/inventory", {
@@ -120,6 +134,7 @@ export default function Inventory() {
       });
 
       const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
         setError(
           data?.message ||
@@ -169,12 +184,71 @@ export default function Inventory() {
       });
 
       const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
         setError(data?.message || "Failed to restock.");
         return;
       }
 
       await fetchInventory();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const openUsageForm = (item) => {
+    setError("");
+    setEditingId(null);
+    setShowForm(false);
+    setUsageOpenId(item.id);
+    setUsageAmount(item.daily_usage ?? "");
+  };
+
+  const cancelUsageForm = () => {
+    setUsageOpenId(null);
+    setUsageAmount("");
+  };
+
+  const consumeItem = async (id) => {
+    if (!token) return navigate("/login");
+
+    const used = Number(usageAmount);
+
+    if (usageAmount === "" || Number.isNaN(used) || used <= 0) {
+      setError("Please enter a valid amount used today.");
+      return;
+    }
+
+    setBusyId(id);
+    setError("");
+
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/inventory/${id}/consume`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ quantity_used: used }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(
+          data?.message ||
+            (data?.errors ? Object.values(data.errors).flat().join(" ") : "") ||
+            "Failed to log usage."
+        );
+        return;
+      }
+
+      setUsageOpenId(null);
+      setUsageAmount("");
+      await fetchInventory();
+    } catch {
+      setError("Failed to log usage. Is your backend running?");
     } finally {
       setBusyId(null);
     }
@@ -207,6 +281,7 @@ export default function Inventory() {
 
       setItems((prev) => prev.filter((x) => x.id !== id));
       if (editingId === id) setEditingId(null);
+      if (usageOpenId === id) setUsageOpenId(null);
     } catch {
       setError("Failed to delete. Is your backend running?");
     } finally {
@@ -214,11 +289,11 @@ export default function Inventory() {
     }
   };
 
-  // ✅ Start editing an item (prefill)
   const startEdit = (item) => {
     setError("");
     setEditingId(item.id);
-    setShowForm(false); // close add form if open
+    setShowForm(false);
+    setUsageOpenId(null);
     setEditForm({
       name: item.name || "",
       category: item.category || "Food",
@@ -239,10 +314,12 @@ export default function Inventory() {
     setError("");
 
     if (!editForm.name.trim()) return setError("Please enter product name.");
-    if (editForm.current_quantity === "" || Number.isNaN(Number(editForm.current_quantity)))
+    if (editForm.current_quantity === "" || Number.isNaN(Number(editForm.current_quantity))) {
       return setError("Please enter current quantity.");
-    if (editForm.daily_usage === "" || Number.isNaN(Number(editForm.daily_usage)))
+    }
+    if (editForm.daily_usage === "" || Number.isNaN(Number(editForm.daily_usage))) {
       return setError("Please enter daily usage.");
+    }
 
     setBusyId(id);
 
@@ -265,6 +342,7 @@ export default function Inventory() {
       });
 
       const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
         setError(
           data?.message ||
@@ -284,9 +362,15 @@ export default function Inventory() {
   };
 
   const badgeFor = (daysLeft) => {
-    if (daysLeft === null || daysLeft === undefined) return { label: "N/A", cls: "pfi-badge" };
-    if (daysLeft <= 0) return { label: "Overdue", cls: "pfi-badge pfi-badge-danger" };
-    if (daysLeft <= 7) return { label: "Soon", cls: "pfi-badge pfi-badge-warn" };
+    if (daysLeft === null || daysLeft === undefined) {
+      return { label: "N/A", cls: "pfi-badge" };
+    }
+    if (daysLeft <= 0) {
+      return { label: "Overdue", cls: "pfi-badge pfi-badge-danger" };
+    }
+    if (daysLeft <= 7) {
+      return { label: "Soon", cls: "pfi-badge pfi-badge-warn" };
+    }
     return { label: "OK", cls: "pfi-badge pfi-badge-ok" };
   };
 
@@ -298,7 +382,6 @@ export default function Inventory() {
 
   return (
     <div className="pf2-shell">
-      {/* Sidebar */}
       <aside className="pf2-sidebar">
         <div className="pf2-brand" onClick={() => navigate("/dashboard")} role="button">
           <img className="pf2-brand-logo" src={PawfectionLogo} alt="Pawfection" />
@@ -325,9 +408,7 @@ export default function Inventory() {
         </div>
       </aside>
 
-      {/* Main */}
       <div className="pf2-main">
-        {/* Topbar */}
         <header className="pf2-topbar">
           <div className="pf2-search">
             <input placeholder="Search inventory items..." />
@@ -348,7 +429,9 @@ export default function Inventory() {
           <div className="pfi-head">
             <div>
               <h1 className="pfi-title">Inventory</h1>
-              <p className="pfi-subtitle">Track supplies and get smart restock reminders.</p>
+              <p className="pfi-subtitle">
+                Track supplies, confirm real daily use, and update stock accurately.
+              </p>
             </div>
 
             <div className="pfi-actions">
@@ -364,7 +447,6 @@ export default function Inventory() {
           {error && <div className="pfi-alert">{error}</div>}
 
           <section className="pfi-grid">
-            {/* Left: Inventory list */}
             <div className="pfi-card">
               <div className="pfi-cardtop">
                 <div className="pfi-cardtitle">Your items</div>
@@ -456,6 +538,7 @@ export default function Inventory() {
               )}
 
               {loading && <div className="pfi-empty">Loading inventory…</div>}
+
               {!loading && items.length === 0 && (
                 <div className="pfi-empty">
                   No items yet. Click <b>+ Add Product</b> to start.
@@ -467,140 +550,201 @@ export default function Inventory() {
                   {items.map((i) => {
                     const badge = badgeFor(i.days_left);
                     const isEditing = editingId === i.id;
+                    const isUsing = usageOpenId === i.id;
+                    const canLogUsage = isConsumableCategory(i.category);
 
                     return (
-                      <div key={i.id} className="pfi-row">
-                        <div className="pfi-left">
-                          {isEditing ? (
-                            <div className="pfi-editwrap">
-                              <div className="pfi-formgrid">
-                                <div className="pfi-field">
-                                  <label>Name *</label>
-                                  <input name="name" value={editForm.name} onChange={onEditChange} />
+                      <div key={i.id} className="pfi-row-wrap">
+                        <div className="pfi-row">
+                          <div className="pfi-left">
+                            {isEditing ? (
+                              <div className="pfi-editwrap">
+                                <div className="pfi-formgrid">
+                                  <div className="pfi-field">
+                                    <label>Name *</label>
+                                    <input name="name" value={editForm.name} onChange={onEditChange} />
+                                  </div>
+
+                                  <div className="pfi-field">
+                                    <label>Category</label>
+                                    <select
+                                      name="category"
+                                      value={editForm.category}
+                                      onChange={onEditChange}
+                                    >
+                                      <option>Food</option>
+                                      <option>Supplement</option>
+                                      <option>Medication</option>
+                                      <option>Accessory</option>
+                                    </select>
+                                  </div>
+
+                                  <div className="pfi-field">
+                                    <label>Current quantity *</label>
+                                    <input
+                                      name="current_quantity"
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={editForm.current_quantity}
+                                      onChange={onEditChange}
+                                    />
+                                  </div>
+
+                                  <div className="pfi-field">
+                                    <label>Unit</label>
+                                    <select name="unit" value={editForm.unit} onChange={onEditChange}>
+                                      <option value="g">g</option>
+                                      <option value="kg">kg</option>
+                                      <option value="ml">ml</option>
+                                      <option value="tablets">tablets</option>
+                                      <option value="pcs">pcs</option>
+                                    </select>
+                                  </div>
+
+                                  <div className="pfi-field">
+                                    <label>Daily usage *</label>
+                                    <input
+                                      name="daily_usage"
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={editForm.daily_usage}
+                                      onChange={onEditChange}
+                                    />
+                                  </div>
+
+                                  <div className="pfi-field">
+                                    <label>Remind before (days)</label>
+                                    <input
+                                      name="remind_before_days"
+                                      type="number"
+                                      min="1"
+                                      step="1"
+                                      value={editForm.remind_before_days}
+                                      onChange={onEditChange}
+                                    />
+                                  </div>
                                 </div>
 
-                                <div className="pfi-field">
-                                  <label>Category</label>
-                                  <select
-                                    name="category"
-                                    value={editForm.category}
-                                    onChange={onEditChange}
+                                <div className="pfi-formactions">
+                                  <button
+                                    className="pf2-btn pf2-btn-primary"
+                                    type="button"
+                                    onClick={() => saveEdit(i.id)}
+                                    disabled={busyId === i.id}
                                   >
-                                    <option>Food</option>
-                                    <option>Supplement</option>
-                                    <option>Medication</option>
-                                    <option>Accessory</option>
-                                  </select>
-                                </div>
+                                    {busyId === i.id ? "Saving..." : "Save"}
+                                  </button>
 
-                                <div className="pfi-field">
-                                  <label>Current quantity *</label>
-                                  <input
-                                    name="current_quantity"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={editForm.current_quantity}
-                                    onChange={onEditChange}
-                                  />
-                                </div>
-
-                                <div className="pfi-field">
-                                  <label>Unit</label>
-                                  <select name="unit" value={editForm.unit} onChange={onEditChange}>
-                                    <option value="g">g</option>
-                                    <option value="kg">kg</option>
-                                    <option value="ml">ml</option>
-                                    <option value="tablets">tablets</option>
-                                    <option value="pcs">pcs</option>
-                                  </select>
-                                </div>
-
-                                <div className="pfi-field">
-                                  <label>Daily usage *</label>
-                                  <input
-                                    name="daily_usage"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={editForm.daily_usage}
-                                    onChange={onEditChange}
-                                  />
-                                </div>
-
-                                <div className="pfi-field">
-                                  <label>Remind before (days)</label>
-                                  <input
-                                    name="remind_before_days"
-                                    type="number"
-                                    min="1"
-                                    step="1"
-                                    value={editForm.remind_before_days}
-                                    onChange={onEditChange}
-                                  />
+                                  <button
+                                    className="pf2-btn"
+                                    type="button"
+                                    onClick={cancelEdit}
+                                    disabled={busyId === i.id}
+                                  >
+                                    Cancel
+                                  </button>
                                 </div>
                               </div>
+                            ) : (
+                              <>
+                                <div className="pfi-name">{i.name}</div>
+                                <div className="pfi-sub">
+                                  {i.category} • Stock: {i.current_quantity} {i.unit} • Daily use:{" "}
+                                  {i.daily_usage} {i.unit} •{" "}
+                                  {typeof i.days_left === "number"
+                                    ? `${i.days_left} days left`
+                                    : "No estimate"}
+                                </div>
+                              </>
+                            )}
+                          </div>
 
-                              <div className="pfi-formactions">
+                          {!isEditing && (
+                            <div className="pfi-right">
+                              <div className={badge.cls}>{badge.label}</div>
+
+                              {canLogUsage && (
                                 <button
-                                  className="pf2-btn pf2-btn-primary"
-                                  type="button"
-                                  onClick={() => saveEdit(i.id)}
+                                  className="pf2-btn pf2-btn-small pfi-consume"
+                                  onClick={() => openUsageForm(i)}
                                   disabled={busyId === i.id}
                                 >
-                                  {busyId === i.id ? "Saving..." : "Save"}
+                                  Log Usage
                                 </button>
+                              )}
 
-                                <button
-                                  className="pf2-btn"
-                                  type="button"
-                                  onClick={cancelEdit}
-                                  disabled={busyId === i.id}
-                                >
-                                  Cancel
-                                </button>
-                              </div>
+                              <button
+                                className="pf2-btn pf2-btn-small pfi-restock"
+                                onClick={() => restockItem(i.id)}
+                                disabled={busyId === i.id}
+                              >
+                                {busyId === i.id ? "..." : "Restocked"}
+                              </button>
+
+                              <button
+                                className="pf2-btn pf2-btn-small pfi-edit"
+                                onClick={() => startEdit(i)}
+                                disabled={busyId === i.id}
+                              >
+                                Edit
+                              </button>
+
+                              <button
+                                className="pf2-btn pf2-btn-small pfi-delete"
+                                onClick={() => deleteItem(i.id, i.name)}
+                                disabled={busyId === i.id}
+                              >
+                                Delete
+                              </button>
                             </div>
-                          ) : (
-                            <>
-                              <div className="pfi-name">{i.name}</div>
-                              <div className="pfi-sub">
-                                {i.category} • {i.current_quantity} {i.unit} •{" "}
-                                {typeof i.days_left === "number"
-                                  ? `${i.days_left} days left`
-                                  : "No estimate"}
-                              </div>
-                            </>
                           )}
                         </div>
 
-                        {!isEditing && (
-                          <div className="pfi-right">
-                            <div className={badge.cls}>{badge.label}</div>
+                        {!isEditing && isUsing && (
+                          <div className="pfi-usage-box">
+                            <div className="pfi-usage-title">
+                              Did your pet use this product today?
+                            </div>
 
-                            <button
-                              className="pf2-btn pf2-btn-small"
-                              onClick={() => restockItem(i.id)}
-                              disabled={busyId === i.id}
-                            >
-                              {busyId === i.id ? "..." : "Restocked"}
-                            </button>
+                            <div className="pfi-usage-text">
+                              Saved daily usage: <b>{i.daily_usage}</b> {i.unit}
+                            </div>
 
-                            <button
-                              className="pf2-btn pf2-btn-small pfi-edit"
-                              onClick={() => startEdit(i)}
-                              disabled={busyId === i.id}
-                            >
-                              Edit
-                            </button>
+                            <div className="pfi-usage-grid">
+                              <div className="pfi-field">
+                                <label>Actual amount used today</label>
+                                <input
+                                  type="number"
+                                  min="0.01"
+                                  step="0.01"
+                                  value={usageAmount}
+                                  onChange={(e) => setUsageAmount(e.target.value)}
+                                  placeholder="Enter amount used"
+                                />
+                              </div>
+                            </div>
 
-                            <button
-                              className="pf2-btn pf2-btn-small pfi-delete"
-                              onClick={() => deleteItem(i.id, i.name)}
-                              disabled={busyId === i.id}
-                            >
-                              Delete
-                            </button>
+                            <div className="pfi-formactions">
+                              <button
+                                className="pf2-btn pf2-btn-primary"
+                                type="button"
+                                onClick={() => consumeItem(i.id)}
+                                disabled={busyId === i.id}
+                              >
+                                {busyId === i.id ? "Saving..." : "Yes, Reduce Stock"}
+                              </button>
+
+                              <button
+                                className="pf2-btn"
+                                type="button"
+                                onClick={cancelUsageForm}
+                                disabled={busyId === i.id}
+                              >
+                                No, Not Today
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -610,12 +754,11 @@ export default function Inventory() {
               )}
             </div>
 
-            {/* Right: Restock soon + Suggestions */}
             <div className="pfi-stack">
               <div className="pfi-card">
                 <div className="pfi-cardtop">
                   <div className="pfi-cardtitle">Restock soon</div>
-                  <div className="pfi-mini">Based on usage</div>
+                  <div className="pfi-mini">Based on current stock and daily usage</div>
                 </div>
 
                 {restockSoon.length === 0 ? (
@@ -626,7 +769,9 @@ export default function Inventory() {
                       <div key={i.id} className="pfi-soon">
                         <div>
                           <div className="pfi-soonname">{i.name}</div>
-                          <div className="pfi-soonsub">{i.days_left} days left</div>
+                          <div className="pfi-soonsub">
+                            {i.days_left} days left • Daily use: {i.daily_usage} {i.unit}
+                          </div>
                         </div>
                         <button
                           className="pf2-btn pf2-btn-small"

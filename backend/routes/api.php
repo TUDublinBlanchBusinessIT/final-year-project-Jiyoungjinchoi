@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Hash;
+use App\Models\Pet;
 
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\AuthController;
@@ -84,12 +86,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
     Route::delete('/posts/{post}/comments/{comment}', [CommentController::class, 'destroyForPost']);
 
-    // 📦 Inventory
+       // 📦 Inventory
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::post('/inventory', [InventoryController::class, 'store']);
     Route::put('/inventory/{inventoryItem}', [InventoryController::class, 'update']);
     Route::patch('/inventory/{inventoryItem}', [InventoryController::class, 'update']);
     Route::post('/inventory/{inventoryItem}/restock', [InventoryController::class, 'restock']);
+    Route::post('/inventory/{inventoryItem}/consume', [InventoryController::class, 'consume']);
     Route::delete('/inventory/{inventoryItem}', [InventoryController::class, 'destroy']);
 
     // 🏥 Appointments
@@ -120,7 +123,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/reminders/{reminder}/complete', [ReminderController::class, 'complete']);
     Route::patch('/reminders/{reminder}/snooze', [ReminderController::class, 'snooze']);
 
-        // ✅ Upgrade to Premium
+    // ✅ Upgrade to Premium
     Route::post('/upgrade-premium', function (Request $request) {
         $user = $request->user();
         $user->account_type = 'Premium';
@@ -143,6 +146,117 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json([
             'message' => 'Subscription cancelled successfully.',
             'user' => $user
+        ]);
+    });
+
+    // ✅ Change Password
+    Route::post('/profile/change-password', function (Request $request) {
+        $request->validate([
+            'current_password' => ['required'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'message' => 'Current password is incorrect.'
+            ], 422);
+        }
+
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        return response()->json([
+            'message' => 'Password updated successfully.'
+        ]);
+    });
+
+    // ✅ Save Notification Preferences
+    Route::post('/profile/notifications', function (Request $request) {
+        $validated = $request->validate([
+            'notification_email' => ['required', 'boolean'],
+            'notification_sms' => ['required', 'boolean'],
+        ]);
+
+        $user = $request->user();
+        $user->notification_email = $validated['notification_email'];
+        $user->notification_sms = $validated['notification_sms'];
+        $user->save();
+
+        return response()->json([
+            'message' => 'Notification preferences saved.',
+            'user' => $user
+        ]);
+    });
+
+    // ✅ Logout
+    Route::post('/logout', function (Request $request) {
+        $request->user()->currentAccessToken()?->delete();
+
+        return response()->json([
+            'message' => 'Logged out successfully.'
+        ]);
+    });
+
+    // ✅ Delete Account
+    Route::delete('/profile', function (Request $request) {
+        $user = $request->user();
+
+        $request->user()->currentAccessToken()?->delete();
+        $user->delete();
+
+        return response()->json([
+            'message' => 'Account deleted successfully.'
+        ]);
+    });
+
+    // ✅ Mark Pet as Memorial
+    Route::patch('/pets/{pet}/memorial', function (Request $request, Pet $pet) {
+        $user = $request->user();
+
+        if ((int) $pet->user_id !== (int) $user->id) {
+            return response()->json([
+                'message' => 'Unauthorized.'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'memorial_message' => ['nullable', 'string'],
+        ]);
+
+        $pet->status = 'Memorial';
+        $pet->memorial_message = $validated['memorial_message']
+            ?? 'Remember me with tears and laughter. Remember me though it hurts to do so, because the pain you have is equal to the love we shared. There is no goodbye if you carry me in your heart. Remember all the joy we shared, because there was so much of it for both of us. - Herbie Longfellow Alderdice';
+        $pet->memorialized_at = now();
+        $pet->save();
+
+        return response()->json([
+            'message' => 'Pet moved to memorial successfully.',
+            'pet' => $pet
+        ]);
+    });
+
+    // ✅ Delete Memorial
+    Route::delete('/pets/{pet}/memorial', function (Request $request, Pet $pet) {
+        $user = $request->user();
+
+        if ((int) $pet->user_id !== (int) $user->id) {
+            return response()->json([
+                'message' => 'Unauthorized.'
+            ], 403);
+        }
+
+        if ($pet->status !== 'Memorial') {
+            return response()->json([
+                'message' => 'This pet is not in memorial status.'
+            ], 422);
+        }
+
+        $pet->delete();
+
+        return response()->json([
+            'message' => 'Memorial deleted successfully.'
         ]);
     });
 });
