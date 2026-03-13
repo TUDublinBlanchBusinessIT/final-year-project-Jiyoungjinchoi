@@ -76,6 +76,7 @@ export default function ViewProfile() {
     }
 
     fetchPets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchPets = async () => {
@@ -112,6 +113,34 @@ export default function ViewProfile() {
   const memorialPets = useMemo(() => {
     return pets.filter((pet) => pet.status === "Memorial");
   }, [pets]);
+
+  const isPremium = user.account_type === "Premium";
+  const membershipPlan = isPremium ? "Premium Plan" : "Basic Plan";
+
+  const renewalDate = useMemo(() => {
+    if (
+      !isPremium ||
+      !user.subscription_started_at ||
+      user.subscription_started_at === "Not Provided"
+    ) {
+      return "Not Subscribed";
+    }
+
+    const storedUser = localStorage.getItem("pawfection_user");
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      if (parsedUser.subscription_started_at) {
+        const start = new Date(parsedUser.subscription_started_at);
+        if (!Number.isNaN(start.getTime())) {
+          const renewal = new Date(start);
+          renewal.setMonth(renewal.getMonth() + 1);
+          return renewal.toLocaleDateString();
+        }
+      }
+    }
+
+    return "Active";
+  }, [isPremium, user.subscription_started_at]);
 
   const handleUpgrade = () => {
     navigate("/upgrade");
@@ -444,46 +473,118 @@ export default function ViewProfile() {
       case "subscription":
         return (
           <div className="profile-card">
-            <h2>Subscription</h2>
-
-            <div className="profile-info-grid">
-              <div className="profile-info-item">
-                <span className="label">Membership Plan</span>
-                <span>{user.account_type}</span>
+            <div className="subscription-header">
+              <div>
+                <h2>Payment & Subscription</h2>
+                <p className="subscription-subtext">
+                  Manage your plan and subscription details in one place.
+                </p>
               </div>
 
-              <div className="profile-info-item">
-                <span className="label">Subscription Start Date</span>
-                <span>
-                  {user.account_type === "Premium"
-                    ? user.subscription_started_at
-                    : "Not Subscribed"}
-                </span>
+              <div className={isPremium ? "plan-badge premium" : "plan-badge basic"}>
+                {isPremium ? "Premium Active" : "Basic Plan"}
               </div>
             </div>
 
-            {user.account_type !== "Premium" && (
-              <div className="profile-action-row">
-                <button
-                  className="profile-primary-btn"
-                  onClick={handleUpgrade}
-                >
-                  Upgrade to Premium
-                </button>
+            <div className="subscription-summary-grid subscription-summary-grid-three">
+              <div className="subscription-summary-card">
+                <span className="label">Membership Plan</span>
+                <strong>{membershipPlan}</strong>
+                <small>
+                  {isPremium
+                    ? "Full Pawfection premium features enabled"
+                    : "You are currently on the free plan"}
+                </small>
               </div>
-            )}
 
-            {user.account_type === "Premium" && (
-              <div className="profile-action-row">
-                <button
-                  className="profile-danger-btn"
-                  onClick={handleCancelSubscription}
-                  disabled={loadingCancel}
-                >
-                  {loadingCancel ? "Cancelling..." : "Cancel Subscription"}
-                </button>
+              <div className="subscription-summary-card">
+                <span className="label">Renewal Date</span>
+                <strong>{renewalDate}</strong>
+                <small>
+                  {isPremium
+                    ? "Your next payment will be processed on this date"
+                    : "No active renewal at the moment"}
+                </small>
               </div>
-            )}
+
+              <div className="subscription-summary-card">
+                <span className="label">Subscription Start Date</span>
+                <strong>
+                  {isPremium ? user.subscription_started_at : "Not Subscribed"}
+                </strong>
+                <small>
+                  {isPremium
+                    ? "Your premium membership became active on this date"
+                    : "Upgrade to start your subscription"}
+                </small>
+              </div>
+            </div>
+
+            <div className="subscription-layout">
+              <div className="billing-card">
+                <h3>Billing Overview</h3>
+
+                <div className="billing-row">
+                  <span>Status</span>
+                  <span className={isPremium ? "status-pill active" : "status-pill inactive"}>
+                    {isPremium ? "Active" : "Inactive"}
+                  </span>
+                </div>
+
+                <div className="billing-row">
+                  <span>Current Plan</span>
+                  <span>{membershipPlan}</span>
+                </div>
+
+                <div className="billing-row">
+                  <span>Next Renewal</span>
+                  <span>{renewalDate}</span>
+                </div>
+
+                {!isPremium && (
+                  <div className="profile-action-row">
+                    <button
+                      className="profile-primary-btn"
+                      onClick={handleUpgrade}
+                    >
+                      Upgrade to Premium
+                    </button>
+                  </div>
+                )}
+
+                {isPremium && (
+                  <div className="profile-action-row">
+                    <button
+                      className="profile-danger-btn"
+                      onClick={handleCancelSubscription}
+                      disabled={loadingCancel}
+                    >
+                      {loadingCancel ? "Cancelling..." : "Cancel Subscription"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="billing-card">
+                <h3>Plan Benefits</h3>
+
+                {isPremium ? (
+                  <div className="empty-billing-state">
+                    <p>Your Premium membership is active.</p>
+                    <span>
+                      You currently have access to upgraded Pawfection features and premium account benefits.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="empty-billing-state">
+                    <p>You are currently on the Basic plan.</p>
+                    <span>
+                      Upgrade to Premium to unlock more advanced Pawfection features and subscription benefits.
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {cancelMessage && (
               <p className="subscription-message">{cancelMessage}</p>
@@ -636,7 +737,7 @@ export default function ViewProfile() {
             <h2>Crossed the Rainbow Bridge 🌈🐾</h2>
 
             <p className="memorial-intro">
-                “No longer by our side, but forever in our hearts.”
+              “No longer by our side, but forever in our hearts.”
             </p>
 
             <div className="settings-section">
@@ -708,7 +809,7 @@ export default function ViewProfile() {
 
                       <p className="memorial-message-text">
                         {pet.memorial_message ||
-                        "Remember me with tears and laughter. Remember me though it hurts to do so, because the pain you have is equal to the love we shared. There is no goodbye if you carry me in your heart. Remember all the joy we shared, because there was so much of it for both of us."}
+                          "Remember me with tears and laughter. Remember me though it hurts to do so, because the pain you have is equal to the love we shared. There is no goodbye if you carry me in your heart. Remember all the joy we shared, because there was so much of it for both of us."}
                       </p>
 
                       <button

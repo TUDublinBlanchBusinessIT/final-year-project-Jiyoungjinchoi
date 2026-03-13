@@ -116,6 +116,13 @@
   font-size: 28px;
 }
 
+.profile-card h3 {
+  margin-top: 0;
+  margin-bottom: 18px;
+  color: #14213d;
+  font-size: 20px;
+}
+
 .profile-info-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(240px, 1fr));
@@ -132,7 +139,8 @@
   gap: 8px;
 }
 
-.profile-info-item .label {
+.profile-info-item .label,
+.subscription-summary-card .label {
   font-size: 14px;
   font-weight: 700;
   color: #7a7890;
@@ -190,6 +198,140 @@
   color: #2e7d32;
 }
 
+/* subscription */
+.subscription-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.subscription-subtext {
+  margin: 6px 0 0 0;
+  color: #6f7686;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.plan-badge {
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.plan-badge.premium {
+  background: linear-gradient(135deg, #ffe6a7 0%, #f4a8c9 100%);
+  color: #7a3d59;
+}
+
+.plan-badge.basic {
+  background: #f4f4f8;
+  color: #596071;
+}
+
+.subscription-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.subscription-summary-grid-three {
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+}
+
+.subscription-summary-card {
+  background: linear-gradient(180deg, #fff 0%, #faf8fc 100%);
+  border: 1px solid #eee;
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subscription-summary-card strong {
+  font-size: 18px;
+  color: #14213d;
+}
+
+.subscription-summary-card small {
+  color: #7a7890;
+  line-height: 1.5;
+  font-size: 13px;
+}
+
+.subscription-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.billing-card {
+  background: #fcfbfe;
+  border: 1px solid #eee;
+  border-radius: 22px;
+  padding: 22px;
+}
+
+.billing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #efedf4;
+  color: #14213d;
+}
+
+.billing-row:last-of-type {
+  border-bottom: none;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.status-pill.active {
+  background: #e8f7ee;
+  color: #2e7d32;
+}
+
+.status-pill.inactive {
+  background: #f3f4f7;
+  color: #6b7280;
+}
+
+.empty-billing-state {
+  padding: 18px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px dashed #ddd;
+}
+
+.empty-billing-state p {
+  margin: 0 0 8px 0;
+  font-weight: 700;
+  color: #14213d;
+}
+
+.empty-billing-state span {
+  color: #7a7890;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* settings */
 .settings-accordion {
   display: flex;
   flex-direction: column;
@@ -252,6 +394,7 @@
   color: #fff;
 }
 
+/* memorial */
 .memorial-card {
   background: linear-gradient(180deg, #fffdfd 0%, #f9f5ff 100%);
 }
@@ -312,6 +455,20 @@
   width: 100%;
 }
 
+@media (max-width: 1000px) {
+  .subscription-summary-grid-three {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .subscription-summary-grid,
+  .subscription-layout,
+  .profile-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .profile-logo {
     top: 16px;
@@ -332,10 +489,6 @@
     font-size: 34px;
   }
 
-  .profile-info-grid {
-    grid-template-columns: 1fr;
-  }
-
   .profile-tabs {
     flex-direction: column;
   }
@@ -345,7 +498,8 @@
     text-align: left;
   }
 
-  .toggle-row {
+  .toggle-row,
+  .billing-row {
     flex-direction: column;
     align-items: flex-start;
   }
