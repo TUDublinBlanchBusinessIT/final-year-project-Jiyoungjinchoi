@@ -16,9 +16,10 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ReminderController;
 
-// ✅ Lost & Found
 use App\Http\Controllers\LostPetController;
 use App\Http\Controllers\SightingController;
+use App\Http\Controllers\FoundReportController;
+use App\Http\Controllers\FoundReportCommentController;
 
 use App\Models\User;
 
@@ -37,7 +38,6 @@ Route::post('/login', [AuthController::class, 'login'])
 
 // ✅ Resend verification email
 Route::post('/email/verification-notification', function (Request $request) {
-
     $validated = $request->validate([
         'email' => ['required', 'email'],
     ]);
@@ -55,9 +55,20 @@ Route::post('/email/verification-notification', function (Request $request) {
     $user->sendEmailVerificationNotification();
 
     return response()->json(['message' => 'Verification email sent.'], 200);
-
 })->middleware('throttle:3,1');
 
+/*
+|--------------------------------------------------------------------------
+| Public Lost & Found Routes
+|--------------------------------------------------------------------------
+*/
+Route::get('/lost-pets', [LostPetController::class, 'index']);
+Route::get('/lost-pets/{pet}', [LostPetController::class, 'show']);
+Route::get('/lost-pets/{pet}/sightings', [SightingController::class, 'index']);
+
+Route::get('/found-reports', [FoundReportController::class, 'index']);
+Route::get('/found-reports/{foundReport}', [FoundReportController::class, 'show']);
+Route::get('/found-reports/{foundReport}/comments', [FoundReportCommentController::class, 'index']);
 
 /*
 |--------------------------------------------------------------------------
@@ -86,7 +97,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
     Route::delete('/posts/{post}/comments/{comment}', [CommentController::class, 'destroyForPost']);
 
-       // 📦 Inventory
+    // 📦 Inventory
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::post('/inventory', [InventoryController::class, 'store']);
     Route::put('/inventory/{inventoryItem}', [InventoryController::class, 'update']);
@@ -105,16 +116,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/appointments/{appointment}', [AppointmentController::class, 'update']);
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy']);
 
-    // ✅ Lost & Found — Sprint 1511
-    Route::get('/lost-pets', [LostPetController::class, 'index']);
+    // ✅ Lost & Found
     Route::post('/lost-pets', [LostPetController::class, 'store']);
-
-    // ✅ Lost & Found — Sprint 1512 (Resolve)
     Route::patch('/lost-pets/{pet}/resolve', [LostPetController::class, 'resolve']);
 
-    // ✅ Lost & Found — Sprint 1513 (Submit Found/Sighting)
-    Route::get('/lost-pets/{pet}/sightings', [SightingController::class, 'index']);
     Route::post('/lost-pets/{pet}/sightings', [SightingController::class, 'store']);
+
+    Route::post('/found-reports', [FoundReportController::class, 'store']);
+    Route::post('/found-reports/{foundReport}/comments', [FoundReportCommentController::class, 'store']);
 
     // ✅ Reminders
     Route::get('/reminders', [ReminderController::class, 'index']);

@@ -13,7 +13,7 @@ class Pet extends Model
     protected $fillable = [
         'user_id',
 
-        // Core fields
+        // Basic
         'name',
         'species',
         'breed',
@@ -24,17 +24,35 @@ class Pet extends Model
         'notes',
         'photo_path',
 
-        // Pet profile tab fields
+        // Reminder fields
+        'last_vaccination_date',
+        'vaccine_interval_days',
+        'last_grooming_date',
+        'grooming_interval_days',
+
+        // Extra profile fields
+        'eye_color',
+        'fur_type',
+        'markings',
+        'health_conditions',
+        'allergies',
+        'vaccination_history',
+        'microchip_number',
+        'exercise_level',
+        'activity_level',
+        'diet',
+        'personality_traits',
+
+        // Legacy/compatibility fields still used in some places
         'vaccination_status',
         'last_vet_visit',
         'medical_notes',
         'food_type',
         'feeding_schedule',
-        'allergies',
         'temperament',
         'behaviour_notes',
 
-        // Lost & Found fields
+        // Lost & Found
         'is_lost',
         'lost_status',
         'lost_description',
@@ -49,6 +67,8 @@ class Pet extends Model
 
     protected $casts = [
         'dob' => 'date',
+        'last_vaccination_date' => 'date',
+        'last_grooming_date' => 'date',
         'last_vet_visit' => 'date',
         'is_lost' => 'boolean',
         'reported_lost_at' => 'datetime',

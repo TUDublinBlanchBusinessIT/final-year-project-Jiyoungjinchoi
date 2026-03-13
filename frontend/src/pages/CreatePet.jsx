@@ -6,26 +6,26 @@ export default function CreatePet() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    // Required
     name: "",
-    species: "", // Dog / Cat
+    species: "",
     breed: "",
     gender: "",
-    dob: "", // UI field (we will send as date_of_birth too)
+    dob: "",
     age: "",
     weight: "",
 
-    // ✅ Reminder fields (NEW)
     last_vaccination_date: "",
     vaccine_interval_days: "365",
     last_grooming_date: "",
     grooming_interval_days: "30",
 
-    // Additional
     eye_color: "",
     fur_type: "",
     markings: "",
 
+    vaccination_status: "",
+    last_vet_visit: "",
+    medical_notes: "",
     health_conditions: "",
     allergies: "",
     vaccination_history: "",
@@ -34,7 +34,6 @@ export default function CreatePet() {
     exercise_level: "",
     activity_level: "",
     diet: "",
-
     personality_traits: "",
     notes: "",
   });
@@ -72,37 +71,24 @@ export default function CreatePet() {
     if (!token) return "You must be logged in.";
 
     if (!form.name.trim()) return "Please enter Pet Name.";
-    if (!form.species.trim()) return "Please select Species (Dog or Cat).";
+    if (!form.species.trim()) return "Please select Species.";
     if (!form.breed.trim()) return "Please enter Breed.";
     if (!form.gender.trim()) return "Please select Gender.";
+
     if (form.weight === "" || Number.isNaN(Number(form.weight)) || Number(form.weight) <= 0) {
       return "Please enter Weight (kg).";
     }
 
     const computedAge = form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
     if (computedAge === "" || Number.isNaN(Number(computedAge)) || Number(computedAge) < 0) {
-      return "Please enter Age, or select Date of Birth (so we can calculate it).";
+      return "Please enter Age, or select Date of Birth.";
     }
 
-    if (!photo) return "Please upload at least 1 photo (required).";
+    if (!photo) return "Please upload at least 1 photo.";
 
     if (photo) {
       if (!allowedPhotoTypes.includes(photo.type)) return "Photo must be JPG, PNG, or WEBP.";
       if (photo.size > 2 * 1024 * 1024) return "Photo must be 2MB or less.";
-    }
-
-    if (form.microchip_number && form.microchip_number.length > 60) {
-      return "Microchip number looks too long. Please double-check it.";
-    }
-
-    // ✅ Validate intervals if provided
-    const vInt = Number(form.vaccine_interval_days);
-    if (form.vaccine_interval_days !== "" && (Number.isNaN(vInt) || vInt <= 0)) {
-      return "Vaccine interval must be a positive number of days.";
-    }
-    const gInt = Number(form.grooming_interval_days);
-    if (form.grooming_interval_days !== "" && (Number.isNaN(gInt) || gInt <= 0)) {
-      return "Grooming interval must be a positive number of days.";
     }
 
     return "";
@@ -123,7 +109,6 @@ export default function CreatePet() {
 
     const fd = new FormData();
 
-    // required
     fd.append("name", form.name.trim());
     fd.append("species", form.species);
     fd.append("breed", form.breed.trim());
@@ -131,23 +116,23 @@ export default function CreatePet() {
     fd.append("age", String(computedAge));
     fd.append("weight", String(form.weight));
 
-    // ✅ DOB mapping (send BOTH for compatibility)
     if (form.dob) {
-      fd.append("dob", form.dob); // keep legacy column if still used anywhere
-      fd.append("date_of_birth", form.dob); // ✅ used by reminders
+      fd.append("dob", form.dob);
+      fd.append("date_of_birth", form.dob);
     }
 
-    // ✅ Reminders fields
     if (form.last_vaccination_date) fd.append("last_vaccination_date", form.last_vaccination_date);
     if (form.vaccine_interval_days) fd.append("vaccine_interval_days", String(form.vaccine_interval_days));
     if (form.last_grooming_date) fd.append("last_grooming_date", form.last_grooming_date);
     if (form.grooming_interval_days) fd.append("grooming_interval_days", String(form.grooming_interval_days));
 
-    // additional
     if (form.eye_color) fd.append("eye_color", form.eye_color.trim());
     if (form.fur_type) fd.append("fur_type", form.fur_type.trim());
     if (form.markings) fd.append("markings", form.markings.trim());
 
+    if (form.vaccination_status) fd.append("vaccination_status", form.vaccination_status);
+    if (form.last_vet_visit) fd.append("last_vet_visit", form.last_vet_visit);
+    if (form.medical_notes) fd.append("medical_notes", form.medical_notes.trim());
     if (form.health_conditions) fd.append("health_conditions", form.health_conditions.trim());
     if (form.allergies) fd.append("allergies", form.allergies.trim());
     if (form.vaccination_history) fd.append("vaccination_history", form.vaccination_history.trim());
@@ -156,11 +141,21 @@ export default function CreatePet() {
     if (form.exercise_level) fd.append("exercise_level", form.exercise_level);
     if (form.activity_level) fd.append("activity_level", form.activity_level);
 
-    if (form.diet) fd.append("diet", form.diet.trim());
-    if (form.personality_traits) fd.append("personality_traits", form.personality_traits.trim());
-    if (form.notes) fd.append("notes", form.notes.trim());
+    if (form.diet) {
+      fd.append("diet", form.diet.trim());
+      fd.append("food_type", form.diet.trim());
+    }
 
-    // photo
+    if (form.personality_traits) {
+      fd.append("personality_traits", form.personality_traits.trim());
+      fd.append("temperament", form.personality_traits.trim());
+    }
+
+    if (form.notes) {
+      fd.append("notes", form.notes.trim());
+      fd.append("behaviour_notes", form.notes.trim());
+    }
+
     fd.append("photo", photo);
 
     setLoading(true);
@@ -208,7 +203,6 @@ export default function CreatePet() {
         {success && <div className="pf-alert pf-alert-success">{success}</div>}
 
         <form onSubmit={submit} className="pf-form">
-          {/* SECTION: Basics */}
           <div className="pf-section">
             <div className="pf-section-head">
               <h2 className="pf-section-title">Basic Info</h2>
@@ -261,151 +255,134 @@ export default function CreatePet() {
                     }));
                   }}
                 />
-                <span className="pf-help">Used for birthday reminders.</span>
               </div>
 
               <div className="pf-field">
                 <label>Age *</label>
-                <input type="number" min="0" name="age" value={form.age} onChange={onChange} placeholder="e.g. 3" />
-                <span className="pf-help">Enter age if DOB is unknown.</span>
+                <input type="number" min="0" name="age" value={form.age} onChange={onChange} />
               </div>
 
               <div className="pf-field">
                 <label>Weight (kg) *</label>
-                <input type="number" step="0.1" min="0" name="weight" value={form.weight} onChange={onChange} placeholder="e.g. 12.5" />
+                <input type="number" step="0.1" min="0" name="weight" value={form.weight} onChange={onChange} />
               </div>
 
               <div className="pf-field pf-file">
                 <label>Photo *</label>
                 <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] || null)} />
-                <span className="pf-help">JPG/PNG/WEBP, max 2MB</span>
               </div>
             </div>
           </div>
 
-          {/* ✅ SECTION: Reminders */}
           <div className="pf-section">
             <div className="pf-section-head">
               <h2 className="pf-section-title">Reminder Settings</h2>
-              <p className="pf-section-sub">
-                These fields power automatic reminders (Vaccines & Grooming). Leave blank if unknown.
-              </p>
             </div>
 
             <div className="pf-grid">
               <div className="pf-field">
                 <label>Last Vaccination Date</label>
-                <input
-                  type="date"
-                  name="last_vaccination_date"
-                  value={form.last_vaccination_date}
-                  onChange={onChange}
-                />
-                <span className="pf-help">Used to calculate next vaccine due.</span>
+                <input type="date" name="last_vaccination_date" value={form.last_vaccination_date} onChange={onChange} />
               </div>
 
               <div className="pf-field">
                 <label>Vaccine Interval (days)</label>
-                <input
-                  type="number"
-                  min="1"
-                  name="vaccine_interval_days"
-                  value={form.vaccine_interval_days}
-                  onChange={onChange}
-                  placeholder="e.g. 365"
-                />
-                <span className="pf-help">Default: 365 (annual).</span>
+                <input type="number" min="1" name="vaccine_interval_days" value={form.vaccine_interval_days} onChange={onChange} />
               </div>
 
               <div className="pf-field">
                 <label>Last Grooming Date</label>
-                <input
-                  type="date"
-                  name="last_grooming_date"
-                  value={form.last_grooming_date}
-                  onChange={onChange}
-                />
-                <span className="pf-help">Used to calculate next grooming due.</span>
+                <input type="date" name="last_grooming_date" value={form.last_grooming_date} onChange={onChange} />
               </div>
 
               <div className="pf-field">
                 <label>Grooming Interval (days)</label>
-                <input
-                  type="number"
-                  min="1"
-                  name="grooming_interval_days"
-                  value={form.grooming_interval_days}
-                  onChange={onChange}
-                  placeholder="e.g. 30"
-                />
-                <span className="pf-help">Default: 30.</span>
+                <input type="number" min="1" name="grooming_interval_days" value={form.grooming_interval_days} onChange={onChange} />
               </div>
             </div>
           </div>
 
-          {/* SECTION: Physical features */}
           <div className="pf-section">
             <div className="pf-section-head">
               <h2 className="pf-section-title">Physical Features</h2>
-              <p className="pf-section-sub">Optional details like eye colour, fur type, markings.</p>
             </div>
 
             <div className="pf-grid">
               <div className="pf-field">
                 <label>Eye Colour</label>
-                <input name="eye_color" value={form.eye_color} onChange={onChange} placeholder="e.g. Brown" />
+                <input name="eye_color" value={form.eye_color} onChange={onChange} />
               </div>
 
               <div className="pf-field">
                 <label>Fur Type / Length</label>
-                <input name="fur_type" value={form.fur_type} onChange={onChange} placeholder="e.g. Short, Long, Curly" />
+                <input name="fur_type" value={form.fur_type} onChange={onChange} />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Markings</label>
-                <input name="markings" value={form.markings} onChange={onChange} placeholder="e.g. White patch on chest" />
+                <input name="markings" value={form.markings} onChange={onChange} />
               </div>
             </div>
           </div>
 
-          {/* SECTION: Health */}
           <div className="pf-section">
             <div className="pf-section-head">
               <h2 className="pf-section-title">Health & Safety</h2>
-              <p className="pf-section-sub">Conditions, allergies, vaccinations, microchip.</p>
             </div>
 
             <div className="pf-grid">
+              <div className="pf-field">
+                <label>Vaccination Status</label>
+                <select name="vaccination_status" value={form.vaccination_status} onChange={onChange}>
+                  <option value="">Select</option>
+                  <option value="Up to date">Up to date</option>
+                  <option value="Not updated">Not updated</option>
+                </select>
+              </div>
+
+              <div className="pf-field">
+                <label>Last Vet Visit</label>
+                <input type="date" name="last_vet_visit" value={form.last_vet_visit} onChange={onChange} />
+              </div>
+
+              <div className="pf-field pf-span-2">
+                <label>Medical Notes</label>
+                <textarea name="medical_notes" value={form.medical_notes} onChange={onChange} rows={3} />
+              </div>
+
               <div className="pf-field pf-span-2">
                 <label>Health Conditions</label>
-                <textarea name="health_conditions" value={form.health_conditions} onChange={onChange} rows={3} placeholder="e.g. Arthritis, sensitive stomach..." />
+                <textarea name="health_conditions" value={form.health_conditions} onChange={onChange} rows={3} />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Allergies</label>
-                <textarea name="allergies" value={form.allergies} onChange={onChange} rows={3} placeholder="e.g. Chicken, pollen..." />
+                <textarea name="allergies" value={form.allergies} onChange={onChange} rows={3} />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Vaccination History</label>
-                <textarea name="vaccination_history" value={form.vaccination_history} onChange={onChange} rows={3} placeholder="e.g. Rabies (2025), DHPP (2025)..." />
+                <textarea name="vaccination_history" value={form.vaccination_history} onChange={onChange} rows={3} />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Microchip Number</label>
-                <input name="microchip_number" value={form.microchip_number} onChange={onChange} placeholder="e.g. 985112004123456" />
+                <input name="microchip_number" value={form.microchip_number} onChange={onChange} />
               </div>
             </div>
           </div>
 
-          {/* SECTION: Lifestyle */}
           <div className="pf-section">
             <div className="pf-section-head">
               <h2 className="pf-section-title">Lifestyle</h2>
-              <p className="pf-section-sub">Diet, exercise level, activity level, personality.</p>
             </div>
 
             <div className="pf-grid">
+              <div className="pf-field">
+                <label>Diet</label>
+                <input name="diet" value={form.diet} onChange={onChange} placeholder="e.g. Dry food twice daily" />
+              </div>
+
               <div className="pf-field">
                 <label>Exercise Level</label>
                 <select name="exercise_level" value={form.exercise_level} onChange={onChange}>
@@ -427,19 +404,24 @@ export default function CreatePet() {
               </div>
 
               <div className="pf-field pf-span-2">
-                <label>Diet</label>
-                <textarea name="diet" value={form.diet} onChange={onChange} rows={3} placeholder="e.g. Dry food twice daily..." />
-              </div>
-
-              <div className="pf-field pf-span-2">
                 <label>Personality Traits</label>
-                <textarea name="personality_traits" value={form.personality_traits} onChange={onChange} rows={3} placeholder="e.g. Friendly, shy, energetic..." />
-                <span className="pf-help">Tip: use commas if you like (Friendly, Playful, Calm).</span>
+                <input
+                  name="personality_traits"
+                  value={form.personality_traits}
+                  onChange={onChange}
+                  placeholder="e.g. Friendly, playful, calm"
+                />
               </div>
 
               <div className="pf-field pf-span-2">
                 <label>Notes</label>
-                <textarea name="notes" value={form.notes} onChange={onChange} rows={3} placeholder="Anything else important..." />
+                <textarea
+                  name="notes"
+                  value={form.notes}
+                  onChange={onChange}
+                  rows={3}
+                  placeholder="Anything else important..."
+                />
               </div>
             </div>
           </div>
