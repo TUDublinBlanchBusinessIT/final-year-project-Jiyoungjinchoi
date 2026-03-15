@@ -25,7 +25,6 @@ export default function Login() {
       const data = await response.json();
       console.log("LOGIN RESPONSE:", data);
 
-
       if (!response.ok) {
         throw new Error(data.message || "Login failed.");
       }
@@ -34,11 +33,18 @@ export default function Login() {
       localStorage.setItem("pawfection_token", data.token);
       localStorage.setItem("pawfection_user", JSON.stringify(data.user));
       localStorage.setItem("pawfection_user_email", data.user.email);
+      localStorage.setItem("pawfection_role", data.user.role || "user");
 
       setStatus({ type: "success", message: "Login successful 🎉" });
 
-      // ✅ ALWAYS go to dashboard (no verify redirect here)
-      setTimeout(() => navigate("/dashboard"), 700);
+      // ✅ Redirect based on role
+      setTimeout(() => {
+        if (data.user.role === "admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/dashboard");
+        }
+      }, 700);
     } catch (error) {
       setStatus({
         type: "error",

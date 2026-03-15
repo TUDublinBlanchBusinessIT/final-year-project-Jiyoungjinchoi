@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import VerifyEmail from "./pages/VerifyEmail";
 
 import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import CreatePet from "./pages/CreatePet";
 import EditPet from "./pages/EditPet";
 import MyPets from "./pages/MyPets";
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/verify-email" element={<VerifyEmail />} />
 
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
         <Route path="/pets/create" element={<CreatePet />} />
         <Route path="/pets/:id/edit" element={<EditPet />} />
