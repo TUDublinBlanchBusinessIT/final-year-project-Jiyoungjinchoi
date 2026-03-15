@@ -20,6 +20,7 @@ use App\Http\Controllers\LostPetController;
 use App\Http\Controllers\SightingController;
 use App\Http\Controllers\FoundReportController;
 use App\Http\Controllers\FoundReportCommentController;
+use App\Http\Controllers\AdminController;
 
 use App\Models\User;
 
@@ -38,6 +39,7 @@ Route::post('/login', [AuthController::class, 'login'])
 
 // ✅ Resend verification email
 Route::post('/email/verification-notification', function (Request $request) {
+
     $validated = $request->validate([
         'email' => ['required', 'email'],
     ]);
@@ -55,6 +57,7 @@ Route::post('/email/verification-notification', function (Request $request) {
     $user->sendEmailVerificationNotification();
 
     return response()->json(['message' => 'Verification email sent.'], 200);
+
 })->middleware('throttle:3,1');
 
 /*
@@ -62,6 +65,7 @@ Route::post('/email/verification-notification', function (Request $request) {
 | Public Lost & Found Routes
 |--------------------------------------------------------------------------
 */
+
 Route::get('/lost-pets', [LostPetController::class, 'index']);
 Route::get('/lost-pets/{pet}', [LostPetController::class, 'show']);
 Route::get('/lost-pets/{pet}/sightings', [SightingController::class, 'index']);
@@ -75,9 +79,10 @@ Route::get('/found-reports/{foundReport}/comments', [FoundReportCommentControlle
 | Protected Routes (Require Authentication via Sanctum)
 |--------------------------------------------------------------------------
 */
+
 Route::middleware('auth:sanctum')->group(function () {
 
-    // 🐾 Pets (CRUD)
+    // 🐾 Pets
     Route::get('/pets', [PetController::class, 'index']);
     Route::get('/pets/{pet}', [PetController::class, 'show']);
     Route::post('/pets', [PetController::class, 'store']);
@@ -116,25 +121,26 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/appointments/{appointment}', [AppointmentController::class, 'update']);
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy']);
 
-    // ✅ Lost & Found
+    // 🐾 Lost & Found
     Route::post('/lost-pets', [LostPetController::class, 'store']);
     Route::patch('/lost-pets/{pet}/resolve', [LostPetController::class, 'resolve']);
-
     Route::post('/lost-pets/{pet}/sightings', [SightingController::class, 'store']);
 
     Route::post('/found-reports', [FoundReportController::class, 'store']);
     Route::post('/found-reports/{foundReport}/comments', [FoundReportCommentController::class, 'store']);
 
-    // ✅ Reminders
+    // ⏰ Reminders
     Route::get('/reminders', [ReminderController::class, 'index']);
     Route::post('/reminders/generate', [ReminderController::class, 'generate']);
     Route::get('/reminders/upcoming', [ReminderController::class, 'upcoming']);
     Route::patch('/reminders/{reminder}/complete', [ReminderController::class, 'complete']);
     Route::patch('/reminders/{reminder}/snooze', [ReminderController::class, 'snooze']);
 
-    // ✅ Upgrade to Premium
+    // ⭐ Upgrade to Premium
     Route::post('/upgrade-premium', function (Request $request) {
+
         $user = $request->user();
+
         $user->account_type = 'Premium';
         $user->subscription_started_at = now();
         $user->save();
@@ -145,9 +151,11 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    // ✅ Cancel Premium
+    // ⭐ Cancel Premium
     Route::post('/cancel-premium', function (Request $request) {
+
         $user = $request->user();
+
         $user->account_type = 'Basic';
         $user->subscription_started_at = null;
         $user->save();
@@ -158,11 +166,12 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    // ✅ Change Password
+    // 🔐 Change Password
     Route::post('/profile/change-password', function (Request $request) {
+
         $request->validate([
             'current_password' => ['required'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required','string','min:8','confirmed'],
         ]);
 
         $user = $request->user();
@@ -181,16 +190,19 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    // ✅ Save Notification Preferences
+    // 🔔 Save Notification Preferences
     Route::post('/profile/notifications', function (Request $request) {
+
         $validated = $request->validate([
-            'notification_email' => ['required', 'boolean'],
-            'notification_sms' => ['required', 'boolean'],
+            'notification_email' => ['required','boolean'],
+            'notification_sms' => ['required','boolean'],
         ]);
 
         $user = $request->user();
+
         $user->notification_email = $validated['notification_email'];
         $user->notification_sms = $validated['notification_sms'];
+
         $user->save();
 
         return response()->json([
@@ -199,8 +211,9 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    // ✅ Logout
+    // 🔓 Logout
     Route::post('/logout', function (Request $request) {
+
         $request->user()->currentAccessToken()?->delete();
 
         return response()->json([
@@ -208,8 +221,9 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    // ✅ Delete Account
+    // ❌ Delete Account
     Route::delete('/profile', function (Request $request) {
+
         $user = $request->user();
 
         $request->user()->currentAccessToken()?->delete();
@@ -220,52 +234,14 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    // ✅ Mark Pet as Memorial
-    Route::patch('/pets/{pet}/memorial', function (Request $request, Pet $pet) {
-        $user = $request->user();
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Routes
+    |--------------------------------------------------------------------------
+    */
 
-        if ((int) $pet->user_id !== (int) $user->id) {
-            return response()->json([
-                'message' => 'Unauthorized.'
-            ], 403);
-        }
-
-        $validated = $request->validate([
-            'memorial_message' => ['nullable', 'string'],
-        ]);
-
-        $pet->status = 'Memorial';
-        $pet->memorial_message = $validated['memorial_message']
-            ?? 'Remember me with tears and laughter. Remember me though it hurts to do so, because the pain you have is equal to the love we shared. There is no goodbye if you carry me in your heart. Remember all the joy we shared, because there was so much of it for both of us. - Herbie Longfellow Alderdice';
-        $pet->memorialized_at = now();
-        $pet->save();
-
-        return response()->json([
-            'message' => 'Pet moved to memorial successfully.',
-            'pet' => $pet
-        ]);
+    Route::middleware(['admin'])->group(function () {
+        Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
     });
 
-    // ✅ Delete Memorial
-    Route::delete('/pets/{pet}/memorial', function (Request $request, Pet $pet) {
-        $user = $request->user();
-
-        if ((int) $pet->user_id !== (int) $user->id) {
-            return response()->json([
-                'message' => 'Unauthorized.'
-            ], 403);
-        }
-
-        if ($pet->status !== 'Memorial') {
-            return response()->json([
-                'message' => 'This pet is not in memorial status.'
-            ], 422);
-        }
-
-        $pet->delete();
-
-        return response()->json([
-            'message' => 'Memorial deleted successfully.'
-        ]);
-    });
 });
