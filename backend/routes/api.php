@@ -138,7 +138,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ⭐ Upgrade to Premium
     Route::post('/upgrade-premium', function (Request $request) {
-
         $user = $request->user();
 
         $user->account_type = 'Premium';
@@ -153,7 +152,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ⭐ Cancel Premium
     Route::post('/cancel-premium', function (Request $request) {
-
         $user = $request->user();
 
         $user->account_type = 'Basic';
@@ -168,10 +166,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // 🔐 Change Password
     Route::post('/profile/change-password', function (Request $request) {
-
         $request->validate([
             'current_password' => ['required'],
-            'password' => ['required','string','min:8','confirmed'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         $user = $request->user();
@@ -192,10 +189,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // 🔔 Save Notification Preferences
     Route::post('/profile/notifications', function (Request $request) {
-
         $validated = $request->validate([
-            'notification_email' => ['required','boolean'],
-            'notification_sms' => ['required','boolean'],
+            'notification_email' => ['required', 'boolean'],
+            'notification_sms' => ['required', 'boolean'],
         ]);
 
         $user = $request->user();
@@ -213,7 +209,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // 🔓 Logout
     Route::post('/logout', function (Request $request) {
-
         $request->user()->currentAccessToken()?->delete();
 
         return response()->json([
@@ -223,7 +218,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ❌ Delete Account
     Route::delete('/profile', function (Request $request) {
-
         $user = $request->user();
 
         $request->user()->currentAccessToken()?->delete();
@@ -242,6 +236,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware(['admin'])->group(function () {
         Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
+        Route::get('/admin/lost-pets', [AdminController::class, 'lostReports']);
+        Route::patch('/admin/lost-pets/{pet}/approve', [AdminController::class, 'approveLostReport']);
+        Route::patch('/admin/lost-pets/{pet}/hide', [AdminController::class, 'hideLostReport']);
+        Route::delete('/admin/lost-pets/{pet}', [AdminController::class, 'deleteLostReport']);
     });
-
 });
