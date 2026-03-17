@@ -16,6 +16,7 @@ class PostController extends Controller
 
         $posts = Post::with('user:id,name')
             ->withCount(['likes', 'comments'])
+            ->where('status', 'active')
             ->latest()
             ->get()
             ->map(function ($post) use ($userId) {
@@ -81,7 +82,26 @@ class PostController extends Controller
         return response()->json($post, 201);
     }
 
-    // ✅ Delete a post (FIXES your error)
+    // ✅ Report a post
+    public function report(Post $post)
+    {
+        $post->report_count = ($post->report_count ?? 0) + 1;
+        $post->is_reported = true;
+        $post->save();
+
+        \Log::info('Post reported', [
+            'post_id' => $post->id,
+            'reported_by' => Auth::id(),
+            'report_count' => $post->report_count,
+        ]);
+
+        return response()->json([
+            'message' => 'Post reported successfully.',
+            'report_count' => $post->report_count,
+        ], 200);
+    }
+
+    // ✅ Delete a post
     public function destroy(Post $post)
     {
         // ✅ Only allow the owner to delete

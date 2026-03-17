@@ -126,7 +126,8 @@ class LostPetController extends Controller
             ], 422);
         }
 
-        $photoPath = $pet->lost_photo_path;
+        // Fallback to pet profile photo if no new photo uploaded
+        $photoPath = $pet->lost_photo_path ?: $pet->photo_path;
 
         if ($request->hasFile('photo')) {
             $photoPath = $request->file('photo')->store('lostpets', 'public');

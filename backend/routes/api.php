@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Pet;
+use App\Models\User;
 
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\AuthController;
@@ -22,8 +23,6 @@ use App\Http\Controllers\FoundReportController;
 use App\Http\Controllers\FoundReportCommentController;
 use App\Http\Controllers\AdminController;
 
-use App\Models\User;
-
 // ✅ Health check
 Route::get('/health', function () {
     return response()->json(['status' => 'ok'], 200);
@@ -39,7 +38,6 @@ Route::post('/login', [AuthController::class, 'login'])
 
 // ✅ Resend verification email
 Route::post('/email/verification-notification', function (Request $request) {
-
     $validated = $request->validate([
         'email' => ['required', 'email'],
     ]);
@@ -57,7 +55,6 @@ Route::post('/email/verification-notification', function (Request $request) {
     $user->sendEmailVerificationNotification();
 
     return response()->json(['message' => 'Verification email sent.'], 200);
-
 })->middleware('throttle:3,1');
 
 /*
@@ -94,6 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/posts', [PostController::class, 'index']);
     Route::post('/posts', [PostController::class, 'store']);
     Route::delete('/posts/{post}', [PostController::class, 'destroy']);
+    Route::post('/posts/{post}/report', [PostController::class, 'report']);
 
     // ❤️ Likes & Comments
     Route::post('/posts/{post}/like', [LikeController::class, 'toggle']);
@@ -198,7 +196,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
         $user->notification_email = $validated['notification_email'];
         $user->notification_sms = $validated['notification_sms'];
-
         $user->save();
 
         return response()->json([
@@ -236,9 +233,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware(['admin'])->group(function () {
         Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
+
         Route::get('/admin/lost-pets', [AdminController::class, 'lostReports']);
         Route::patch('/admin/lost-pets/{pet}/approve', [AdminController::class, 'approveLostReport']);
         Route::patch('/admin/lost-pets/{pet}/hide', [AdminController::class, 'hideLostReport']);
         Route::delete('/admin/lost-pets/{pet}', [AdminController::class, 'deleteLostReport']);
+
+        Route::get('/admin/reported-posts', [AdminController::class, 'reportedPosts']);
+        Route::patch('/admin/posts/{post}/approve', [AdminController::class, 'approvePost']);
+        Route::patch('/admin/posts/{post}/remove', [AdminController::class, 'removePost']);
+
+        Route::get('/admin/users', [AdminController::class, 'users']);
+        Route::patch('/admin/users/{user}/ban', [AdminController::class, 'banUser']);
+        Route::patch('/admin/users/{user}/unban', [AdminController::class, 'unbanUser']);
     });
 });

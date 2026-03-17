@@ -9,16 +9,40 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('lost_pets', function (Blueprint $table) {
-            $table->string('status')->default('pending');
-            $table->unsignedBigInteger('moderated_by')->nullable();
-            $table->timestamp('moderated_at')->nullable();
+            if (!Schema::hasColumn('lost_pets', 'status')) {
+                $table->string('status')->default('pending');
+            }
+
+            if (!Schema::hasColumn('lost_pets', 'moderated_by')) {
+                $table->unsignedBigInteger('moderated_by')->nullable();
+            }
+
+            if (!Schema::hasColumn('lost_pets', 'moderated_at')) {
+                $table->timestamp('moderated_at')->nullable();
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('lost_pets', function (Blueprint $table) {
-            $table->dropColumn(['status', 'moderated_by', 'moderated_at']);
+            $columnsToDrop = [];
+
+            if (Schema::hasColumn('lost_pets', 'status')) {
+                $columnsToDrop[] = 'status';
+            }
+
+            if (Schema::hasColumn('lost_pets', 'moderated_by')) {
+                $columnsToDrop[] = 'moderated_by';
+            }
+
+            if (Schema::hasColumn('lost_pets', 'moderated_at')) {
+                $columnsToDrop[] = 'moderated_at';
+            }
+
+            if (!empty($columnsToDrop)) {
+                $table->dropColumn($columnsToDrop);
+            }
         });
     }
 };
