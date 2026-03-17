@@ -237,7 +237,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/lost-pets', [AdminController::class, 'lostReports']);
         Route::patch('/admin/lost-pets/{pet}/approve', [AdminController::class, 'approveLostReport']);
         Route::patch('/admin/lost-pets/{pet}/hide', [AdminController::class, 'hideLostReport']);
-        Route::delete('/admin/lost-pets/{pet}', [AdminController::class, 'deleteLostReport']);
 
         Route::get('/admin/reported-posts', [AdminController::class, 'reportedPosts']);
         Route::patch('/admin/posts/{post}/approve', [AdminController::class, 'approvePost']);
