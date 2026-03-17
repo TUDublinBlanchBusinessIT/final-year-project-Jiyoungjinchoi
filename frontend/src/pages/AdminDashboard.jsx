@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+const API_BASE = "http://127.0.0.1:8000/api";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const lostSectionRef = useRef(null);
 
   const [adminUser, setAdminUser] = useState(null);
   const [stats, setStats] = useState({
@@ -16,6 +19,37 @@ export default function AdminDashboard() {
     message: "Loading admin dashboard...",
   });
 
+  const [previewImage, setPreviewImage] = useState(null);
+  const [previewTitle, setPreviewTitle] = useState("");
+
+  async function fetchJson(url, token, options = {}) {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+        ...(options.headers || {}),
+      },
+    });
+
+    const rawText = await response.text();
+
+    let data = null;
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch {
+      throw new Error(
+        `Server returned invalid JSON from ${url}. Response was: ${rawText.slice(0, 120)}`
+      );
+    }
+
+    if (!response.ok) {
+      throw new Error(data.message || `Request failed: ${response.status}`);
+    }
+
+    return data;
+  }
+
   useEffect(() => {
     const token = localStorage.getItem("pawfection_token");
     const savedUser = localStorage.getItem("pawfection_user");
@@ -26,7 +60,17 @@ export default function AdminDashboard() {
       return;
     }
 
-    const parsedUser = JSON.parse(savedUser);
+    let parsedUser = null;
+
+    try {
+      parsedUser = JSON.parse(savedUser);
+    } catch {
+      localStorage.removeItem("pawfection_user");
+      localStorage.removeItem("pawfection_token");
+      localStorage.removeItem("pawfection_role");
+      navigate("/login");
+      return;
+    }
 
     if (savedRole !== "admin") {
       navigate("/dashboard");
@@ -37,37 +81,10 @@ export default function AdminDashboard() {
 
     async function loadAdminData() {
       try {
-        const [dashboardResponse, reportsResponse] = await Promise.all([
-          fetch("http://127.0.0.1:8000/api/admin/dashboard", {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }),
-          fetch("http://127.0.0.1:8000/api/admin/lost-pets", {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }),
+        const [dashboardData, reportsData] = await Promise.all([
+          fetchJson(`${API_BASE}/admin/dashboard`, token),
+          fetchJson(`${API_BASE}/admin/lost-pets`, token),
         ]);
-
-        const dashboardData = await dashboardResponse.json();
-        const reportsData = await reportsResponse.json();
-
-        if (!dashboardResponse.ok) {
-          throw new Error(
-            dashboardData.message || "Failed to load admin dashboard."
-          );
-        }
-
-        if (!reportsResponse.ok) {
-          throw new Error(
-            reportsData.message || "Failed to load lost pet reports."
-          );
-        }
 
         setStats({
           flagged_posts: dashboardData.flagged_posts ?? 0,
@@ -95,36 +112,16 @@ export default function AdminDashboard() {
   async function refreshAdminData() {
     const token = localStorage.getItem("pawfection_token");
 
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
     try {
-      const [dashboardResponse, reportsResponse] = await Promise.all([
-        fetch("http://127.0.0.1:8000/api/admin/dashboard", {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }),
-        fetch("http://127.0.0.1:8000/api/admin/lost-pets", {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }),
+      const [dashboardData, reportsData] = await Promise.all([
+        fetchJson(`${API_BASE}/admin/dashboard`, token),
+        fetchJson(`${API_BASE}/admin/lost-pets`, token),
       ]);
-
-      const dashboardData = await dashboardResponse.json();
-      const reportsData = await reportsResponse.json();
-
-      if (!dashboardResponse.ok) {
-        throw new Error(
-          dashboardData.message || "Failed to refresh dashboard."
-        );
-      }
-
-      if (!reportsResponse.ok) {
-        throw new Error(reportsData.message || "Failed to refresh reports.");
-      }
 
       setStats({
         flagged_posts: dashboardData.flagged_posts ?? 0,
@@ -144,21 +141,26 @@ export default function AdminDashboard() {
   async function handleModerationAction(id, action) {
     const token = localStorage.getItem("pawfection_token");
 
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
     let url = "";
     let method = "PATCH";
 
     if (action === "approve") {
-      url = `http://127.0.0.1:8000/api/admin/lost-pets/${id}/approve`;
+      url = `${API_BASE}/admin/lost-pets/${id}/approve`;
     } else if (action === "hide") {
-      url = `http://127.0.0.1:8000/api/admin/lost-pets/${id}/hide`;
+      url = `${API_BASE}/admin/lost-pets/${id}/hide`;
     } else if (action === "delete") {
-      const confirmed = window.confirm(
-        "Are you sure you want to delete this lost pet report?"
-      );
+      const confirmed = window.confirm("Are you sure you want to delete this lost pet report?");
       if (!confirmed) return;
 
-      url = `http://127.0.0.1:8000/api/admin/lost-pets/${id}`;
+      url = `${API_BASE}/admin/lost-pets/${id}`;
       method = "DELETE";
+    } else {
+      return;
     }
 
     try {
@@ -167,19 +169,9 @@ export default function AdminDashboard() {
         message: `Processing ${action} action...`,
       });
 
-      const response = await fetch(url, {
+      const data = await fetchJson(url, token, {
         method,
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `Failed to ${action} report.`);
-      }
 
       setStatus({
         type: "success",
@@ -194,49 +186,6 @@ export default function AdminDashboard() {
       });
     }
   }
-
-  const statusBg =
-    status.type === "success"
-      ? "#ecfdf5"
-      : status.type === "loading"
-      ? "#eff6ff"
-      : "#fff7ed";
-
-  const statusBorder =
-    status.type === "success"
-      ? "1px solid #bbf7d0"
-      : status.type === "loading"
-      ? "1px solid #bfdbfe"
-      : "1px solid #fed7aa";
-
-  const buttonBase = {
-    border: "none",
-    borderRadius: 12,
-    padding: "12px 18px",
-    fontWeight: 700,
-    fontSize: 16,
-    cursor: "pointer",
-    minWidth: 130,
-    transition: "0.2s ease",
-  };
-
-  const approveStyle = {
-    ...buttonBase,
-    background: "#16a34a",
-    color: "#ffffff",
-  };
-
-  const hideStyle = {
-    ...buttonBase,
-    background: "#f59e0b",
-    color: "#ffffff",
-  };
-
-  const deleteStyle = {
-    ...buttonBase,
-    background: "#dc2626",
-    color: "#ffffff",
-  };
 
   function getBadgeStyle(reportStatus) {
     if (reportStatus === "approved") {
@@ -259,27 +208,89 @@ export default function AdminDashboard() {
     };
   }
 
+  function StatCard({ title, value, subtitle, bg, border, titleColor, valueColor, onClick }) {
+    return (
+      <button
+        onClick={onClick}
+        style={{
+          background: bg,
+          borderRadius: 22,
+          padding: 26,
+          border,
+          boxShadow: "0 10px 26px rgba(0,0,0,.03)",
+          textAlign: "left",
+          cursor: "pointer",
+          transition: "0.2s ease",
+          width: "100%",
+        }}
+      >
+        <h2
+          style={{
+            marginTop: 0,
+            marginBottom: 18,
+            color: titleColor,
+            fontSize: 26,
+          }}
+        >
+          {title}
+        </h2>
+        <div
+          style={{
+            fontSize: 54,
+            fontWeight: 900,
+            color: valueColor,
+            marginBottom: 12,
+          }}
+        >
+          {value}
+        </div>
+        <p
+          style={{
+            color: valueColor,
+            margin: 0,
+            fontSize: 16,
+            lineHeight: 1.5,
+          }}
+        >
+          {subtitle}
+        </p>
+      </button>
+    );
+  }
+
+  const statusBg =
+    status.type === "success"
+      ? "#ecfdf5"
+      : status.type === "loading"
+      ? "#eff6ff"
+      : "#fff7ed";
+
+  const statusBorder =
+    status.type === "success"
+      ? "1px solid #bbf7d0"
+      : status.type === "loading"
+      ? "1px solid #bfdbfe"
+      : "1px solid #fed7aa";
+
   return (
     <div
       style={{
         minHeight: "100vh",
         padding: 24,
         background:
-          "radial-gradient(circle at 10% 10%, rgba(255,228,230,.6), transparent 40%)," +
-          "radial-gradient(circle at 90% 20%, rgba(219,234,254,.6), transparent 45%)," +
-          "radial-gradient(circle at 50% 90%, rgba(220,252,231,.6), transparent 45%)",
+          "linear-gradient(135deg, #f8fafc 0%, #fdf2f8 35%, #ecfeff 70%, #f0fdf4 100%)",
       }}
     >
       <div
         style={{
-          maxWidth: 1420,
+          maxWidth: 1380,
           margin: "0 auto",
-          background: "#ffffffd9",
-          backdropFilter: "blur(10px)",
+          background: "rgba(255,255,255,0.88)",
+          backdropFilter: "blur(12px)",
           borderRadius: 28,
           padding: 34,
           boxShadow: "0 18px 50px rgba(0,0,0,.08)",
-          border: "1px solid rgba(255,255,255,.7)",
+          border: "1px solid rgba(255,255,255,.8)",
         }}
       >
         <div
@@ -298,7 +309,7 @@ export default function AdminDashboard() {
                 margin: 0,
                 fontSize: 58,
                 lineHeight: 1.05,
-                color: "#1f2937",
+                color: "#111827",
                 fontWeight: 900,
               }}
             >
@@ -323,7 +334,6 @@ export default function AdminDashboard() {
               borderRadius: 20,
               padding: "16px 20px",
               minWidth: 220,
-              boxShadow: "0 8px 24px rgba(0,0,0,.03)",
             }}
           >
             <div
@@ -336,9 +346,7 @@ export default function AdminDashboard() {
             >
               {adminUser?.name || "Admin"}
             </div>
-            <div style={{ color: "#6b7280", fontSize: 15 }}>
-              Administrator
-            </div>
+            <div style={{ color: "#6b7280", fontSize: 15 }}>Administrator</div>
           </div>
         </div>
 
@@ -365,142 +373,77 @@ export default function AdminDashboard() {
             marginBottom: 40,
           }}
         >
-          <div
-            style={{
-              background: "#fff7ed",
-              borderRadius: 22,
-              padding: 26,
-              border: "1px solid #fdba74",
-              boxShadow: "0 10px 26px rgba(0,0,0,.03)",
-            }}
-          >
-            <h2
-              style={{
-                marginTop: 0,
-                marginBottom: 18,
-                color: "#9a3412",
-                fontSize: 26,
-              }}
-            >
-              Flagged Posts
-            </h2>
-            <div
-              style={{
-                fontSize: 54,
-                fontWeight: 900,
-                color: "#7c2d12",
-                marginBottom: 12,
-              }}
-            >
-              {stats.flagged_posts}
-            </div>
-            <p
-              style={{
-                color: "#7c2d12",
-                margin: 0,
-                fontSize: 16,
-                lineHeight: 1.5,
-              }}
-            >
-              Community posts requiring moderation review.
-            </p>
-          </div>
+          <StatCard
+            title="Flagged Posts"
+            value={stats.flagged_posts}
+            subtitle="Community posts requiring moderation review."
+            bg="#fff7ed"
+            border="1px solid #fdba74"
+            titleColor="#9a3412"
+            valueColor="#7c2d12"
+            onClick={() => navigate("/admin/moderation")}
+          />
 
-          <div
-            style={{
-              background: "#fdf2f8",
-              borderRadius: 22,
-              padding: 26,
-              border: "1px solid #f9a8d4",
-              boxShadow: "0 10px 26px rgba(0,0,0,.03)",
-            }}
-          >
-            <h2
-              style={{
-                marginTop: 0,
-                marginBottom: 18,
-                color: "#9d174d",
-                fontSize: 26,
-              }}
-            >
-              Reported Users
-            </h2>
-            <div
-              style={{
-                fontSize: 54,
-                fontWeight: 900,
-                color: "#831843",
-                marginBottom: 12,
-              }}
-            >
-              {stats.reported_users}
-            </div>
-            <p
-              style={{
-                color: "#831843",
-                margin: 0,
-                fontSize: 16,
-                lineHeight: 1.5,
-              }}
-            >
-              Users currently banned or marked for admin attention.
-            </p>
-          </div>
+          <StatCard
+            title="Reported Users"
+            value={stats.reported_users}
+            subtitle="Users currently banned or marked for admin attention."
+            bg="#fdf2f8"
+            border="1px solid #f9a8d4"
+            titleColor="#9d174d"
+            valueColor="#831843"
+            onClick={() => navigate("/admin/users")}
+          />
 
-          <div
-            style={{
-              background: "#ecfeff",
-              borderRadius: 22,
-              padding: 26,
-              border: "1px solid #67e8f9",
-              boxShadow: "0 10px 26px rgba(0,0,0,.03)",
-            }}
-          >
-            <h2
-              style={{
-                marginTop: 0,
-                marginBottom: 18,
-                color: "#155e75",
-                fontSize: 26,
-              }}
-            >
-              Lost &amp; Found Reports
-            </h2>
-            <div
-              style={{
-                fontSize: 54,
-                fontWeight: 900,
-                color: "#164e63",
-                marginBottom: 12,
-              }}
-            >
-              {stats.lost_reports}
-            </div>
-            <p
-              style={{
-                color: "#164e63",
-                margin: 0,
-                fontSize: 16,
-                lineHeight: 1.5,
-              }}
-            >
-              Total lost pet reports currently in the system.
-            </p>
-          </div>
+          <StatCard
+            title="Lost & Found Reports"
+            value={stats.lost_reports}
+            subtitle="Total lost pet reports currently in the system."
+            bg="#ecfeff"
+            border="1px solid #67e8f9"
+            titleColor="#155e75"
+            valueColor="#164e63"
+            onClick={() => navigate("/admin/lost-found")}
+          />
         </div>
 
-        <div>
-          <h2
+        <div ref={lostSectionRef}>
+          <div
             style={{
-              marginTop: 0,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 16,
               marginBottom: 18,
-              color: "#0f172a",
-              fontSize: 28,
-              fontWeight: 900,
+              flexWrap: "wrap",
             }}
           >
-            Moderate Lost &amp; Found Posts
-          </h2>
+            <h2
+              style={{
+                margin: 0,
+                color: "#0f172a",
+                fontSize: 28,
+                fontWeight: 900,
+              }}
+            >
+              Moderate Lost & Found Posts
+            </h2>
+
+            <button
+              onClick={() => navigate("/admin/lost-found")}
+              style={{
+                border: "none",
+                background: "#111827",
+                color: "#fff",
+                borderRadius: 12,
+                padding: "12px 18px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Open Full Page
+            </button>
+          </div>
 
           {lostReports.length === 0 ? (
             <div
@@ -518,7 +461,7 @@ export default function AdminDashboard() {
             </div>
           ) : (
             <div style={{ display: "grid", gap: 22 }}>
-              {lostReports.map((report) => {
+              {lostReports.slice(0, 2).map((report) => {
                 const badgeStyle = getBadgeStyle(report.status);
 
                 return (
@@ -554,6 +497,10 @@ export default function AdminDashboard() {
                           <img
                             src={report.photo}
                             alt={report.pet_name || "Lost pet"}
+                            onClick={() => {
+                              setPreviewImage(report.photo);
+                              setPreviewTitle(report.pet_name || "Lost pet");
+                            }}
                             style={{
                               width: 120,
                               height: 120,
@@ -561,6 +508,7 @@ export default function AdminDashboard() {
                               borderRadius: 16,
                               border: "1px solid #e5e7eb",
                               flexShrink: 0,
+                              cursor: "pointer",
                             }}
                           />
                         ) : (
@@ -599,35 +547,16 @@ export default function AdminDashboard() {
                             {report.pet_name || "Unnamed Pet"}
                           </h3>
 
-                          <p
-                            style={{
-                              margin: "8px 0",
-                              color: "#334155",
-                              fontSize: 17,
-                            }}
-                          >
+                          <p style={{ margin: "8px 0", color: "#334155", fontSize: 17 }}>
                             <strong>Description:</strong>{" "}
                             {report.description || "No description provided."}
                           </p>
 
-                          <p
-                            style={{
-                              margin: "8px 0",
-                              color: "#334155",
-                              fontSize: 17,
-                            }}
-                          >
-                            <strong>Location:</strong>{" "}
-                            {report.location || "No location"}
+                          <p style={{ margin: "8px 0", color: "#334155", fontSize: 17 }}>
+                            <strong>Location:</strong> {report.location || "No location"}
                           </p>
 
-                          <p
-                            style={{
-                              margin: "10px 0 0 0",
-                              color: "#334155",
-                              fontSize: 17,
-                            }}
-                          >
+                          <p style={{ margin: "10px 0 0 0", color: "#334155", fontSize: 17 }}>
                             <strong>Status:</strong>{" "}
                             <span
                               style={{
@@ -655,28 +584,46 @@ export default function AdminDashboard() {
                         }}
                       >
                         <button
-                          onClick={() =>
-                            handleModerationAction(report.id, "approve")
-                          }
-                          style={approveStyle}
+                          onClick={() => handleModerationAction(report.id, "approve")}
+                          style={{
+                            border: "none",
+                            borderRadius: 12,
+                            padding: "12px 18px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            background: "#16a34a",
+                            color: "#fff",
+                          }}
                         >
                           Approve
                         </button>
 
                         <button
-                          onClick={() =>
-                            handleModerationAction(report.id, "hide")
-                          }
-                          style={hideStyle}
+                          onClick={() => handleModerationAction(report.id, "hide")}
+                          style={{
+                            border: "none",
+                            borderRadius: 12,
+                            padding: "12px 18px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            background: "#f59e0b",
+                            color: "#fff",
+                          }}
                         >
                           Hide
                         </button>
 
                         <button
-                          onClick={() =>
-                            handleModerationAction(report.id, "delete")
-                          }
-                          style={deleteStyle}
+                          onClick={() => handleModerationAction(report.id, "delete")}
+                          style={{
+                            border: "none",
+                            borderRadius: 12,
+                            padding: "12px 18px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            background: "#dc2626",
+                            color: "#fff",
+                          }}
                         >
                           Delete
                         </button>
@@ -689,6 +636,88 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      {previewImage && (
+        <div
+          onClick={() => {
+            setPreviewImage(null);
+            setPreviewTitle("");
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#ffffff",
+              borderRadius: 20,
+              padding: 20,
+              maxWidth: "90vw",
+              maxHeight: "90vh",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 16,
+                gap: 16,
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: 24,
+                  fontWeight: 800,
+                  color: "#111827",
+                }}
+              >
+                {previewTitle}
+              </h3>
+
+              <button
+                onClick={() => {
+                  setPreviewImage(null);
+                  setPreviewTitle("");
+                }}
+                style={{
+                  border: "none",
+                  background: "#ef4444",
+                  color: "#ffffff",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Close
+              </button>
+            </div>
+
+            <img
+              src={previewImage}
+              alt={previewTitle}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "75vh",
+                borderRadius: 16,
+                display: "block",
+                margin: "0 auto",
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

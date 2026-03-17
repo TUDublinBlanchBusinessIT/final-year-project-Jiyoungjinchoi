@@ -8,6 +8,7 @@ export default function Community() {
   const navigate = useNavigate();
 
   const [userName, setUserName] = useState("User");
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -23,6 +24,7 @@ export default function Community() {
   const [commentDraft, setCommentDraft] = useState({});
   const [likeBusy, setLikeBusy] = useState({});
   const [commentBusy, setCommentBusy] = useState({});
+  const [reportBusy, setReportBusy] = useState({});
 
   // Delete busy states
   const [deletePostBusy, setDeletePostBusy] = useState({});
@@ -43,16 +45,25 @@ export default function Community() {
       const savedUser = localStorage.getItem("pawfection_user");
       if (savedUser) {
         const userObj = JSON.parse(savedUser);
-        if (userObj?.name && typeof userObj.name === "string") setUserName(userObj.name);
+
+        if (userObj?.name && typeof userObj.name === "string") {
+          setUserName(userObj.name);
+        }
+
+        if (userObj?.id) {
+          setCurrentUserId(userObj.id);
+        }
       } else {
         const fallbackName =
           localStorage.getItem("pawfection_user_name") ||
           localStorage.getItem("user_name") ||
           localStorage.getItem("name");
+
         if (fallbackName) setUserName(fallbackName);
       }
     } catch {
       setUserName("User");
+      setCurrentUserId(null);
     }
   }, []);
 
@@ -67,8 +78,9 @@ export default function Community() {
 
     if (!raw) return null;
 
-    if (typeof raw === "string" && (raw.startsWith("http://") || raw.startsWith("https://")))
+    if (typeof raw === "string" && (raw.startsWith("http://") || raw.startsWith("https://"))) {
       return raw;
+    }
 
     if (typeof raw === "string" && raw.startsWith("/")) {
       return `http://127.0.0.1:8000${raw}`;
@@ -216,6 +228,43 @@ export default function Community() {
       await fetchPosts();
     } finally {
       setLikeBusy((p) => ({ ...p, [postId]: false }));
+    }
+  };
+
+  const handleReportPost = async (postId) => {
+    if (!token) return navigate("/login");
+    if (reportBusy[postId]) return;
+
+    const ok = window.confirm("Report this post to admin?");
+    if (!ok) return;
+
+    setReportBusy((p) => ({ ...p, [postId]: true }));
+    setError("");
+
+    try {
+      const response = await fetch(`${apiBase}/posts/${postId}/report`, {
+        method: "POST",
+        headers: authHeaders,
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const msg =
+          data?.message ||
+          (data?.errors ? Object.values(data.errors).flat().join(" ") : "") ||
+          "Failed to report post.";
+        setError(msg);
+        return;
+      }
+
+      alert("Post reported successfully.");
+      await fetchPosts();
+    } catch (error) {
+      console.error("Report post error:", error);
+      setError("Something went wrong while reporting the post.");
+    } finally {
+      setReportBusy((p) => ({ ...p, [postId]: false }));
     }
   };
 
@@ -411,7 +460,6 @@ export default function Community() {
 
   return (
     <div className="pf2-shell">
-      {/* Sidebar */}
       <aside className="pf2-sidebar">
         <div className="pf2-brand" onClick={() => navigate("/dashboard")} role="button">
           <img className="pf2-brand-logo" src={PawfectionLogo} alt="Pawfection" />
@@ -438,9 +486,7 @@ export default function Community() {
         </div>
       </aside>
 
-      {/* Main */}
       <div className="pf2-main">
-        {/* Topbar */}
         <header className="pf2-topbar">
           <div className="pf2-search">
             <input placeholder="Search posts, topics..." />
@@ -467,7 +513,6 @@ export default function Community() {
           </div>
 
           <section className="pfc-grid">
-            {/* Composer */}
             <div className="pfc-card pfc-composer">
               <div className="pfc-card-top">
                 <div className="pfc-card-title">Create a post</div>
@@ -504,7 +549,6 @@ export default function Community() {
               </form>
             </div>
 
-            {/* Feed */}
             <div className="pfc-card pfc-feed">
               <div className="pfc-card-top">
                 <div className="pfc-card-title">Latest posts</div>
@@ -520,6 +564,7 @@ export default function Community() {
                 <div className="pfc-feedlist">
                   {posts.map((p) => {
                     const imgSrc = resolvePostImage(p);
+                    const isOwner = Number(currentUserId) === Number(p.user_id);
 
                     return (
                       <div key={p.id} className="pfc-post">
@@ -579,16 +624,31 @@ export default function Community() {
                             </span>
                           </button>
 
-                          <button
-                            type="button"
-                            className="pfc-actionbtn pfc-actionbtn-danger"
-                            onClick={() => deletePost(p.id)}
-                            disabled={!!deletePostBusy[p.id]}
-                            title="Delete post"
-                          >
-                            <span className="pfc-actionicon">🗑️</span>
-                            <span>{deletePostBusy[p.id] ? "Deleting..." : "Delete"}</span>
-                          </button>
+                          {!isOwner && (
+                            <button
+                              type="button"
+                              className="pfc-actionbtn"
+                              onClick={() => handleReportPost(p.id)}
+                              disabled={!!reportBusy[p.id]}
+                              title="Report post"
+                            >
+                              <span className="pfc-actionicon">🚩</span>
+                              <span>{reportBusy[p.id] ? "Reporting..." : "Report"}</span>
+                            </button>
+                          )}
+
+                          {isOwner && (
+                            <button
+                              type="button"
+                              className="pfc-actionbtn pfc-actionbtn-danger"
+                              onClick={() => deletePost(p.id)}
+                              disabled={!!deletePostBusy[p.id]}
+                              title="Delete post"
+                            >
+                              <span className="pfc-actionicon">🗑️</span>
+                              <span>{deletePostBusy[p.id] ? "Deleting..." : "Delete"}</span>
+                            </button>
+                          )}
                         </div>
 
                         {openComments[p.id] && (
