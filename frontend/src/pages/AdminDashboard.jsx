@@ -147,18 +147,11 @@ export default function AdminDashboard() {
     }
 
     let url = "";
-    let method = "PATCH";
 
     if (action === "approve") {
       url = `${API_BASE}/admin/lost-pets/${id}/approve`;
     } else if (action === "hide") {
       url = `${API_BASE}/admin/lost-pets/${id}/hide`;
-    } else if (action === "delete") {
-      const confirmed = window.confirm("Are you sure you want to delete this lost pet report?");
-      if (!confirmed) return;
-
-      url = `${API_BASE}/admin/lost-pets/${id}`;
-      method = "DELETE";
     } else {
       return;
     }
@@ -170,7 +163,7 @@ export default function AdminDashboard() {
       });
 
       const data = await fetchJson(url, token, {
-        method,
+        method: "PATCH",
       });
 
       setStatus({
@@ -398,7 +391,7 @@ export default function AdminDashboard() {
           <StatCard
             title="Lost & Found Reports"
             value={stats.lost_reports}
-            subtitle="Total lost pet reports currently in the system."
+            subtitle="All lost pet reports including hidden ones for admin review."
             bg="#ecfeff"
             border="1px solid #67e8f9"
             titleColor="#155e75"
@@ -461,7 +454,7 @@ export default function AdminDashboard() {
             </div>
           ) : (
             <div style={{ display: "grid", gap: 22 }}>
-              {lostReports.slice(0, 2).map((report) => {
+              {lostReports.slice(0, 3).map((report) => {
                 const badgeStyle = getBadgeStyle(report.status);
 
                 return (
@@ -556,6 +549,13 @@ export default function AdminDashboard() {
                             <strong>Location:</strong> {report.location || "No location"}
                           </p>
 
+                          <p style={{ margin: "8px 0", color: "#334155", fontSize: 17 }}>
+                            <strong>Created:</strong>{" "}
+                            {report.created_at
+                              ? new Date(report.created_at).toLocaleString()
+                              : "Unknown"}
+                          </p>
+
                           <p style={{ margin: "10px 0 0 0", color: "#334155", fontSize: 17 }}>
                             <strong>Status:</strong>{" "}
                             <span
@@ -611,21 +611,6 @@ export default function AdminDashboard() {
                           }}
                         >
                           Hide
-                        </button>
-
-                        <button
-                          onClick={() => handleModerationAction(report.id, "delete")}
-                          style={{
-                            border: "none",
-                            borderRadius: 12,
-                            padding: "12px 18px",
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            background: "#dc2626",
-                            color: "#fff",
-                          }}
-                        >
-                          Delete
                         </button>
                       </div>
                     </div>
