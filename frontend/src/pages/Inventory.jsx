@@ -101,6 +101,32 @@ export default function Inventory() {
     return ["Food", "Supplement", "Medication"].includes(category);
   };
 
+  const formatQuantity = (value) => {
+    const num = Number(value);
+    if (Number.isNaN(num)) return value;
+    return Number.isInteger(num) ? String(num) : num.toFixed(2).replace(/\.?0+$/, "");
+  };
+
+  const getSliderStep = (item) => {
+    const stock = Number(item?.current_quantity || 0);
+    const daily = Number(item?.daily_usage || 0);
+
+    if (item?.unit === "tablets" || item?.unit === "pcs") return 1;
+    if (stock < 1 && daily < 1) return 0.01;
+    return 0.01;
+  };
+
+  const getInitialUsageValue = (item) => {
+    const stock = Number(item?.current_quantity || 0);
+    const daily = Number(item?.daily_usage || 0);
+
+    if (stock <= 0) return "0";
+    if (daily > 0) return String(Math.min(daily, stock));
+
+    const step = getSliderStep(item);
+    return String(Math.min(step, stock));
+  };
+
   const createItem = async (e) => {
     e.preventDefault();
     if (!token) return navigate("/login");
@@ -201,7 +227,7 @@ export default function Inventory() {
     setEditingId(null);
     setShowForm(false);
     setUsageOpenId(item.id);
-    setUsageAmount(item.daily_usage ?? "");
+    setUsageAmount(getInitialUsageValue(item));
   };
 
   const cancelUsageForm = () => {
@@ -215,7 +241,7 @@ export default function Inventory() {
     const used = Number(usageAmount);
 
     if (usageAmount === "" || Number.isNaN(used) || used <= 0) {
-      setError("Please enter a valid amount used today.");
+      setError("Please choose a valid amount used today.");
       return;
     }
 
@@ -552,6 +578,10 @@ export default function Inventory() {
                     const isEditing = editingId === i.id;
                     const isUsing = usageOpenId === i.id;
                     const canLogUsage = isConsumableCategory(i.category);
+                    const sliderMax = Number(i.current_quantity || 0);
+                    const sliderStep = getSliderStep(i);
+                    const currentUsageValue = usageOpenId === i.id ? Number(usageAmount || 0) : 0;
+                    const noStock = sliderMax <= 0;
 
                     return (
                       <div key={i.id} className="pfi-row-wrap">
@@ -651,8 +681,8 @@ export default function Inventory() {
                               <>
                                 <div className="pfi-name">{i.name}</div>
                                 <div className="pfi-sub">
-                                  {i.category} • Stock: {i.current_quantity} {i.unit} • Daily use:{" "}
-                                  {i.daily_usage} {i.unit} •{" "}
+                                  {i.category} • Stock: {formatQuantity(i.current_quantity)} {i.unit} • Daily
+                                  use: {formatQuantity(i.daily_usage)} {i.unit} •{" "}
                                   {typeof i.days_left === "number"
                                     ? `${i.days_left} days left`
                                     : "No estimate"}
@@ -709,29 +739,48 @@ export default function Inventory() {
                             </div>
 
                             <div className="pfi-usage-text">
-                              Saved daily usage: <b>{i.daily_usage}</b> {i.unit}
+                              Saved daily usage: <b>{formatQuantity(i.daily_usage)}</b> {i.unit}
                             </div>
 
-                            <div className="pfi-usage-grid">
-                              <div className="pfi-field">
-                                <label>Actual amount used today</label>
-                                <input
-                                  type="number"
-                                  min="0.01"
-                                  step="0.01"
-                                  value={usageAmount}
-                                  onChange={(e) => setUsageAmount(e.target.value)}
-                                  placeholder="Enter amount used"
-                                />
+                            {noStock ? (
+                              <div className="pfi-usage-empty">
+                                This item is currently out of stock, so usage cannot be logged.
                               </div>
-                            </div>
+                            ) : (
+                              <div className="pfi-usage-grid">
+                                <div className="pfi-field">
+                                  <label>Actual amount used today</label>
+
+                                  <div className="pfi-slider-wrap">
+                                    <div className="pfi-slider-value">
+                                      {formatQuantity(currentUsageValue)} {i.unit}
+                                    </div>
+
+                                    <input
+                                      className="pfi-slider"
+                                      type="range"
+                                      min="0"
+                                      max={sliderMax}
+                                      step={sliderStep}
+                                      value={usageAmount}
+                                      onChange={(e) => setUsageAmount(e.target.value)}
+                                    />
+
+                                    <div className="pfi-slider-scale">
+                                      <span>0 {i.unit}</span>
+                                      <span>{formatQuantity(i.current_quantity)} {i.unit}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
 
                             <div className="pfi-formactions">
                               <button
                                 className="pf2-btn pf2-btn-primary"
                                 type="button"
                                 onClick={() => consumeItem(i.id)}
-                                disabled={busyId === i.id}
+                                disabled={busyId === i.id || noStock || Number(usageAmount) <= 0}
                               >
                                 {busyId === i.id ? "Saving..." : "Yes, Reduce Stock"}
                               </button>
@@ -770,7 +819,7 @@ export default function Inventory() {
                         <div>
                           <div className="pfi-soonname">{i.name}</div>
                           <div className="pfi-soonsub">
-                            {i.days_left} days left • Daily use: {i.daily_usage} {i.unit}
+                            {i.days_left} days left • Daily use: {formatQuantity(i.daily_usage)} {i.unit}
                           </div>
                         </div>
                         <button
