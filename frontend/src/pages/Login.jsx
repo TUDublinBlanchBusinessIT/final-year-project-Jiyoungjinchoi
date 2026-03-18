@@ -8,6 +8,12 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  function clearErrorIfNeeded() {
+    if (status.type === "error") {
+      setStatus({ type: "idle", message: "" });
+    }
+  }
+
   async function handleLogin(e) {
     e.preventDefault();
     setStatus({ type: "loading", message: "Logging in..." });
@@ -22,10 +28,19 @@ export default function Login() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       console.log("LOGIN RESPONSE:", data);
 
       if (!response.ok) {
+        localStorage.removeItem("pawfection_token");
+        localStorage.removeItem("pawfection_user");
+        localStorage.removeItem("pawfection_user_email");
+        localStorage.removeItem("pawfection_role");
+
+        if (response.status === 401) {
+          throw new Error("Invalid credentials");
+        }
+
         throw new Error(data.message || "Login failed.");
       }
 
@@ -114,7 +129,10 @@ export default function Login() {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              clearErrorIfNeeded();
+              setEmail(e.target.value);
+            }}
             required
             placeholder="you@example.com"
             style={{
@@ -133,7 +151,10 @@ export default function Login() {
           <input
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              clearErrorIfNeeded();
+              setPassword(e.target.value);
+            }}
             required
             placeholder="••••••••"
             style={{

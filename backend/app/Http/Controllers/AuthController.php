@@ -18,25 +18,27 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
+        // Invalid email or password
         if (!Auth::attempt($credentials)) {
             return response()->json([
-                'message' => 'Invalid credentials'
+                'message' => 'Invalid credentials',
             ], 401);
         }
 
         $user = Auth::user();
 
-        // ✅ Block banned users
+        // Block banned users
         if ($user->is_banned) {
             Auth::logout();
 
             return response()->json([
-                'message' => 'Your account has been banned.'
+                'message' => 'Your account has been banned.',
             ], 403);
         }
 
-        // OPTIONAL: enforce email verification
+        // Optional: enforce email verification
         // if (!$user->hasVerifiedEmail()) {
+        //     Auth::logout();
         //     return response()->json([
         //         'message' => 'Please verify your email before logging in.'
         //     ], 403);
@@ -47,7 +49,7 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Login successful',
             'user' => $user,
-            'token' => $token
+            'token' => $token,
         ], 200);
     }
 
@@ -59,7 +61,7 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'Logged out successfully'
+            'message' => 'Logged out successfully',
         ], 200);
     }
 }

@@ -1,47 +1,62 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function VerifyEmail() {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [status, setStatus] = useState({ type: "idle", message: "" });
   const [email, setEmail] = useState("");
 
+  const verifiedParam = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("verified");
+  }, [location.search]);
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-
-    // ✅ If user arrived here after clicking verification link
-    if (params.get("verified") === "1") {
-      setStatus({ type: "success", message: "Email verified successfully!" });
-
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
-
-      return;
-    }
-
-    const savedEmail = localStorage.getItem("pawfection_user_email");
-    if (!savedEmail) {
-      navigate("/login");
-      return;
-    }
+    const savedEmail = localStorage.getItem("pawfection_user_email") || "";
     setEmail(savedEmail);
-  }, [navigate]);
+  }, []);
+
+  useEffect(() => {
+    if (verifiedParam === "1") {
+      setStatus({
+        type: "success",
+        message: "Verification Completed ✅ You can now log in.",
+      });
+
+      const timer = setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+
+    if (verifiedParam === "0") {
+      setStatus({
+        type: "error",
+        message:
+          "Invalid or expired verification link. Please resend the verification email.",
+      });
+    }
+  }, [verifiedParam, navigate]);
 
   async function resendEmail() {
+    if (!email) {
+      navigate("/register");
+      return;
+    }
+
     setStatus({ type: "loading", message: "Resending verification email..." });
 
     try {
       const token = localStorage.getItem("pawfection_token");
 
-      // If user is not logged in, we can still try using the email-based route
-      // (ONLY if backend supports it). Otherwise you need the token.
       const headers = {
         Accept: "application/json",
         "Content-Type": "application/json",
       };
 
-      // ✅ Add token if it exists (fixes most "Failed to fetch" + 401 issues)
       if (token) {
         headers.Authorization = `Bearer ${token}`;
       }
@@ -55,25 +70,15 @@ export default function VerifyEmail() {
         }
       );
 
-      // In case Laravel returns HTML error page, protect JSON parsing
-      const text = await response.text();
-      let data = {};
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        // Not JSON
-      }
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        const msg =
-          data?.message ||
-          `Request failed (${response.status}). Check backend route/auth/CORS.`;
-        throw new Error(msg);
+        throw new Error(data.message || "Failed to resend email.");
       }
 
       setStatus({
         type: "success",
-        message: data.message || "Verification email sent!",
+        message: data.message || "Verification email sent! Please check again.",
       });
     } catch (error) {
       setStatus({
@@ -82,6 +87,24 @@ export default function VerifyEmail() {
       });
     }
   }
+
+  const cardBg =
+    status.type === "success"
+      ? "#f0fdf4"
+      : status.type === "loading"
+      ? "#eff6ff"
+      : status.type === "error"
+      ? "#fff1f2"
+      : "#ffffff";
+
+  const statusBg =
+    status.type === "success"
+      ? "#f0fdf4"
+      : status.type === "loading"
+      ? "#eff6ff"
+      : status.type === "error"
+      ? "#fff1f2"
+      : "#fff7ed";
 
   return (
     <div
@@ -100,30 +123,42 @@ export default function VerifyEmail() {
         style={{
           width: "100%",
           maxWidth: 520,
-          background: "#fff",
+          background: cardBg,
           borderRadius: 22,
-          padding: 24,
+          padding: 28,
           boxShadow: "0 12px 35px rgba(0,0,0,.07)",
           textAlign: "center",
         }}
       >
-        <h1 style={{ fontSize: 26, margin: 0 }}>Please verify your email</h1>
-        <p style={{ marginTop: 10, color: "#555" }}>
-          We sent a verification link to: <strong>{email}</strong>
-        </p>
+        <h1 style={{ fontSize: 26, margin: 0 }}>
+          {verifiedParam === "1"
+            ? "Email Verified"
+            : verifiedParam === "0"
+            ? "Verification Failed"
+            : "Please verify your email"}
+        </h1>
+
+        {verifiedParam !== "1" && (
+          <p style={{ marginTop: 10, color: "#555" }}>
+            We sent a verification link to:{" "}
+            <strong>{email ? email : "your email address"}</strong>
+          </p>
+        )}
 
         {status.type !== "idle" && (
           <div
             style={{
-              marginTop: 16,
-              padding: "10px 12px",
+              marginTop: 20,
+              padding: "12px 16px",
               borderRadius: 14,
-              background:
-                status.type === "success"
-                  ? "#f0fdf4"
-                  : status.type === "loading"
-                  ? "#eff6ff"
-                  : "#fff7ed",
+              background: statusBg,
+              border:
+                status.type === "error"
+                  ? "1px solid #fecdd3"
+                  : status.type === "success"
+                  ? "1px solid #bbf7d0"
+                  : "1px solid #bfdbfe",
+              textAlign: "left",
             }}
           >
             <strong>
@@ -133,27 +168,48 @@ export default function VerifyEmail() {
                 ? "Please wait"
                 : "Attention"}
             </strong>
-            <div>{status.message}</div>
+            <div style={{ marginTop: 6 }}>{status.message}</div>
+            {verifiedParam === "1" && <div style={{ marginTop: 6 }}>Redirecting to login…</div>}
           </div>
         )}
 
-        <button
-          onClick={resendEmail}
-          disabled={status.type === "loading"}
-          style={{
-            marginTop: 18,
-            padding: "12px 18px",
-            borderRadius: 12,
-            border: "none",
-            fontWeight: 800,
-            color: "#fff",
-            cursor: "pointer",
-            background: "linear-gradient(90deg,#fb7185,#60a5fa)",
-            opacity: status.type === "loading" ? 0.6 : 1,
-          }}
-        >
-          Resend verification email
-        </button>
+        {verifiedParam === "1" && (
+          <button
+            onClick={() => navigate("/login")}
+            style={{
+              marginTop: 18,
+              padding: "12px 18px",
+              borderRadius: 12,
+              border: "none",
+              fontWeight: 800,
+              color: "#fff",
+              cursor: "pointer",
+              background: "linear-gradient(90deg,#22c55e,#60a5fa)",
+            }}
+          >
+            Go to Login
+          </button>
+        )}
+
+        {verifiedParam !== "1" && (
+          <button
+            onClick={resendEmail}
+            disabled={status.type === "loading"}
+            style={{
+              marginTop: 18,
+              padding: "12px 18px",
+              borderRadius: 12,
+              border: "none",
+              fontWeight: 800,
+              color: "#fff",
+              cursor: "pointer",
+              background: "linear-gradient(90deg,#fb7185,#60a5fa)",
+              opacity: status.type === "loading" ? 0.6 : 1,
+            }}
+          >
+            Resend verification email
+          </button>
+        )}
 
         <div style={{ marginTop: 18 }}>
           <button
