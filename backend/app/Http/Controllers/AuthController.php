@@ -26,7 +26,6 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
-        // ✅ Block banned users
         if ($user->is_banned) {
             Auth::logout();
 
@@ -35,12 +34,13 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // OPTIONAL: enforce email verification
-        // if (!$user->hasVerifiedEmail()) {
-        //     return response()->json([
-        //         'message' => 'Please verify your email before logging in.'
-        //     ], 403);
-        // }
+        if ($user->is_suspended) {
+            Auth::logout();
+
+            return response()->json([
+                'message' => 'Your account has been suspended.'
+            ], 403);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -56,7 +56,7 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $request->user()->currentAccessToken()?->delete();
 
         return response()->json([
             'message' => 'Logged out successfully'

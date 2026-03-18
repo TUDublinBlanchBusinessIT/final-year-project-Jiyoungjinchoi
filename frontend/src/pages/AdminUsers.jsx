@@ -75,7 +75,7 @@ export default function AdminUsers() {
   async function toggleBan(userId, isBanned) {
     const token = localStorage.getItem("pawfection_token");
 
-    setLoadingAction((prev) => ({ ...prev, [userId]: true }));
+    setLoadingAction((prev) => ({ ...prev, [`ban-${userId}`]: true }));
 
     try {
       const response = await fetch(
@@ -95,11 +95,42 @@ export default function AdminUsers() {
         throw new Error(data.message || "Action failed.");
       }
 
-      fetchUsers();
+      await fetchUsers();
     } catch (error) {
       alert(error.message || "Something went wrong.");
     } finally {
-      setLoadingAction((prev) => ({ ...prev, [userId]: false }));
+      setLoadingAction((prev) => ({ ...prev, [`ban-${userId}`]: false }));
+    }
+  }
+
+  async function toggleSuspend(userId, isSuspended) {
+    const token = localStorage.getItem("pawfection_token");
+
+    setLoadingAction((prev) => ({ ...prev, [`suspend-${userId}`]: true }));
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/admin/users/${userId}/${isSuspended ? "unsuspend" : "suspend"}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Action failed.");
+      }
+
+      await fetchUsers();
+    } catch (error) {
+      alert(error.message || "Something went wrong.");
+    } finally {
+      setLoadingAction((prev) => ({ ...prev, [`suspend-${userId}`]: false }));
     }
   }
 
@@ -116,11 +147,15 @@ export default function AdminUsers() {
     }
 
     if (filter === "active") {
-      result = result.filter((user) => !user.is_banned);
+      result = result.filter((user) => !user.is_banned && !user.is_suspended);
     }
 
     if (filter === "banned") {
       result = result.filter((user) => !!user.is_banned);
+    }
+
+    if (filter === "suspended") {
+      result = result.filter((user) => !!user.is_suspended && !user.is_banned);
     }
 
     return result;
@@ -129,23 +164,34 @@ export default function AdminUsers() {
   const stats = useMemo(() => {
     return {
       total: users.length,
-      active: users.filter((u) => !u.is_banned).length,
+      active: users.filter((u) => !u.is_banned && !u.is_suspended).length,
+      suspended: users.filter((u) => !!u.is_suspended && !u.is_banned).length,
       banned: users.filter((u) => !!u.is_banned).length,
     };
   }, [users]);
 
-  function getStatusBadge(isBanned) {
-    return isBanned
-      ? {
-          text: "Banned",
-          bg: darkMode ? "#3b0d0d" : "#fee2e2",
-          color: darkMode ? "#fca5a5" : "#991b1b",
-        }
-      : {
-          text: "Active",
-          bg: darkMode ? "#0f2e1b" : "#dcfce7",
-          color: darkMode ? "#86efac" : "#166534",
-        };
+  function getStatusBadge(user) {
+    if (user.is_banned) {
+      return {
+        text: "Banned",
+        bg: darkMode ? "#3b0d0d" : "#fee2e2",
+        color: darkMode ? "#fca5a5" : "#991b1b",
+      };
+    }
+
+    if (user.is_suspended) {
+      return {
+        text: "Suspended",
+        bg: darkMode ? "#3a2a05" : "#fef3c7",
+        color: darkMode ? "#fde68a" : "#92400e",
+      };
+    }
+
+    return {
+      text: "Active",
+      bg: darkMode ? "#0f2e1b" : "#dcfce7",
+      color: darkMode ? "#86efac" : "#166534",
+    };
   }
 
   const theme = {
@@ -184,7 +230,7 @@ export default function AdminUsers() {
               User Management
             </h1>
             <p style={{ marginTop: 10, color: theme.subtext, fontSize: 18 }}>
-              Search, filter, and manage user accounts.
+              Search, filter, suspend, and manage user accounts.
             </p>
           </div>
 
@@ -231,6 +277,7 @@ export default function AdminUsers() {
         >
           <StatCard title="Total Users" value={stats.total} darkMode={darkMode} />
           <StatCard title="Active Users" value={stats.active} darkMode={darkMode} />
+          <StatCard title="Suspended Users" value={stats.suspended} darkMode={darkMode} />
           <StatCard title="Banned Users" value={stats.banned} darkMode={darkMode} />
         </div>
 
@@ -286,6 +333,7 @@ export default function AdminUsers() {
             >
               <option value="all">All Users</option>
               <option value="active">Active Only</option>
+              <option value="suspended">Suspended Only</option>
               <option value="banned">Banned Only</option>
             </select>
           </div>
@@ -347,7 +395,7 @@ export default function AdminUsers() {
 
               <tbody>
                 {filteredUsers.map((user) => {
-                  const badge = getStatusBadge(user.is_banned);
+                  const badge = getStatusBadge(user);
 
                   return (
                     <tr
@@ -386,26 +434,52 @@ export default function AdminUsers() {
                       </td>
 
                       <td style={tdStyle}>
-                        <button
-                          onClick={() => toggleBan(user.id, user.is_banned)}
-                          disabled={loadingAction[user.id]}
-                          style={{
-                            border: "none",
-                            borderRadius: 10,
-                            padding: "9px 14px",
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            background: user.is_banned ? "#16a34a" : "#dc2626",
-                            color: "#fff",
-                            opacity: loadingAction[user.id] ? 0.7 : 1,
-                          }}
-                        >
-                          {loadingAction[user.id]
-                            ? "Working..."
-                            : user.is_banned
-                            ? "Unban"
-                            : "Ban"}
-                        </button>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button
+                            onClick={() => toggleSuspend(user.id, user.is_suspended)}
+                            disabled={loadingAction[`suspend-${user.id}`] || user.is_banned}
+                            style={{
+                              border: "none",
+                              borderRadius: 10,
+                              padding: "9px 14px",
+                              fontWeight: 700,
+                              cursor: user.is_banned ? "not-allowed" : "pointer",
+                              background: user.is_suspended ? "#2563eb" : "#f59e0b",
+                              color: "#fff",
+                              opacity:
+                                loadingAction[`suspend-${user.id}`] || user.is_banned ? 0.7 : 1,
+                            }}
+                          >
+                            {loadingAction[`suspend-${user.id}`]
+                              ? "Working..."
+                              : user.is_banned
+                              ? "Banned"
+                              : user.is_suspended
+                              ? "Unsuspend"
+                              : "Suspend"}
+                          </button>
+
+                          <button
+                            onClick={() => toggleBan(user.id, user.is_banned)}
+                            disabled={loadingAction[`ban-${user.id}`]}
+                            style={{
+                              border: "none",
+                              borderRadius: 10,
+                              padding: "9px 14px",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              background: user.is_banned ? "#16a34a" : "#dc2626",
+                              color: "#fff",
+                              opacity: loadingAction[`ban-${user.id}`] ? 0.7 : 1,
+                            }}
+                          >
+                            {loadingAction[`ban-${user.id}`]
+                              ? "Working..."
+                              : user.is_banned
+                              ? "Unban"
+                              : "Ban"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

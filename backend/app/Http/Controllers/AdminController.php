@@ -180,11 +180,45 @@ class AdminController extends Controller
 
     public function users()
     {
-        $users = User::select('id', 'name', 'email', 'is_banned', 'created_at')
+        $users = User::select('id', 'name', 'email', 'is_banned', 'is_suspended', 'created_at')
             ->orderBy('name')
             ->get();
 
         return response()->json($users);
+    }
+
+    public function suspendUser(Request $request, User $user)
+    {
+        $user->is_suspended = true;
+        $user->save();
+
+        Log::info('Admin suspended user', [
+            'admin_id' => $request->user()->id,
+            'suspended_user_id' => $user->id,
+            'action' => 'suspended',
+        ]);
+
+        return response()->json([
+            'message' => 'User suspended successfully.',
+            'user' => $user,
+        ]);
+    }
+
+    public function unsuspendUser(Request $request, User $user)
+    {
+        $user->is_suspended = false;
+        $user->save();
+
+        Log::info('Admin unsuspended user', [
+            'admin_id' => $request->user()->id,
+            'unsuspended_user_id' => $user->id,
+            'action' => 'unsuspended',
+        ]);
+
+        return response()->json([
+            'message' => 'User unsuspended successfully.',
+            'user' => $user,
+        ]);
     }
 
     public function banUser(Request $request, User $user)

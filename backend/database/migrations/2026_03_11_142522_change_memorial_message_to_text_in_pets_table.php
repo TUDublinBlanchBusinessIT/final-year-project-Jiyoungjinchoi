@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -10,7 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement('ALTER TABLE pets MODIFY memorial_message TEXT NULL');
+        // ✅ Only run this on MySQL (SQLite does not support MODIFY)
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE pets MODIFY memorial_message TEXT NULL');
+        }
     }
 
     /**
@@ -18,6 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement('ALTER TABLE pets MODIFY memorial_message VARCHAR(255) NULL');
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE pets MODIFY memorial_message VARCHAR(255) NULL');
+        }
     }
 };

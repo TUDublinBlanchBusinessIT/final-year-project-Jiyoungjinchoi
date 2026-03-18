@@ -243,6 +243,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/admin/posts/{post}/remove', [AdminController::class, 'removePost']);
 
         Route::get('/admin/users', [AdminController::class, 'users']);
+        Route::patch('/admin/users/{user}/suspend', [AdminController::class, 'suspendUser']);
+        Route::patch('/admin/users/{user}/unsuspend', [AdminController::class, 'unsuspendUser']);
         Route::patch('/admin/users/{user}/ban', [AdminController::class, 'banUser']);
         Route::patch('/admin/users/{user}/unban', [AdminController::class, 'unbanUser']);
     });
