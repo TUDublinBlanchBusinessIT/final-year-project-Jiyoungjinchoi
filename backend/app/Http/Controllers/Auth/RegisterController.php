@@ -25,13 +25,22 @@ class RegisterController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        // ✅ Send verification email
+         // ✅ Send verification email
         event(new Registered($user));
 
         // ✅ Redirect somewhere meaningful
         return redirect()
             ->route('login')
             ->with('success', 'Registration successful. Please verify your email, then log in.');
+
+        // ✅ Explicitly send verification email
+        $user->sendEmailVerificationNotification();
+
+        return redirect()->back()->with(
+            'success',
+            'Registration successful. Please verify your email.'
+        );
+
     }
 
     // 🔹 API registration (React frontend)
@@ -49,8 +58,13 @@ class RegisterController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
+
         // ✅ Send verification email
         event(new Registered($user));
+
+        // ✅ Explicitly send verification email (THIS IS THE IMPORTANT LINE)
+        $user->sendEmailVerificationNotification();
+
 
         return response()->json([
             'message' => 'Registration successful. Please verify your email.',
