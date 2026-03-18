@@ -29,7 +29,6 @@ export default function Login() {
         throw new Error(data.message || "Login failed.");
       }
 
-      // ✅ Save auth data
       localStorage.setItem("pawfection_token", data.token);
       localStorage.setItem("pawfection_user", JSON.stringify(data.user));
       localStorage.setItem("pawfection_user_email", data.user.email);
@@ -37,7 +36,6 @@ export default function Login() {
 
       setStatus({ type: "success", message: "Login successful 🎉" });
 
-      // ✅ Redirect based on role
       setTimeout(() => {
         if (data.user.role === "admin") {
           navigate("/admin/dashboard");
@@ -112,9 +110,7 @@ export default function Login() {
         )}
 
         <form onSubmit={handleLogin} style={{ marginTop: 18, textAlign: "left" }}>
-          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>
-            Email
-          </label>
+          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>Email</label>
           <input
             type="email"
             value={email}

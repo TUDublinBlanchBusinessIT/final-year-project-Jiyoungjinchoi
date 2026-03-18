@@ -18,7 +18,7 @@ export default function Dashboard() {
   const [appointments, setAppointments] = useState([]);
   const [apptsLoading, setApptsLoading] = useState(false);
 
-  // ✅ Upcoming reminders state
+  // Upcoming reminders state
   const [upcomingReminders, setUpcomingReminders] = useState([]);
   const [remindersLoading, setRemindersLoading] = useState(false);
 
@@ -95,7 +95,6 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ Upcoming reminders
   const fetchUpcomingReminders = async () => {
     if (!token) {
       navigate("/login");
@@ -140,7 +139,10 @@ export default function Dashboard() {
           localStorage.getItem("pawfection_user_name") ||
           localStorage.getItem("user_name") ||
           localStorage.getItem("name");
-        if (fallbackName) setUserName(fallbackName);
+
+        if (fallbackName) {
+          setUserName(fallbackName);
+        }
       }
     } catch {
       setUserName("User");
@@ -155,8 +157,8 @@ export default function Dashboard() {
       fetchAppointments();
       fetchUpcomingReminders();
     };
-    window.addEventListener("focus", onFocus);
 
+    window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
@@ -218,7 +220,6 @@ export default function Dashboard() {
     }).length;
   }, [appointments]);
 
-  // ✅ Active reminder count
   const activeReminderCount = useMemo(() => {
     return (upcomingReminders || []).filter(
       (r) => (r?.status || "").toLowerCase() !== "completed"
@@ -227,8 +228,15 @@ export default function Dashboard() {
 
   const stats = useMemo(() => {
     const petCount = pets?.length || 0;
+
     return [
-      { label: "Pets", value: String(petCount), sub: "Registered", tone: "blue", icon: "🐾" },
+      {
+        label: "Pets",
+        value: String(petCount),
+        sub: "Registered",
+        tone: "blue",
+        icon: "🐾",
+      },
       {
         label: "Appointments",
         value: apptsLoading ? "…" : String(upcomingAppointmentsCount),
@@ -250,14 +258,18 @@ export default function Dashboard() {
     if (!iso) return "—";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleDateString("en-IE", { year: "numeric", month: "short", day: "2-digit" });
+
+    return d.toLocaleDateString("en-IE", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
   };
 
   return (
     <div className="pf2-shell">
-      {/* Sidebar */}
       <aside className="pf2-sidebar">
-        <div className="pf2-brand" onClick={() => navigate("/dashboard")} role="button">
+        <div className="pf2-brand" onClick={() => navigate("/dashboard")} role="button" tabIndex={0}>
           <img className="pf2-brand-logo" src={PawfectionLogo} alt="Pawfection" />
           <div className="pf2-brand-text">
             <div className="pf2-brand-title">Pawfection</div>
@@ -266,13 +278,27 @@ export default function Dashboard() {
         </div>
 
         <nav className="pf2-nav">
-          <Link className="pf2-nav-item active" to="/dashboard">Dashboard</Link>
-          <Link className="pf2-nav-item" to="/mypets">My Pets</Link>
-          <Link className="pf2-nav-item" to="/appointments">Appointments</Link>
-          <Link className="pf2-nav-item" to="/reminders">Reminders</Link>
-          <Link className="pf2-nav-item" to="/lostfound">Lost &amp; Found</Link>
-          <Link className="pf2-nav-item" to="/community">Community</Link>
-          <Link className="pf2-nav-item" to="/inventory">Inventory</Link>
+          <Link className="pf2-nav-item active" to="/dashboard">
+            Dashboard
+          </Link>
+          <Link className="pf2-nav-item" to="/mypets">
+            My Pets
+          </Link>
+          <Link className="pf2-nav-item" to="/appointments">
+            Appointments
+          </Link>
+          <Link className="pf2-nav-item" to="/reminders">
+            Reminders
+          </Link>
+          <Link className="pf2-nav-item" to="/lostfound">
+            Lost &amp; Found
+          </Link>
+          <Link className="pf2-nav-item" to="/community">
+            Community
+          </Link>
+          <Link className="pf2-nav-item" to="/inventory">
+            Inventory
+          </Link>
         </nav>
 
         <div className="pf2-sidebar-footer">
@@ -282,9 +308,7 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* Main */}
       <div className="pf2-main">
-        {/* Topbar */}
         <header className="pf2-topbar">
           <div className="pf2-search">
             <input placeholder="Search pets, appointments, reminders..." />
@@ -321,7 +345,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Stats */}
           <section className="pf2-stats">
             {stats.map((s) => (
               <div key={s.label} className={`pf2-stat pf2-${s.tone}`}>
@@ -336,9 +359,7 @@ export default function Dashboard() {
             ))}
           </section>
 
-          {/* Grid */}
           <section className="pf2-grid">
-            {/* Pets Widget */}
             <div className="pf2-card pf2-span-2">
               <div className="pf2-cardhead">
                 <h2>My Pets</h2>
@@ -370,8 +391,7 @@ export default function Dashboard() {
                           <div className="pf2-petmeta">
                             <div className="pf2-petname">{pet.name}</div>
                             <div className="pf2-petdesc">
-                              {(pet.breed || pet.species || "Pet")}
-                              {" • "}
+                              {pet.breed || pet.species || "Pet"} {" • "}
                               {pet.age ? `${pet.age} yrs` : "Age n/a"}
                               {pet.weight ? ` • ${pet.weight}kg` : ""}
                             </div>
@@ -401,7 +421,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* ✅ Upcoming Reminders widget */}
             <div className="pf2-card">
               <div className="pf2-cardhead">
                 <h2>Upcoming Reminders</h2>
@@ -413,9 +432,7 @@ export default function Dashboard() {
               {remindersLoading && <div className="pf2-empty">Loading reminders…</div>}
 
               {!remindersLoading && upcomingReminders.length === 0 && (
-                <div className="pf2-empty">
-                  No upcoming reminders.
-                </div>
+                <div className="pf2-empty">No upcoming reminders.</div>
               )}
 
               {!remindersLoading && upcomingReminders.length > 0 && (
@@ -439,17 +456,16 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Welcome card */}
             <div className="pf2-card pf2-welcome pf2-span-all">
               <div className="pf2-welcome-title">Welcome to Pawfection</div>
               <div className="pf2-welcome-sub">
                 Pawfection: A smart pet care, lost &amp; found pet and better dog lifestyle 🐶🐱
               </div>
               <div className="pf2-welcome-text">
-                The Pawfection is a mobile-friendly application for dog and cat owners in
-                Ireland. The goal of Pawfection is to make it easy for pet owners to use
-                our platform to record, manage, and track essential information
-                related to their pets&apos; health, well-being, and safety.
+                The Pawfection is a mobile-friendly application for dog and cat owners in Ireland.
+                The goal of Pawfection is to make it easy for pet owners to use our platform to
+                record, manage, and track essential information related to their pets&apos; health,
+                well-being, and safety.
               </div>
             </div>
           </section>
