@@ -322,24 +322,48 @@ export default function AdminDashboard() {
 
           <div
             style={{
-              background: "#f8fafc",
-              border: "1px solid #e5e7eb",
-              borderRadius: 20,
-              padding: "16px 20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
               minWidth: 220,
             }}
           >
             <div
               style={{
-                fontWeight: 900,
-                fontSize: 20,
-                color: "#111827",
-                marginBottom: 4,
+                background: "#f8fafc",
+                border: "1px solid #e5e7eb",
+                borderRadius: 20,
+                padding: "16px 20px",
+                minWidth: 220,
               }}
             >
-              {adminUser?.name || "Admin"}
+              <div
+                style={{
+                  fontWeight: 900,
+                  fontSize: 20,
+                  color: "#111827",
+                  marginBottom: 4,
+                }}
+              >
+                {adminUser?.name || "Admin"}
+              </div>
+              <div style={{ color: "#6b7280", fontSize: 15 }}>Administrator</div>
             </div>
-            <div style={{ color: "#6b7280", fontSize: 15 }}>Administrator</div>
+
+            <button
+              onClick={() => navigate("/admin/logs")}
+              style={{
+                border: "none",
+                background: "#111827",
+                color: "#fff",
+                borderRadius: 12,
+                padding: "12px 18px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              View Activity Logs
+            </button>
           </div>
         </div>
 

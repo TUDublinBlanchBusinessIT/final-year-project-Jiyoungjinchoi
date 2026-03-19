@@ -10,6 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminModeration from "./pages/AdminModeration";
 import AdminLostFound from "./pages/AdminLostFound";
 import AdminUsers from "./pages/AdminUsers";
+import AdminLogs from "./pages/AdminLogs";
 
 import CreatePet from "./pages/CreatePet";
 import EditPet from "./pages/EditPet";
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/admin/moderation" element={<AdminModeration />} />
         <Route path="/admin/lost-found" element={<AdminLostFound />} />
         <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/logs" element={<AdminLogs />} />
 
         <Route path="/pets/create" element={<CreatePet />} />
         <Route path="/pets/:id/edit" element={<EditPet />} />
