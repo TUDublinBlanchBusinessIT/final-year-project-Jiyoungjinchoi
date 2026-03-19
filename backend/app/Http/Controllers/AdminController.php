@@ -5,11 +5,23 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Post;
 use App\Models\LostPet;
+use App\Models\AdminLog; // ✅ NEW
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
+    // ✅ Logging helper
+    private function logAction($adminId, $action, $type, $targetId)
+    {
+        AdminLog::create([
+            'admin_id' => $adminId,
+            'action' => $action,
+            'target_type' => $type,
+            'target_id' => $targetId,
+        ]);
+    }
+
     public function dashboard()
     {
         return response()->json([
@@ -56,11 +68,8 @@ class AdminController extends Controller
         $pet->moderated_at = now();
         $pet->save();
 
-        Log::info('Admin approved lost pet report', [
-            'admin_id' => $request->user()->id,
-            'lost_pet_id' => $pet->id,
-            'action' => 'approved',
-        ]);
+        // ✅ LOG
+        $this->logAction($request->user()->id, 'approved', 'lost_pet', $pet->id);
 
         return response()->json([
             'message' => 'Lost pet report approved successfully.',
@@ -75,11 +84,8 @@ class AdminController extends Controller
         $pet->moderated_at = now();
         $pet->save();
 
-        Log::info('Admin hid lost pet report', [
-            'admin_id' => $request->user()->id,
-            'lost_pet_id' => $pet->id,
-            'action' => 'hidden',
-        ]);
+        // ✅ LOG
+        $this->logAction($request->user()->id, 'hidden', 'lost_pet', $pet->id);
 
         return response()->json([
             'message' => 'Lost pet report hidden successfully.',
@@ -89,11 +95,8 @@ class AdminController extends Controller
 
     public function deleteLostReport(Request $request, LostPet $pet)
     {
-        Log::info('Admin deleted lost pet report', [
-            'admin_id' => $request->user()->id,
-            'lost_pet_id' => $pet->id,
-            'action' => 'deleted',
-        ]);
+        // ✅ LOG BEFORE DELETE
+        $this->logAction($request->user()->id, 'deleted', 'lost_pet', $pet->id);
 
         $pet->delete();
 
@@ -133,12 +136,8 @@ class AdminController extends Controller
         $post->report_count = 0;
         $post->save();
 
-        Log::info('Admin approved reported post', [
-            'admin_id' => $request->user()->id,
-            'post_id' => $post->id,
-            'post_owner_id' => $post->user_id,
-            'action' => 'approved',
-        ]);
+        // ✅ LOG
+        $this->logAction($request->user()->id, 'approved', 'post', $post->id);
 
         return response()->json([
             'message' => 'Post approved successfully.',
@@ -160,16 +159,13 @@ class AdminController extends Controller
         if ($owner && $removedPostsCount >= 3) {
             $owner->is_banned = true;
             $owner->save();
+
+            // ✅ LOG AUTO BAN
+            $this->logAction($request->user()->id, 'banned', 'user', $owner->id);
         }
 
-        Log::info('Admin removed community post', [
-            'admin_id' => $request->user()->id,
-            'post_id' => $post->id,
-            'post_owner_id' => $post->user_id,
-            'removed_posts_count' => $removedPostsCount,
-            'user_banned' => $owner ? $owner->is_banned : false,
-            'action' => 'removed',
-        ]);
+        // ✅ LOG
+        $this->logAction($request->user()->id, 'removed', 'post', $post->id);
 
         return response()->json([
             'message' => 'Post removed successfully.',
@@ -192,11 +188,8 @@ class AdminController extends Controller
         $user->is_suspended = true;
         $user->save();
 
-        Log::info('Admin suspended user', [
-            'admin_id' => $request->user()->id,
-            'suspended_user_id' => $user->id,
-            'action' => 'suspended',
-        ]);
+        // ✅ LOG
+        $this->logAction($request->user()->id, 'suspended', 'user', $user->id);
 
         return response()->json([
             'message' => 'User suspended successfully.',
@@ -209,11 +202,8 @@ class AdminController extends Controller
         $user->is_suspended = false;
         $user->save();
 
-        Log::info('Admin unsuspended user', [
-            'admin_id' => $request->user()->id,
-            'unsuspended_user_id' => $user->id,
-            'action' => 'unsuspended',
-        ]);
+        // ✅ LOG
+        $this->logAction($request->user()->id, 'unsuspended', 'user', $user->id);
 
         return response()->json([
             'message' => 'User unsuspended successfully.',
@@ -226,11 +216,8 @@ class AdminController extends Controller
         $user->is_banned = true;
         $user->save();
 
-        Log::info('Admin banned user', [
-            'admin_id' => $request->user()->id,
-            'banned_user_id' => $user->id,
-            'action' => 'banned',
-        ]);
+        // ✅ LOG
+        $this->logAction($request->user()->id, 'banned', 'user', $user->id);
 
         return response()->json([
             'message' => 'User banned successfully.',
@@ -243,15 +230,21 @@ class AdminController extends Controller
         $user->is_banned = false;
         $user->save();
 
-        Log::info('Admin unbanned user', [
-            'admin_id' => $request->user()->id,
-            'unbanned_user_id' => $user->id,
-            'action' => 'unbanned',
-        ]);
+        // ✅ LOG
+        $this->logAction($request->user()->id, 'unbanned', 'user', $user->id);
 
         return response()->json([
             'message' => 'User unbanned successfully.',
             'user' => $user,
         ]);
+    }
+
+    // ✅ GET LOGS
+    public function logs()
+    {
+        return AdminLog::with('admin:id,name')
+            ->latest()
+            ->take(50)
+            ->get();
     }
 }
