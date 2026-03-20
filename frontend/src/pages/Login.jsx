@@ -29,17 +29,24 @@ export default function Login() {
         throw new Error(data.message || "Login failed.");
       }
 
+      // ✅ Determine role safely
+      const role =
+        data.user.role ||
+        (data.user.account_type || "").toLowerCase() === "admin"
+          ? "admin"
+          : "user";
+
       // ✅ Save auth data
       localStorage.setItem("pawfection_token", data.token);
       localStorage.setItem("pawfection_user", JSON.stringify(data.user));
       localStorage.setItem("pawfection_user_email", data.user.email);
-      localStorage.setItem("pawfection_role", data.user.role || "user");
+      localStorage.setItem("pawfection_role", role);
 
       setStatus({ type: "success", message: "Login successful 🎉" });
 
       // ✅ Redirect based on role
       setTimeout(() => {
-        if (data.user.role === "admin") {
+        if (role === "admin") {
           navigate("/admin/dashboard");
         } else {
           navigate("/dashboard");

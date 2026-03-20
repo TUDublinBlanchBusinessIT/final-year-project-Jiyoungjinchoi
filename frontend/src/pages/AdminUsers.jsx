@@ -22,7 +22,10 @@ export default function AdminUsers() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("pawfection_admin_dark_mode", darkMode ? "true" : "false");
+    localStorage.setItem(
+      "pawfection_admin_dark_mode",
+      darkMode ? "true" : "false"
+    );
   }, [darkMode]);
 
   useEffect(() => {
@@ -46,6 +49,11 @@ export default function AdminUsers() {
     const token = localStorage.getItem("pawfection_token");
 
     try {
+      setStatus({
+        type: "loading",
+        message: "Loading users...",
+      });
+
       const response = await fetch("http://127.0.0.1:8000/api/admin/users", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -59,10 +67,12 @@ export default function AdminUsers() {
         throw new Error(data.message || "Failed to load users.");
       }
 
-      setUsers(Array.isArray(data) ? data : []);
+      const safeUsers = Array.isArray(data) ? data : [];
+
+      setUsers(safeUsers);
       setStatus({
         type: "success",
-        message: data.length === 0 ? "No users found." : "",
+        message: safeUsers.length === 0 ? "No users found." : "",
       });
     } catch (error) {
       setStatus({
@@ -75,7 +85,7 @@ export default function AdminUsers() {
   async function toggleBan(userId, isBanned) {
     const token = localStorage.getItem("pawfection_token");
 
-    setLoadingAction((prev) => ({ ...prev, [userId]: true }));
+    setLoadingAction((prev) => ({ ...prev, [`ban-${userId}`]: true }));
 
     try {
       const response = await fetch(
@@ -95,12 +105,90 @@ export default function AdminUsers() {
         throw new Error(data.message || "Action failed.");
       }
 
-      fetchUsers();
+      await fetchUsers();
     } catch (error) {
       alert(error.message || "Something went wrong.");
     } finally {
-      setLoadingAction((prev) => ({ ...prev, [userId]: false }));
+      setLoadingAction((prev) => ({ ...prev, [`ban-${userId}`]: false }));
     }
+  }
+
+  async function changePlan(userId, action) {
+    const token = localStorage.getItem("pawfection_token");
+    const actionKey = `${action}-${userId}`;
+
+    setLoadingAction((prev) => ({ ...prev, [actionKey]: true }));
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/admin/users/${userId}/${action}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Plan update failed.");
+      }
+
+      await fetchUsers();
+    } catch (error) {
+      alert(error.message || "Something went wrong.");
+    } finally {
+      setLoadingAction((prev) => ({ ...prev, [actionKey]: false }));
+    }
+  }
+
+  function normalizePlan(plan) {
+    return String(plan || "basic").toLowerCase();
+  }
+
+  function formatPlan(plan) {
+    const normalized = normalizePlan(plan);
+    return normalized === "premium" ? "Premium" : "Basic";
+  }
+
+  function getExpiryDate(user) {
+    const plan = normalizePlan(user.account_type);
+
+    if (plan !== "premium" || !user.subscription_started_at) {
+      return null;
+    }
+
+    const startDate = new Date(user.subscription_started_at);
+
+    if (Number.isNaN(startDate.getTime())) {
+      return null;
+    }
+
+    const expiryDate = new Date(startDate);
+    expiryDate.setMonth(expiryDate.getMonth() + 1);
+
+    return expiryDate;
+  }
+
+  function isExpired(user) {
+    const expiryDate = getExpiryDate(user);
+    if (!expiryDate) return false;
+
+    const today = new Date();
+    return expiryDate < today;
+  }
+
+  function formatDate(dateValue) {
+    if (!dateValue) return "-";
+
+    const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) return "-";
+
+    return date.toLocaleDateString("en-IE");
   }
 
   const filteredUsers = useMemo(() => {
@@ -113,6 +201,22 @@ export default function AdminUsers() {
           user.name?.toLowerCase().includes(q) ||
           user.email?.toLowerCase().includes(q)
       );
+    }
+
+    if (filter === "basic") {
+      result = result.filter(
+        (user) => normalizePlan(user.account_type) === "basic"
+      );
+    }
+
+    if (filter === "premium") {
+      result = result.filter(
+        (user) => normalizePlan(user.account_type) === "premium"
+      );
+    }
+
+    if (filter === "expired") {
+      result = result.filter((user) => isExpired(user));
     }
 
     if (filter === "active") {
@@ -131,6 +235,8 @@ export default function AdminUsers() {
       total: users.length,
       active: users.filter((u) => !u.is_banned).length,
       banned: users.filter((u) => !!u.is_banned).length,
+      premium: users.filter((u) => normalizePlan(u.account_type) === "premium")
+        .length,
     };
   }, [users]);
 
@@ -146,6 +252,57 @@ export default function AdminUsers() {
           bg: darkMode ? "#0f2e1b" : "#dcfce7",
           color: darkMode ? "#86efac" : "#166534",
         };
+  }
+
+  function getPlanBadge(accountType) {
+    const plan = normalizePlan(accountType);
+
+    return plan === "premium"
+      ? {
+          text: "Premium",
+          bg: darkMode ? "#3b2a08" : "#fef3c7",
+          color: darkMode ? "#fde68a" : "#92400e",
+        }
+      : {
+          text: "Basic",
+          bg: darkMode ? "#10243f" : "#dbeafe",
+          color: darkMode ? "#93c5fd" : "#1d4ed8",
+        };
+  }
+
+  function getExpiryBadge(user) {
+    const expiryDate = getExpiryDate(user);
+    const plan = normalizePlan(user.account_type);
+
+    if (plan !== "premium") {
+      return {
+        text: "N/A",
+        bg: darkMode ? "#1f2937" : "#f3f4f6",
+        color: darkMode ? "#d1d5db" : "#6b7280",
+      };
+    }
+
+    if (!expiryDate) {
+      return {
+        text: "No date",
+        bg: darkMode ? "#3b2a08" : "#fef3c7",
+        color: darkMode ? "#fde68a" : "#92400e",
+      };
+    }
+
+    if (isExpired(user)) {
+      return {
+        text: "Expired",
+        bg: darkMode ? "#3b0d0d" : "#fee2e2",
+        color: darkMode ? "#fca5a5" : "#991b1b",
+      };
+    }
+
+    return {
+      text: "Active",
+      bg: darkMode ? "#0f2e1b" : "#dcfce7",
+      color: darkMode ? "#86efac" : "#166534",
+    };
   }
 
   const theme = {
@@ -168,7 +325,7 @@ export default function AdminUsers() {
         padding: 24,
       }}
     >
-      <div style={{ maxWidth: 1180, margin: "0 auto" }}>
+      <div style={{ maxWidth: 1450, margin: "0 auto" }}>
         <div
           style={{
             display: "flex",
@@ -184,7 +341,7 @@ export default function AdminUsers() {
               User Management
             </h1>
             <p style={{ marginTop: 10, color: theme.subtext, fontSize: 18 }}>
-              Search, filter, and manage user accounts.
+              View subscription plans, filter users, and manage account status.
             </p>
           </div>
 
@@ -232,6 +389,7 @@ export default function AdminUsers() {
           <StatCard title="Total Users" value={stats.total} darkMode={darkMode} />
           <StatCard title="Active Users" value={stats.active} darkMode={darkMode} />
           <StatCard title="Banned Users" value={stats.banned} darkMode={darkMode} />
+          <StatCard title="Premium Users" value={stats.premium} darkMode={darkMode} />
         </div>
 
         <div
@@ -285,6 +443,9 @@ export default function AdminUsers() {
               }}
             >
               <option value="all">All Users</option>
+              <option value="basic">Basic Users</option>
+              <option value="premium">Premium Users</option>
+              <option value="expired">Expired Subscriptions</option>
               <option value="active">Active Only</option>
               <option value="banned">Banned Only</option>
             </select>
@@ -328,26 +489,34 @@ export default function AdminUsers() {
               background: theme.cardBg,
               borderRadius: 24,
               border: `1px solid ${theme.border}`,
-              overflow: "hidden",
+              overflowX: "auto",
               boxShadow: darkMode
                 ? "0 12px 28px rgba(0,0,0,.35)"
                 : "0 12px 30px rgba(0,0,0,.05)",
             }}
           >
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table style={{ width: "100%", minWidth: 1250, borderCollapse: "collapse" }}>
               <thead style={{ background: theme.tableHeadBg }}>
                 <tr>
                   <th style={{ ...thStyle, color: theme.subtext }}>Name</th>
                   <th style={{ ...thStyle, color: theme.subtext }}>Email</th>
+                  <th style={{ ...thStyle, color: theme.subtext }}>Role</th>
+                  <th style={{ ...thStyle, color: theme.subtext }}>Plan</th>
+                  <th style={{ ...thStyle, color: theme.subtext }}>Started</th>
+                  <th style={{ ...thStyle, color: theme.subtext }}>Expiry</th>
+                  <th style={{ ...thStyle, color: theme.subtext }}>Account Status</th>
                   <th style={{ ...thStyle, color: theme.subtext }}>Joined</th>
-                  <th style={{ ...thStyle, color: theme.subtext }}>Status</th>
                   <th style={{ ...thStyle, color: theme.subtext }}>Actions</th>
                 </tr>
               </thead>
 
               <tbody>
                 {filteredUsers.map((user) => {
-                  const badge = getStatusBadge(user.is_banned);
+                  const statusBadge = getStatusBadge(user.is_banned);
+                  const planBadge = getPlanBadge(user.account_type);
+                  const expiryBadge = getExpiryBadge(user);
+                  const expiryDate = getExpiryDate(user);
+                  const isPremium = normalizePlan(user.account_type) === "premium";
 
                   return (
                     <tr
@@ -365,9 +534,7 @@ export default function AdminUsers() {
                       </td>
 
                       <td style={{ ...tdStyle, color: theme.text }}>
-                        {user.created_at
-                          ? new Date(user.created_at).toLocaleDateString("en-IE")
-                          : "-"}
+                        {user.role ? String(user.role).charAt(0).toUpperCase() + String(user.role).slice(1) : "User"}
                       </td>
 
                       <td style={tdStyle}>
@@ -377,35 +544,110 @@ export default function AdminUsers() {
                             borderRadius: 999,
                             fontWeight: 700,
                             fontSize: 13,
-                            background: badge.bg,
-                            color: badge.color,
+                            background: planBadge.bg,
+                            color: planBadge.color,
                           }}
                         >
-                          {badge.text}
+                          {planBadge.text}
                         </span>
                       </td>
 
+                      <td style={{ ...tdStyle, color: theme.text }}>
+                        {user.subscription_started_at
+                          ? formatDate(user.subscription_started_at)
+                          : "-"}
+                      </td>
+
+                      <td style={{ ...tdStyle, color: theme.text }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          <span>{expiryDate ? formatDate(expiryDate) : "-"}</span>
+                          <span
+                            style={{
+                              display: "inline-block",
+                              width: "fit-content",
+                              padding: "4px 10px",
+                              borderRadius: 999,
+                              fontWeight: 700,
+                              fontSize: 12,
+                              background: expiryBadge.bg,
+                              color: expiryBadge.color,
+                            }}
+                          >
+                            {expiryBadge.text}
+                          </span>
+                        </div>
+                      </td>
+
                       <td style={tdStyle}>
-                        <button
-                          onClick={() => toggleBan(user.id, user.is_banned)}
-                          disabled={loadingAction[user.id]}
+                        <span
                           style={{
-                            border: "none",
-                            borderRadius: 10,
-                            padding: "9px 14px",
+                            padding: "6px 12px",
+                            borderRadius: 999,
                             fontWeight: 700,
-                            cursor: "pointer",
-                            background: user.is_banned ? "#16a34a" : "#dc2626",
-                            color: "#fff",
-                            opacity: loadingAction[user.id] ? 0.7 : 1,
+                            fontSize: 13,
+                            background: statusBadge.bg,
+                            color: statusBadge.color,
                           }}
                         >
-                          {loadingAction[user.id]
-                            ? "Working..."
-                            : user.is_banned
-                            ? "Unban"
-                            : "Ban"}
-                        </button>
+                          {statusBadge.text}
+                        </span>
+                      </td>
+
+                      <td style={{ ...tdStyle, color: theme.text }}>
+                        {user.created_at ? formatDate(user.created_at) : "-"}
+                      </td>
+
+                      <td style={tdStyle}>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button
+                            onClick={() =>
+                              changePlan(user.id, isPremium ? "downgrade" : "upgrade")
+                            }
+                            disabled={
+                              !!loadingAction[`${isPremium ? "downgrade" : "upgrade"}-${user.id}`]
+                            }
+                            style={{
+                              border: "none",
+                              borderRadius: 10,
+                              padding: "9px 14px",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              background: isPremium ? "#f59e0b" : "#2563eb",
+                              color: "#fff",
+                              opacity:
+                                loadingAction[`${isPremium ? "downgrade" : "upgrade"}-${user.id}`]
+                                  ? 0.7
+                                  : 1,
+                            }}
+                          >
+                            {loadingAction[`${isPremium ? "downgrade" : "upgrade"}-${user.id}`]
+                              ? "Working..."
+                              : isPremium
+                              ? "Downgrade"
+                              : "Upgrade"}
+                          </button>
+
+                          <button
+                            onClick={() => toggleBan(user.id, user.is_banned)}
+                            disabled={!!loadingAction[`ban-${user.id}`]}
+                            style={{
+                              border: "none",
+                              borderRadius: 10,
+                              padding: "9px 14px",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              background: user.is_banned ? "#16a34a" : "#dc2626",
+                              color: "#fff",
+                              opacity: loadingAction[`ban-${user.id}`] ? 0.7 : 1,
+                            }}
+                          >
+                            {loadingAction[`ban-${user.id}`]
+                              ? "Working..."
+                              : user.is_banned
+                              ? "Reactivate"
+                              : "Suspend"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -459,9 +701,11 @@ const thStyle = {
   textAlign: "left",
   padding: "14px 16px",
   fontSize: 14,
+  whiteSpace: "nowrap",
 };
 
 const tdStyle = {
   padding: "14px 16px",
   fontSize: 15,
+  verticalAlign: "top",
 };

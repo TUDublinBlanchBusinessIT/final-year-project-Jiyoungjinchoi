@@ -37,6 +37,8 @@ class AuthController extends Controller
 
         // OPTIONAL: enforce email verification
         // if (!$user->hasVerifiedEmail()) {
+        //     Auth::logout();
+        //
         //     return response()->json([
         //         'message' => 'Please verify your email before logging in.'
         //     ], 403);
@@ -46,7 +48,10 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Login successful',
-            'user' => $user,
+            'user' => [
+                ...$user->toArray(),
+                'role' => strtolower($user->account_type) === 'admin' ? 'admin' : 'user',
+            ],
             'token' => $token
         ], 200);
     }
@@ -56,7 +61,7 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $request->user()->currentAccessToken()?->delete();
 
         return response()->json([
             'message' => 'Logged out successfully'

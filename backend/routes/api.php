@@ -138,7 +138,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/upgrade-premium', function (Request $request) {
         $user = $request->user();
 
-        $user->account_type = 'Premium';
+        $user->account_type = 'premium';
         $user->subscription_started_at = now();
         $user->save();
 
@@ -152,7 +152,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/cancel-premium', function (Request $request) {
         $user = $request->user();
 
-        $user->account_type = 'Basic';
+        $user->account_type = 'basic';
         $user->subscription_started_at = null;
         $user->save();
 
@@ -245,5 +245,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/users', [AdminController::class, 'users']);
         Route::patch('/admin/users/{user}/ban', [AdminController::class, 'banUser']);
         Route::patch('/admin/users/{user}/unban', [AdminController::class, 'unbanUser']);
+        Route::patch('/admin/users/{user}/upgrade', [AdminController::class, 'upgradeUser']);
+        Route::patch('/admin/users/{user}/downgrade', [AdminController::class, 'downgradeUser']);
     });
 });
