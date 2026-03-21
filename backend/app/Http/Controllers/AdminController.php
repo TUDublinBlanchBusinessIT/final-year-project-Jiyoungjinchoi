@@ -192,7 +192,42 @@ class AdminController extends Controller
                 'created_at'
             )
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(function ($user) {
+                $activityCount = DB::table('admin_logs')
+                    ->where('target_type', 'user')
+                    ->where('target_id', $user->id)
+                    ->count();
+
+                $latestActivity = DB::table('admin_logs')
+                    ->leftJoin('users as admins', 'admin_logs.admin_id', '=', 'admins.id')
+                    ->where('admin_logs.target_type', 'user')
+                    ->where('admin_logs.target_id', $user->id)
+                    ->orderByDesc('admin_logs.created_at')
+                    ->select(
+                        'admin_logs.action',
+                        'admin_logs.created_at',
+                        'admins.name as admin_name'
+                    )
+                    ->first();
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'is_banned' => $user->is_banned,
+                    'account_type' => $user->account_type,
+                    'subscription_started_at' => $user->subscription_started_at,
+                    'created_at' => $user->created_at,
+                    'activity_count' => $activityCount,
+                    'latest_activity' => $latestActivity ? [
+                        'action' => $latestActivity->action,
+                        'admin_name' => $latestActivity->admin_name,
+                        'created_at' => $latestActivity->created_at,
+                    ] : null,
+                ];
+            });
 
         return response()->json($users);
     }
@@ -202,12 +237,12 @@ class AdminController extends Controller
         $user->is_banned = true;
         $user->save();
 
-        $this->logAction($request->user()->id, 'banned', 'user', $user->id);
+        $this->logAction($request->user()->id, 'suspended', 'user', $user->id);
 
-        Log::info('Admin banned user', [
+        Log::info('Admin suspended user', [
             'admin_id' => $request->user()->id,
-            'banned_user_id' => $user->id,
-            'action' => 'banned',
+            'target_user_id' => $user->id,
+            'action' => 'suspended',
         ]);
 
         return response()->json([
@@ -221,12 +256,12 @@ class AdminController extends Controller
         $user->is_banned = false;
         $user->save();
 
-        $this->logAction($request->user()->id, 'unbanned', 'user', $user->id);
+        $this->logAction($request->user()->id, 'reactivated', 'user', $user->id);
 
-        Log::info('Admin unbanned user', [
+        Log::info('Admin reactivated user', [
             'admin_id' => $request->user()->id,
-            'unbanned_user_id' => $user->id,
-            'action' => 'unbanned',
+            'target_user_id' => $user->id,
+            'action' => 'reactivated',
         ]);
 
         return response()->json([

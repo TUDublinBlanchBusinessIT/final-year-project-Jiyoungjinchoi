@@ -26,7 +26,7 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
-        // ✅ Block banned users
+        // Block banned users
         if ($user->is_banned) {
             Auth::logout();
 
@@ -35,22 +35,18 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // OPTIONAL: enforce email verification
-        // if (!$user->hasVerifiedEmail()) {
-        //     Auth::logout();
-        //
-        //     return response()->json([
-        //         'message' => 'Please verify your email before logging in.'
-        //     ], 403);
-        // }
-
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Use role column first, fallback to old account_type legacy data if needed
+        $resolvedRole = strtolower($user->role ?? '') === 'admin'
+            ? 'admin'
+            : (strtolower($user->account_type ?? '') === 'admin' ? 'admin' : 'user');
 
         return response()->json([
             'message' => 'Login successful',
             'user' => [
                 ...$user->toArray(),
-                'role' => strtolower($user->account_type) === 'admin' ? 'admin' : 'user',
+                'role' => $resolvedRole,
             ],
             'token' => $token
         ], 200);

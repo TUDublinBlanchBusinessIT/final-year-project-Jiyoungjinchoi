@@ -22,10 +22,7 @@ export default function AdminUsers() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(
-      "pawfection_admin_dark_mode",
-      darkMode ? "true" : "false"
-    );
+    localStorage.setItem("pawfection_admin_dark_mode", darkMode ? "true" : "false");
   }, [darkMode]);
 
   useEffect(() => {
@@ -149,11 +146,6 @@ export default function AdminUsers() {
     return String(plan || "basic").toLowerCase();
   }
 
-  function formatPlan(plan) {
-    const normalized = normalizePlan(plan);
-    return normalized === "premium" ? "Premium" : "Basic";
-  }
-
   function getExpiryDate(user) {
     const plan = normalizePlan(user.account_type);
 
@@ -177,8 +169,7 @@ export default function AdminUsers() {
     const expiryDate = getExpiryDate(user);
     if (!expiryDate) return false;
 
-    const today = new Date();
-    return expiryDate < today;
+    return expiryDate < new Date();
   }
 
   function formatDate(dateValue) {
@@ -189,6 +180,19 @@ export default function AdminUsers() {
     if (Number.isNaN(date.getTime())) return "-";
 
     return date.toLocaleDateString("en-IE");
+  }
+
+  function formatDateTime(dateValue) {
+    if (!dateValue) return "-";
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) return "-";
+
+    return `${date.toLocaleDateString("en-IE")} ${date.toLocaleTimeString("en-IE", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
   }
 
   const filteredUsers = useMemo(() => {
@@ -235,15 +239,14 @@ export default function AdminUsers() {
       total: users.length,
       active: users.filter((u) => !u.is_banned).length,
       banned: users.filter((u) => !!u.is_banned).length,
-      premium: users.filter((u) => normalizePlan(u.account_type) === "premium")
-        .length,
+      premium: users.filter((u) => normalizePlan(u.account_type) === "premium").length,
     };
   }, [users]);
 
   function getStatusBadge(isBanned) {
     return isBanned
       ? {
-          text: "Banned",
+          text: "Suspended",
           bg: darkMode ? "#3b0d0d" : "#fee2e2",
           color: darkMode ? "#fca5a5" : "#991b1b",
         }
@@ -270,41 +273,6 @@ export default function AdminUsers() {
         };
   }
 
-  function getExpiryBadge(user) {
-    const expiryDate = getExpiryDate(user);
-    const plan = normalizePlan(user.account_type);
-
-    if (plan !== "premium") {
-      return {
-        text: "N/A",
-        bg: darkMode ? "#1f2937" : "#f3f4f6",
-        color: darkMode ? "#d1d5db" : "#6b7280",
-      };
-    }
-
-    if (!expiryDate) {
-      return {
-        text: "No date",
-        bg: darkMode ? "#3b2a08" : "#fef3c7",
-        color: darkMode ? "#fde68a" : "#92400e",
-      };
-    }
-
-    if (isExpired(user)) {
-      return {
-        text: "Expired",
-        bg: darkMode ? "#3b0d0d" : "#fee2e2",
-        color: darkMode ? "#fca5a5" : "#991b1b",
-      };
-    }
-
-    return {
-      text: "Active",
-      bg: darkMode ? "#0f2e1b" : "#dcfce7",
-      color: darkMode ? "#86efac" : "#166534",
-    };
-  }
-
   const theme = {
     pageBg: darkMode
       ? "linear-gradient(135deg, #0f172a, #111827, #1f2937)"
@@ -325,7 +293,7 @@ export default function AdminUsers() {
         padding: 24,
       }}
     >
-      <div style={{ maxWidth: 1450, margin: "0 auto" }}>
+      <div style={{ maxWidth: 1600, margin: "0 auto" }}>
         <div
           style={{
             display: "flex",
@@ -341,7 +309,7 @@ export default function AdminUsers() {
               User Management
             </h1>
             <p style={{ marginTop: 10, color: theme.subtext, fontSize: 18 }}>
-              View subscription plans, filter users, and manage account status.
+              View users, manage plans, and track admin activity.
             </p>
           </div>
 
@@ -388,7 +356,7 @@ export default function AdminUsers() {
         >
           <StatCard title="Total Users" value={stats.total} darkMode={darkMode} />
           <StatCard title="Active Users" value={stats.active} darkMode={darkMode} />
-          <StatCard title="Banned Users" value={stats.banned} darkMode={darkMode} />
+          <StatCard title="Suspended Users" value={stats.banned} darkMode={darkMode} />
           <StatCard title="Premium Users" value={stats.premium} darkMode={darkMode} />
         </div>
 
@@ -447,7 +415,7 @@ export default function AdminUsers() {
               <option value="premium">Premium Users</option>
               <option value="expired">Expired Subscriptions</option>
               <option value="active">Active Only</option>
-              <option value="banned">Banned Only</option>
+              <option value="banned">Suspended Only</option>
             </select>
           </div>
         </div>
@@ -495,7 +463,7 @@ export default function AdminUsers() {
                 : "0 12px 30px rgba(0,0,0,.05)",
             }}
           >
-            <table style={{ width: "100%", minWidth: 1250, borderCollapse: "collapse" }}>
+            <table style={{ width: "100%", minWidth: 1500, borderCollapse: "collapse" }}>
               <thead style={{ background: theme.tableHeadBg }}>
                 <tr>
                   <th style={{ ...thStyle, color: theme.subtext }}>Name</th>
@@ -504,7 +472,9 @@ export default function AdminUsers() {
                   <th style={{ ...thStyle, color: theme.subtext }}>Plan</th>
                   <th style={{ ...thStyle, color: theme.subtext }}>Started</th>
                   <th style={{ ...thStyle, color: theme.subtext }}>Expiry</th>
-                  <th style={{ ...thStyle, color: theme.subtext }}>Account Status</th>
+                  <th style={{ ...thStyle, color: theme.subtext }}>Status</th>
+                  <th style={{ ...thStyle, color: theme.subtext }}>Activity Count</th>
+                  <th style={{ ...thStyle, color: theme.subtext }}>Last Admin Activity</th>
                   <th style={{ ...thStyle, color: theme.subtext }}>Joined</th>
                   <th style={{ ...thStyle, color: theme.subtext }}>Actions</th>
                 </tr>
@@ -514,7 +484,6 @@ export default function AdminUsers() {
                 {filteredUsers.map((user) => {
                   const statusBadge = getStatusBadge(user.is_banned);
                   const planBadge = getPlanBadge(user.account_type);
-                  const expiryBadge = getExpiryBadge(user);
                   const expiryDate = getExpiryDate(user);
                   const isPremium = normalizePlan(user.account_type) === "premium";
 
@@ -534,7 +503,9 @@ export default function AdminUsers() {
                       </td>
 
                       <td style={{ ...tdStyle, color: theme.text }}>
-                        {user.role ? String(user.role).charAt(0).toUpperCase() + String(user.role).slice(1) : "User"}
+                        {user.role
+                          ? String(user.role).charAt(0).toUpperCase() + String(user.role).slice(1)
+                          : "User"}
                       </td>
 
                       <td style={tdStyle}>
@@ -559,23 +530,7 @@ export default function AdminUsers() {
                       </td>
 
                       <td style={{ ...tdStyle, color: theme.text }}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          <span>{expiryDate ? formatDate(expiryDate) : "-"}</span>
-                          <span
-                            style={{
-                              display: "inline-block",
-                              width: "fit-content",
-                              padding: "4px 10px",
-                              borderRadius: 999,
-                              fontWeight: 700,
-                              fontSize: 12,
-                              background: expiryBadge.bg,
-                              color: expiryBadge.color,
-                            }}
-                          >
-                            {expiryBadge.text}
-                          </span>
-                        </div>
+                        {expiryDate ? formatDate(expiryDate) : "-"}
                       </td>
 
                       <td style={tdStyle}>
@@ -591,6 +546,28 @@ export default function AdminUsers() {
                         >
                           {statusBadge.text}
                         </span>
+                      </td>
+
+                      <td style={{ ...tdStyle, color: theme.text }}>
+                        {user.activity_count ?? 0}
+                      </td>
+
+                      <td style={{ ...tdStyle, color: theme.text }}>
+                        {user.latest_activity ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontWeight: 700 }}>
+                              {user.latest_activity.action}
+                            </span>
+                            <span style={{ color: theme.subtext, fontSize: 13 }}>
+                              by {user.latest_activity.admin_name || "Admin"}
+                            </span>
+                            <span style={{ color: theme.subtext, fontSize: 13 }}>
+                              {formatDateTime(user.latest_activity.created_at)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span style={{ color: theme.subtext }}>No activity yet</span>
+                        )}
                       </td>
 
                       <td style={{ ...tdStyle, color: theme.text }}>

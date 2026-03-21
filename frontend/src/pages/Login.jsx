@@ -29,14 +29,14 @@ export default function Login() {
         throw new Error(data.message || "Login failed.");
       }
 
-      // ✅ Determine role safely
+      const userRole = String(data?.user?.role || "").toLowerCase();
+      const legacyAccountType = String(data?.user?.account_type || "").toLowerCase();
+
       const role =
-        data.user.role ||
-        (data.user.account_type || "").toLowerCase() === "admin"
+        userRole === "admin" || legacyAccountType === "admin"
           ? "admin"
           : "user";
 
-      // ✅ Save auth data
       localStorage.setItem("pawfection_token", data.token);
       localStorage.setItem("pawfection_user", JSON.stringify(data.user));
       localStorage.setItem("pawfection_user_email", data.user.email);
@@ -44,7 +44,6 @@ export default function Login() {
 
       setStatus({ type: "success", message: "Login successful 🎉" });
 
-      // ✅ Redirect based on role
       setTimeout(() => {
         if (role === "admin") {
           navigate("/admin/dashboard");
