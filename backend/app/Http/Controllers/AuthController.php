@@ -27,7 +27,7 @@ class AuthController extends Controller
         $user = Auth::user();
 
         // Block banned users
-        if ($user->is_banned) {
+        if (($user->is_banned ?? false) === true) {
             Auth::logout();
 
             return response()->json([
@@ -37,16 +37,23 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // Use role column first, fallback to old account_type legacy data if needed
-        $resolvedRole = strtolower($user->role ?? '') === 'admin'
+        $rawRole = strtolower((string) ($user->role ?? ''));
+        $rawAccountType = strtolower((string) ($user->account_type ?? 'basic'));
+
+        $resolvedRole = $rawRole === 'admin' || $rawAccountType === 'admin'
             ? 'admin'
-            : (strtolower($user->account_type ?? '') === 'admin' ? 'admin' : 'user');
+            : 'user';
+
+        $resolvedAccountType = $rawAccountType === 'premium'
+            ? 'premium'
+            : 'basic';
 
         return response()->json([
             'message' => 'Login successful',
             'user' => [
                 ...$user->toArray(),
                 'role' => $resolvedRole,
+                'account_type' => $resolvedAccountType,
             ],
             'token' => $token
         ], 200);

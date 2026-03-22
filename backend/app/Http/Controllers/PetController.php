@@ -263,6 +263,50 @@ class PetController extends Controller
         ], 200);
     }
 
+    public function markMemorial(Request $request, Pet $pet)
+    {
+        if ($pet->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'memorial_message' => 'nullable|string',
+        ]);
+
+        $pet->status = 'Memorial';
+        $pet->memorial_message = $validated['memorial_message'] ?? null;
+        $pet->save();
+
+        return response()->json([
+            'message' => 'Pet moved to Community Memorial successfully.',
+            'pet' => $this->formatPet($pet),
+        ], 200);
+    }
+
+    public function deleteMemorial(Pet $pet)
+    {
+        if ($pet->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if (($pet->status ?? null) !== 'Memorial') {
+            return response()->json([
+                'message' => 'This pet is not in the memorial section.'
+            ], 422);
+        }
+
+        if ($pet->photo_path && Storage::disk('public')->exists($pet->photo_path)) {
+            Storage::disk('public')->delete($pet->photo_path);
+        }
+
+        Reminder::where('pet_id', $pet->id)->delete();
+        $pet->delete();
+
+        return response()->json([
+            'message' => 'Memorial deleted successfully.'
+        ], 200);
+    }
+
     private function syncAutoReminders(Pet $pet): void
     {
         $this->syncVaccinationReminder($pet);
@@ -366,6 +410,9 @@ class PetController extends Controller
             'feeding_schedule' => $pet->feeding_schedule,
             'temperament' => $pet->temperament,
             'behaviour_notes' => $pet->behaviour_notes,
+
+            'status' => $pet->status,
+            'memorial_message' => $pet->memorial_message,
         ];
 
         if ($includeReminders) {

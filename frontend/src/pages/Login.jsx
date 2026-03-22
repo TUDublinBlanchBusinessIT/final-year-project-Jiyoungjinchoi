@@ -30,23 +30,30 @@ export default function Login() {
       }
 
       const userRole = String(data?.user?.role || "").toLowerCase();
-      const legacyAccountType = String(data?.user?.account_type || "").toLowerCase();
+      const accountType = String(data?.user?.account_type || "basic").toLowerCase();
 
-      const role =
-        userRole === "admin" || legacyAccountType === "admin"
-          ? "admin"
-          : "user";
+      const role = userRole === "admin" ? "admin" : "user";
+      const normalizedAccountType = accountType === "premium" ? "premium" : "basic";
+
+      const normalizedUser = {
+        ...data.user,
+        role,
+        account_type: normalizedAccountType,
+      };
 
       localStorage.setItem("pawfection_token", data.token);
-      localStorage.setItem("pawfection_user", JSON.stringify(data.user));
-      localStorage.setItem("pawfection_user_email", data.user.email);
+      localStorage.setItem("pawfection_user", JSON.stringify(normalizedUser));
+      localStorage.setItem("pawfection_user_email", normalizedUser.email);
       localStorage.setItem("pawfection_role", role);
+      localStorage.setItem("pawfection_account_type", normalizedAccountType);
 
       setStatus({ type: "success", message: "Login successful 🎉" });
 
       setTimeout(() => {
         if (role === "admin") {
           navigate("/admin/dashboard");
+        } else if (normalizedAccountType === "premium") {
+          navigate("/premium-dashboard");
         } else {
           navigate("/dashboard");
         }

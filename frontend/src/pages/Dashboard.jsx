@@ -8,17 +8,14 @@ export default function Dashboard() {
 
   const [userName, setUserName] = useState("User");
 
-  // Pets state
   const [pets, setPets] = useState([]);
   const [petsLoading, setPetsLoading] = useState(false);
   const [petsError, setPetsError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
 
-  // Appointments state
   const [appointments, setAppointments] = useState([]);
   const [apptsLoading, setApptsLoading] = useState(false);
 
-  // ✅ Upcoming reminders state
   const [upcomingReminders, setUpcomingReminders] = useState([]);
   const [remindersLoading, setRemindersLoading] = useState(false);
 
@@ -95,7 +92,6 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ Upcoming reminders
   const fetchUpcomingReminders = async () => {
     if (!token) {
       navigate("/login");
@@ -128,6 +124,27 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    const savedToken = localStorage.getItem("pawfection_token");
+    const savedRole = String(localStorage.getItem("pawfection_role") || "").toLowerCase();
+    const savedAccountType = String(
+      localStorage.getItem("pawfection_account_type") || ""
+    ).toLowerCase();
+
+    if (!savedToken) {
+      navigate("/login");
+      return;
+    }
+
+    if (savedRole === "admin") {
+      navigate("/admin/dashboard");
+      return;
+    }
+
+    if (savedAccountType === "premium") {
+      navigate("/premium-dashboard");
+      return;
+    }
+
     try {
       const savedUser = localStorage.getItem("pawfection_user");
       if (savedUser) {
@@ -155,8 +172,8 @@ export default function Dashboard() {
       fetchAppointments();
       fetchUpcomingReminders();
     };
-    window.addEventListener("focus", onFocus);
 
+    window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
@@ -218,7 +235,6 @@ export default function Dashboard() {
     }).length;
   }, [appointments]);
 
-  // ✅ Active reminder count
   const activeReminderCount = useMemo(() => {
     return (upcomingReminders || []).filter(
       (r) => (r?.status || "").toLowerCase() !== "completed"
@@ -255,7 +271,6 @@ export default function Dashboard() {
 
   return (
     <div className="pf2-shell">
-      {/* Sidebar */}
       <aside className="pf2-sidebar">
         <div className="pf2-brand" onClick={() => navigate("/dashboard")} role="button">
           <img className="pf2-brand-logo" src={PawfectionLogo} alt="Pawfection" />
@@ -282,9 +297,7 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* Main */}
       <div className="pf2-main">
-        {/* Topbar */}
         <header className="pf2-topbar">
           <div className="pf2-search">
             <input placeholder="Search pets, appointments, reminders..." />
@@ -321,7 +334,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Stats */}
           <section className="pf2-stats">
             {stats.map((s) => (
               <div key={s.label} className={`pf2-stat pf2-${s.tone}`}>
@@ -336,9 +348,7 @@ export default function Dashboard() {
             ))}
           </section>
 
-          {/* Grid */}
           <section className="pf2-grid">
-            {/* Pets Widget */}
             <div className="pf2-card pf2-span-2">
               <div className="pf2-cardhead">
                 <h2>My Pets</h2>
@@ -401,7 +411,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* ✅ Upcoming Reminders widget */}
             <div className="pf2-card">
               <div className="pf2-cardhead">
                 <h2>Upcoming Reminders</h2>
@@ -439,7 +448,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Welcome card */}
             <div className="pf2-card pf2-welcome pf2-span-all">
               <div className="pf2-welcome-title">Welcome to Pawfection</div>
               <div className="pf2-welcome-sub">

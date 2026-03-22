@@ -21,7 +21,6 @@ export default function ViewProfile() {
   const [petsLoading, setPetsLoading] = useState(false);
 
   const [selectedPetId, setSelectedPetId] = useState("");
-
   const [openSettingSection, setOpenSettingSection] = useState("");
 
   const [passwordForm, setPasswordForm] = useState({
@@ -37,7 +36,7 @@ export default function ViewProfile() {
     phone: "",
     address: "",
     member_since: "",
-    account_type: "Basic",
+    account_type: "basic",
     subscription_started_at: "",
     notification_email: true,
     notification_sms: false,
@@ -45,11 +44,33 @@ export default function ViewProfile() {
 
   const [pets, setPets] = useState([]);
 
+  const normalizeAccountType = (value) => {
+    return String(value || "").toLowerCase() === "premium" ? "premium" : "basic";
+  };
+
+  const getDashboardPath = (accountType) => {
+    return normalizeAccountType(accountType) === "premium"
+      ? "/premium-dashboard"
+      : "/dashboard";
+  };
+
   useEffect(() => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const role = String(localStorage.getItem("pawfection_role") || "").toLowerCase();
+    if (role === "admin") {
+      navigate("/admin/dashboard");
+      return;
+    }
+
     const storedUser = localStorage.getItem("pawfection_user");
 
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
+      const normalizedAccountType = normalizeAccountType(parsedUser.account_type);
 
       setUser({
         username: parsedUser.username || parsedUser.name || "User",
@@ -60,7 +81,7 @@ export default function ViewProfile() {
         member_since: parsedUser.created_at
           ? new Date(parsedUser.created_at).toLocaleDateString()
           : "Not Provided",
-        account_type: parsedUser.account_type || "Basic",
+        account_type: normalizedAccountType,
         subscription_started_at: parsedUser.subscription_started_at
           ? new Date(parsedUser.subscription_started_at).toLocaleDateString()
           : "Not Provided",
@@ -73,6 +94,8 @@ export default function ViewProfile() {
             ? Boolean(parsedUser.notification_sms)
             : false,
       });
+
+      localStorage.setItem("pawfection_account_type", normalizedAccountType);
     }
 
     fetchPets();
@@ -114,7 +137,7 @@ export default function ViewProfile() {
     return pets.filter((pet) => pet.status === "Memorial");
   }, [pets]);
 
-  const isPremium = user.account_type === "Premium";
+  const isPremium = user.account_type === "premium";
   const membershipPlan = isPremium ? "Premium Plan" : "Basic Plan";
 
   const renewalDate = useMemo(() => {
@@ -176,18 +199,24 @@ export default function ViewProfile() {
 
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
-        parsedUser.account_type = "Basic";
+        parsedUser.account_type = "basic";
         parsedUser.subscription_started_at = null;
         localStorage.setItem("pawfection_user", JSON.stringify(parsedUser));
       }
 
+      localStorage.setItem("pawfection_account_type", "basic");
+
       setUser((prev) => ({
         ...prev,
-        account_type: "Basic",
+        account_type: "basic",
         subscription_started_at: "Not Provided",
       }));
 
       setCancelMessage("Your subscription has been cancelled.");
+
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1000);
     } catch (error) {
       setCancelMessage(error.message || "Something went wrong.");
     } finally {
@@ -304,6 +333,9 @@ export default function ViewProfile() {
     } finally {
       localStorage.removeItem("pawfection_token");
       localStorage.removeItem("pawfection_user");
+      localStorage.removeItem("pawfection_user_email");
+      localStorage.removeItem("pawfection_role");
+      localStorage.removeItem("pawfection_account_type");
       navigate("/");
     }
   };
@@ -335,6 +367,9 @@ export default function ViewProfile() {
 
       localStorage.removeItem("pawfection_token");
       localStorage.removeItem("pawfection_user");
+      localStorage.removeItem("pawfection_user_email");
+      localStorage.removeItem("pawfection_role");
+      localStorage.removeItem("pawfection_account_type");
       navigate("/");
     } catch (error) {
       setSettingsMessage(error.message || "Something went wrong.");
@@ -464,7 +499,7 @@ export default function ViewProfile() {
 
               <div className="profile-info-item">
                 <span className="label">Account Type</span>
-                <span>{user.account_type}</span>
+                <span>{isPremium ? "Premium" : "Basic"}</span>
               </div>
             </div>
           </div>
@@ -834,7 +869,7 @@ export default function ViewProfile() {
 
   return (
     <div className="view-profile-page">
-      <Link to="/dashboard" className="profile-logo">
+      <Link to={getDashboardPath(user.account_type)} className="profile-logo">
         <img src={PawfectionLogo} alt="Pawfection Logo" />
       </Link>
 

@@ -16,6 +16,12 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
+        'account_type',
+        'role',
+        'is_banned',
+        'subscription_started_at',
+        'notification_email',
+        'notification_sms',
     ];
 
     protected $hidden = [
@@ -28,10 +34,13 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'subscription_started_at' => 'datetime',
+            'is_banned' => 'boolean',
+            'notification_email' => 'boolean',
+            'notification_sms' => 'boolean',
         ];
     }
 
-    // 👇 ADD THIS
     public function pets()
     {
         return $this->hasMany(Pet::class);

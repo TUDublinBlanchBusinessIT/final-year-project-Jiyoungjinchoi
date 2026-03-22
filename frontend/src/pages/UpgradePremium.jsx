@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./UpgradePremium.css";
 
@@ -14,6 +14,26 @@ export default function UpgradePremium() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("pawfection_token");
+    const role = String(localStorage.getItem("pawfection_role") || "").toLowerCase();
+    const accountType = String(localStorage.getItem("pawfection_account_type") || "").toLowerCase();
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    if (role === "admin") {
+      navigate("/admin/dashboard");
+      return;
+    }
+
+    if (accountType === "premium") {
+      navigate("/premium-dashboard");
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -38,7 +58,7 @@ export default function UpgradePremium() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          account_type: "Premium",
+          account_type: "premium",
         }),
       });
 
@@ -48,19 +68,20 @@ export default function UpgradePremium() {
         throw new Error(data.message || "Upgrade failed.");
       }
 
-      const storedUser = localStorage.getItem("pawfection_user");
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        parsedUser.account_type = "Premium";
-        parsedUser.subscription_started_at = data.user.subscription_started_at;
-        localStorage.setItem("pawfection_user", JSON.stringify(parsedUser));
-      }
+      const updatedUser = {
+        ...(JSON.parse(localStorage.getItem("pawfection_user") || "{}")),
+        ...data.user,
+        account_type: "premium",
+      };
+
+      localStorage.setItem("pawfection_user", JSON.stringify(updatedUser));
+      localStorage.setItem("pawfection_account_type", "premium");
 
       setMessage("Membership updated to Premium!");
 
       setTimeout(() => {
-        navigate("/profile");
-      }, 1500);
+        navigate("/premium-dashboard");
+      }, 1000);
     } catch (error) {
       setMessage(error.message || "Something went wrong.");
     } finally {

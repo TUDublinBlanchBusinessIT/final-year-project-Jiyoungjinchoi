@@ -52,6 +52,10 @@ class Pet extends Model
         'temperament',
         'behaviour_notes',
 
+        // Memorial
+        'status',
+        'memorial_message',
+
         // Lost & Found
         'is_lost',
         'lost_status',
