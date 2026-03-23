@@ -11,10 +11,13 @@ export default function PremiumDashboard() {
   const [petsLoading, setPetsLoading] = useState(false);
   const [petsError, setPetsError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+
   const [appointments, setAppointments] = useState([]);
   const [apptsLoading, setApptsLoading] = useState(false);
+
   const [upcomingReminders, setUpcomingReminders] = useState([]);
   const [remindersLoading, setRemindersLoading] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState("");
 
   const token = localStorage.getItem("pawfection_token");
@@ -155,6 +158,7 @@ export default function PremiumDashboard() {
           localStorage.getItem("pawfection_user_name") ||
           localStorage.getItem("user_name") ||
           localStorage.getItem("name");
+
         if (fallbackName) setUserName(fallbackName);
       }
     } catch {
@@ -181,6 +185,18 @@ export default function PremiumDashboard() {
     if (pet?.photo_path) return `http://127.0.0.1:8000/storage/${pet.photo_path}`;
     if (pet?.photo) return `http://127.0.0.1:8000/storage/${pet.photo}`;
     return null;
+  };
+
+  const getPetSummary = (pet) => {
+    if (!pet) return "Pet profile";
+
+    const parts = [];
+    if (pet?.breed) parts.push(pet.breed);
+    else if (pet?.species) parts.push(pet.species);
+    if (pet?.age) parts.push(`${pet.age} yrs`);
+    if (pet?.weight) parts.push(`${pet.weight}kg`);
+
+    return parts.length ? parts.join(" • ") : "Pet profile";
   };
 
   const deletePet = async (petId, petName) => {
@@ -257,6 +273,7 @@ export default function PremiumDashboard() {
 
   const upcomingAppointments = useMemo(() => {
     const now = new Date();
+
     return (appointments || [])
       .filter((a) => {
         if (!a?.appointment_at) return false;
@@ -295,6 +312,7 @@ export default function PremiumDashboard() {
   const filteredPets = useMemo(() => {
     if (!searchTerm.trim()) return pets;
     const q = searchTerm.toLowerCase();
+
     return pets.filter((pet) =>
       [pet?.name, pet?.breed, pet?.species]
         .filter(Boolean)
@@ -305,54 +323,13 @@ export default function PremiumDashboard() {
   const filteredReminders = useMemo(() => {
     if (!searchTerm.trim()) return upcomingReminders;
     const q = searchTerm.toLowerCase();
+
     return upcomingReminders.filter((r) =>
       [r?.title, r?.message]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q))
     );
   }, [upcomingReminders, searchTerm]);
-
-  const stats = useMemo(() => {
-    const petCount = pets?.length || 0;
-
-    return [
-      {
-        label: "Pets",
-        value: String(petCount),
-        sub: "Registered profiles",
-        tone: "violet",
-        icon: "🐾",
-      },
-      {
-        label: "Appointments",
-        value: apptsLoading ? "…" : String(upcomingAppointmentsCount),
-        sub: "Upcoming visits",
-        tone: "blue",
-        icon: "📅",
-      },
-      {
-        label: "Reminders",
-        value: remindersLoading ? "…" : String(activeReminderCount),
-        sub: "Active care tasks",
-        tone: "peach",
-        icon: "⏰",
-      },
-      {
-        label: "Due Soon",
-        value: remindersLoading ? "…" : String(dueSoonReminderCount),
-        sub: "Within 3 days",
-        tone: "mint",
-        icon: "✨",
-      },
-    ];
-  }, [
-    pets,
-    apptsLoading,
-    upcomingAppointmentsCount,
-    remindersLoading,
-    activeReminderCount,
-    dueSoonReminderCount,
-  ]);
 
   const todayText = useMemo(() => {
     return new Date().toLocaleDateString("en-IE", {
@@ -363,74 +340,68 @@ export default function PremiumDashboard() {
     });
   }, []);
 
+  const visiblePets = filteredPets.length ? filteredPets : pets;
+  const galleryPets = visiblePets.slice(0, 4);
+
+  const heroPet = visiblePets[0] || pets[0] || null;
+  const heroPetImage = heroPet ? getPetImageSrc(heroPet) : null;
+
+  const sidePet = visiblePets[1] || pets[1] || heroPet || null;
+  const sidePetImage = sidePet ? getPetImageSrc(sidePet) : null;
+
+  const tallPet = visiblePets[2] || pets[2] || sidePet || heroPet || null;
+  const tallPetImage = tallPet ? getPetImageSrc(tallPet) : null;
+
+  const heroReminder = filteredReminders[0] || upcomingReminders[0] || null;
+
   return (
     <div className="pfd-shell">
-      <aside className="pfd-sidebar">
-        <div className="pfd-brand" onClick={() => navigate("/premium-dashboard")} role="button">
+      <header className="pfd-site-header">
+        <div
+          className="pfd-brand"
+          onClick={() => navigate("/premium-dashboard")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") navigate("/premium-dashboard");
+          }}
+        >
           <img className="pfd-brand-logo" src={PawfectionLogo} alt="Pawfection" />
-          <div className="pfd-brand-text">
+          <div className="pfd-brand-copy">
             <div className="pfd-brand-title">Pawfection</div>
             <div className="pfd-brand-sub">Premium Dashboard</div>
           </div>
         </div>
 
-        <nav className="pfd-nav">
-          <Link className="pfd-nav-item active" to="/premium-dashboard">
-            <span>🏠</span>
-            <span>Dashboard</span>
+        <nav className="pfd-topnav">
+          <Link className="pfd-topnav-item active" to="/premium-dashboard">
+            Dashboard
           </Link>
-          <Link className="pfd-nav-item" to="/mypets">
-            <span>🐶</span>
-            <span>My Pets</span>
+          <Link className="pfd-topnav-item" to="/mypets">
+            My Pets
           </Link>
-          <Link className="pfd-nav-item" to="/appointments">
-            <span>📅</span>
-            <span>Appointments</span>
+          <Link className="pfd-topnav-item" to="/appointments">
+            Appointments
           </Link>
-          <Link className="pfd-nav-item" to="/reminders">
-            <span>⏰</span>
-            <span>Reminders</span>
+          <Link className="pfd-topnav-item" to="/reminders">
+            Reminders
           </Link>
-          <Link className="pfd-nav-item" to="/lostfound">
-            <span>📍</span>
-            <span>Lost &amp; Found</span>
+          <Link className="pfd-topnav-item" to="/lostfound">
+            Lost &amp; Found
           </Link>
-          <Link className="pfd-nav-item" to="/community">
-            <span>💬</span>
-            <span>Community</span>
+          <Link className="pfd-topnav-item" to="/community">
+            Community
           </Link>
-          <Link className="pfd-nav-item" to="/inventory">
-            <span>📦</span>
-            <span>Inventory</span>
+          <Link className="pfd-topnav-item" to="/inventory">
+            Inventory
           </Link>
-          <Link className="pfd-nav-item" to="/profile">
-            <span>👤</span>
-            <span>Profile</span>
+          <Link className="pfd-topnav-item" to="/profile">
+            Profile
           </Link>
         </nav>
 
-        <div className="pfd-sidebar-bottom">
-          <div className="pfd-premium-badge">
-            <div className="pfd-premium-badge-title">Premium Care</div>
-            <div className="pfd-premium-badge-text">
-              Manage pets, reminders, appointments and more in one place.
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <div className="pfd-main">
-        <header className="pfd-topbar">
-          <div className="pfd-search">
-            <input
-              type="text"
-              placeholder="Search pets or reminders..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div className="pfd-topbar-right">
+        <div className="pfd-header-side">
+          <div className="pfd-header-meta">
             <div className="pfd-date-pill">{todayText}</div>
 
             <div className="pfd-userchip" title={userName}>
@@ -441,34 +412,39 @@ export default function PremiumDashboard() {
               </div>
             </div>
           </div>
-        </header>
 
-        <main className="pfd-content">
-          <section className="pfd-hero">
-            <div className="pfd-hero-left">
-              <div className="pfd-hero-eyebrow">Premium Dashboard</div>
-              <h1 className="pfd-hero-title">
-                {getGreeting()}, {userName} 👋
-              </h1>
-              <p className="pfd-hero-subtitle">
-                Here is your pet care overview for today. Track pets, appointments,
-                reminders and daily activity from one elegant dashboard.
-              </p>
+          <div className="pfd-search">
+            <input
+              type="text"
+              placeholder="Search pets or reminders..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+      </header>
 
-              <div className="pfd-hero-summary">
-                <div className="pfd-hero-chip">
-                  <span>🐾</span>
-                  <span>{pets.length} pets registered</span>
-                </div>
-                <div className="pfd-hero-chip">
-                  <span>📅</span>
-                  <span>{upcomingAppointmentsCount} upcoming appointments</span>
-                </div>
-                <div className="pfd-hero-chip">
-                  <span>⏰</span>
-                  <span>{activeReminderCount} active reminders</span>
-                </div>
-              </div>
+      <main className="pfd-main">
+        <section className="pfd-hero">
+          <span className="pfd-doodle pfd-doodle-paw-1">🐾</span>
+          <span className="pfd-doodle pfd-doodle-paw-2">🐾</span>
+          <span className="pfd-doodle pfd-doodle-bone">🦴</span>
+          <span className="pfd-doodle pfd-doodle-cat">🐱</span>
+
+          <div className="pfd-hero-copy">
+            <div className="pfd-kicker">Pawfection Premium</div>
+            <h1 className="pfd-hero-title">
+              {getGreeting()}, {userName}
+            </h1>
+            <p className="pfd-hero-text">
+              A softer, more playful dashboard inspired by premium pet-brand websites.
+              Your uploaded pet photos lead the design while all your real features stay fully usable.
+            </p>
+
+            <div className="pfd-hero-chips">
+              <div className="pfd-chip">🐾 {pets.length} pets</div>
+              <div className="pfd-chip">📅 {upcomingAppointmentsCount} visits</div>
+              <div className="pfd-chip">⏰ {activeReminderCount} reminders</div>
             </div>
 
             <div className="pfd-hero-actions">
@@ -476,7 +452,7 @@ export default function PremiumDashboard() {
                 className="pfd-btn pfd-btn-primary"
                 onClick={() => navigate("/pets/create")}
               >
-                + Add Pet
+                Add Pet
               </button>
               <button className="pfd-btn" onClick={() => navigate("/appointments/book")}>
                 Book Appointment
@@ -484,79 +460,168 @@ export default function PremiumDashboard() {
               <button className="pfd-btn" onClick={() => navigate("/reminders")}>
                 View Reminders
               </button>
-              <button className="pfd-btn" onClick={() => navigate("/inventory")}>
-                Open Inventory
-              </button>
             </div>
-          </section>
+          </div>
 
-          <section className="pfd-stats">
-            {stats.map((s) => (
-              <div key={s.label} className={`pfd-stat pfd-${s.tone}`}>
-                <div className="pfd-stat-top">
-                  <div className="pfd-stat-label">{s.label}</div>
-                  <div className="pfd-stat-icon">{s.icon}</div>
-                </div>
-                <div className="pfd-stat-value">{s.value}</div>
-                <div className="pfd-stat-sub">{s.sub}</div>
-              </div>
-            ))}
-          </section>
+          <div className="pfd-hero-visual">
+            <div className="pfd-speech pfd-speech-left">
+              <div className="pfd-speech-title">Premium care</div>
+              <div className="pfd-speech-text">made for every wag, purr, and pawprint</div>
+            </div>
 
-          <section className="pfd-grid">
-            <div className="pfd-card pfd-span-2">
-              <div className="pfd-cardhead">
-                <div>
-                  <h2>My Pets</h2>
-                  <p>Your registered pet profiles</p>
-                </div>
-                <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/mypets")}>
-                  View All
-                </button>
-              </div>
-
-              {petsLoading && <div className="pfd-empty">Loading pets…</div>}
-              {!petsLoading && petsError && <div className="pfd-empty">{petsError}</div>}
-              {!petsLoading && !petsError && filteredPets.length === 0 && (
-                <div className="pfd-empty">
-                  No matching pets found. Add a pet or try a different search.
+            <article className="pfd-hero-photo-card">
+              {heroPetImage ? (
+                <img src={heroPetImage} alt={heroPet?.name || "Pet"} />
+              ) : (
+                <div className="pfd-photo-empty">
+                  <div className="pfd-photo-empty-icon">🐶</div>
+                  <div className="pfd-photo-empty-title">Your pet photo appears here</div>
+                  <div className="pfd-photo-empty-text">
+                    Add or edit a pet profile with a photo to build this look.
+                  </div>
                 </div>
               )}
 
-              {!petsLoading && !petsError && filteredPets.length > 0 && (
-                <div className="pfd-petlist">
-                  {filteredPets.slice(0, 4).map((pet) => {
-                    const imgSrc = getPetImageSrc(pet);
+              <div className="pfd-hero-photo-overlay">
+                <div className="pfd-card-kicker pfd-card-kicker-light">Featured pet</div>
+                <div className="pfd-hero-photo-name">{heroPet?.name || "Your Pet"}</div>
+                <div className="pfd-hero-photo-meta">
+                  {heroPet ? getPetSummary(heroPet) : "Pet profile spotlight"}
+                </div>
+              </div>
+            </article>
 
-                    return (
-                      <div key={pet.id} className="pfd-petrow">
-                        <div className="pfd-petleft">
-                          <div className="pfd-petimg">
-                            {imgSrc ? <img src={imgSrc} alt={pet.name} /> : <span>🐾</span>}
-                          </div>
+            <div className="pfd-speech pfd-speech-right">
+              <div className="pfd-speech-title">Up next</div>
+              <div className="pfd-speech-text">{heroReminder?.title || "No reminder due"}</div>
+            </div>
+          </div>
+        </section>
 
-                          <div className="pfd-petmeta">
-                            <div className="pfd-petname">{pet.name}</div>
-                            <div className="pfd-petdesc">
-                              {pet.breed || pet.species || "Pet"}
-                              {" • "}
-                              {pet.age ? `${pet.age} yrs` : "Age n/a"}
-                              {pet.weight ? ` • ${pet.weight}kg` : ""}
-                            </div>
-                            <div className="pfd-petbadge-row">
-                              <span className="pfd-badge">Profile Active</span>
-                            </div>
-                          </div>
-                        </div>
+        <section className="pfd-collage">
+          <article className="pfd-card pfd-card-poster">
+            <span className="pfd-card-sticker">🐾</span>
+            <div className="pfd-card-kicker">Pet moments</div>
+            <h2>The little details make every pet story special.</h2>
+            <p>
+              Keep profiles, care notes, reminders and visits organised in one warm premium space.
+            </p>
+            <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/profile")}>
+              Open Profile
+            </button>
+          </article>
 
-                        <div className="pfd-petactions">
+          <article className="pfd-card pfd-card-arch">
+            <div className="pfd-card-kicker">Pet spotlight</div>
+            <div className="pfd-arch-frame">
+              {sidePetImage ? (
+                <img src={sidePetImage} alt={sidePet?.name || "Pet"} />
+              ) : (
+                <div className="pfd-arch-empty">🐾</div>
+              )}
+            </div>
+            <div className="pfd-arch-name">{sidePet?.name || "Your Pet"}</div>
+            <div className="pfd-arch-meta">
+              {sidePet ? getPetSummary(sidePet) : "Premium pet spotlight"}
+            </div>
+          </article>
+
+          <article className="pfd-card pfd-card-care">
+            <div className="pfd-card-kicker">Care board</div>
+
+            <div className="pfd-care-ring">
+              <div className="pfd-care-ring-value">{dueSoonReminderCount}</div>
+              <div className="pfd-care-ring-text">due soon</div>
+            </div>
+
+            <div className="pfd-care-block">
+              <div className="pfd-care-label">Next appointment</div>
+              <div className="pfd-care-main">
+                {apptsLoading
+                  ? "Loading..."
+                  : nextAppointment?.title ||
+                    nextAppointment?.service ||
+                    "No upcoming appointment"}
+              </div>
+              <div className="pfd-care-sub">
+                {apptsLoading
+                  ? "Please wait..."
+                  : nextAppointment
+                  ? formatDateTime(nextAppointment.appointment_at)
+                  : "Book a visit to stay organised."}
+              </div>
+            </div>
+
+            <div className="pfd-care-divider" />
+
+            <div className="pfd-care-block">
+              <div className="pfd-care-label">Upcoming reminder</div>
+              <div className="pfd-care-main">
+                {remindersLoading ? "Loading..." : heroReminder?.title || "No reminder due"}
+              </div>
+              <div className="pfd-care-sub">
+                {remindersLoading
+                  ? "Please wait..."
+                  : heroReminder?.message || "Everything looks calm for now."}
+              </div>
+            </div>
+
+            <div className="pfd-care-actions">
+              <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/appointments")}>
+                Appointments
+              </button>
+              <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/reminders")}>
+                Reminders
+              </button>
+            </div>
+          </article>
+
+          <article className="pfd-card pfd-card-gallery pfd-span-2">
+            <div className="pfd-card-head">
+              <div>
+                <div className="pfd-card-kicker">Pet gallery</div>
+                <h2>My Pets</h2>
+                <p>Your uploaded photos arranged in a playful premium board.</p>
+              </div>
+              <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/mypets")}>
+                View All
+              </button>
+            </div>
+
+            {petsLoading && <div className="pfd-empty">Loading pets…</div>}
+            {!petsLoading && petsError && <div className="pfd-empty">{petsError}</div>}
+            {!petsLoading && !petsError && visiblePets.length === 0 && (
+              <div className="pfd-empty">
+                No pets found yet. Add a pet with a photo to build the dashboard visuals.
+              </div>
+            )}
+
+            {!petsLoading && !petsError && visiblePets.length > 0 && (
+              <div className="pfd-pet-gallery">
+                {galleryPets.map((pet) => {
+                  const imgSrc = getPetImageSrc(pet);
+
+                  return (
+                    <div key={pet.id} className="pfd-pet-tile">
+                      <div className="pfd-pet-tile-photo">
+                        {imgSrc ? (
+                          <img src={imgSrc} alt={pet.name} />
+                        ) : (
+                          <div className="pfd-pet-tile-placeholder">🐾</div>
+                        )}
+                      </div>
+
+                      <div className="pfd-pet-tile-body">
+                        <div className="pfd-pet-tile-name">{pet.name}</div>
+                        <div className="pfd-pet-tile-meta">{getPetSummary(pet)}</div>
+
+                        <div className="pfd-pet-tile-actions">
                           <button
                             className="pfd-btn pfd-btn-small"
                             onClick={() => navigate(`/pets/${pet.id}/edit`)}
                           >
                             Edit
                           </button>
-
                           <button
                             className="pfd-btn pfd-btn-small pfd-btn-danger"
                             disabled={deletingId === pet.id}
@@ -566,160 +631,148 @@ export default function PremiumDashboard() {
                           </button>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </article>
 
-            <div className="pfd-card">
-              <div className="pfd-cardhead">
-                <div>
-                  <h2>Next Appointment</h2>
-                  <p>Your nearest upcoming booking</p>
+          <article className="pfd-card pfd-card-tallphoto">
+            <span className="pfd-tallphoto-paw pfd-tallphoto-paw-1">🐾</span>
+            <span className="pfd-tallphoto-paw pfd-tallphoto-paw-2">🐾</span>
+
+            {tallPetImage ? (
+              <div className="pfd-tallphoto-wrap">
+                <img src={tallPetImage} alt={tallPet?.name || "Pet"} />
+                <div className="pfd-tallphoto-overlay">
+                  <div className="pfd-card-kicker pfd-card-kicker-light">Happy face</div>
+                  <div className="pfd-tallphoto-name">{tallPet?.name || "Pet"}</div>
                 </div>
               </div>
+            ) : (
+              <div className="pfd-tallphoto-empty">
+                <div className="pfd-tallphoto-empty-icon">🐶</div>
+                <div className="pfd-tallphoto-empty-title">More photo magic here</div>
+              </div>
+            )}
+          </article>
 
-              {apptsLoading && <div className="pfd-empty">Loading appointment…</div>}
-
-              {!apptsLoading && !nextAppointment && (
-                <div className="pfd-empty">
-                  No upcoming appointment found.
-                </div>
-              )}
-
-              {!apptsLoading && nextAppointment && (
-                <div className="pfd-highlight-block">
-                  <div className="pfd-highlight-icon">📅</div>
-                  <div className="pfd-highlight-title">
-                    {nextAppointment.title || nextAppointment.service || "Upcoming Appointment"}
+          <article className="pfd-card pfd-card-board pfd-span-2">
+            <div className="pfd-board-columns">
+              <div className="pfd-board-column">
+                <div className="pfd-card-head">
+                  <div>
+                    <div className="pfd-card-kicker">Schedule</div>
+                    <h2>Upcoming Appointments</h2>
+                    <p>Your nearest booked visits.</p>
                   </div>
-                  <div className="pfd-highlight-text">
-                    {formatDateTime(nextAppointment.appointment_at)}
-                  </div>
-                  <div className="pfd-highlight-text">
-                    Pet: {nextAppointment.pet_name || nextAppointment.pet?.name || "Not specified"}
-                  </div>
-
-                  <button
-                    className="pfd-btn pfd-btn-primary pfd-btn-full"
-                    onClick={() => navigate("/appointments")}
-                  >
-                    View Appointments
+                  <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/appointments")}>
+                    Open
                   </button>
                 </div>
-              )}
-            </div>
 
-            <div className="pfd-card">
-              <div className="pfd-cardhead">
-                <div>
-                  <h2>Upcoming Reminders</h2>
-                  <p>Your next care tasks</p>
-                </div>
-                <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/reminders")}>
-                  View All
-                </button>
-              </div>
+                {apptsLoading && <div className="pfd-empty">Loading appointments…</div>}
 
-              {remindersLoading && <div className="pfd-empty">Loading reminders…</div>}
+                {!apptsLoading && upcomingAppointments.length === 0 && (
+                  <div className="pfd-empty">No upcoming appointments found.</div>
+                )}
 
-              {!remindersLoading && filteredReminders.length === 0 && (
-                <div className="pfd-empty">No upcoming reminders found.</div>
-              )}
-
-              {!remindersLoading && filteredReminders.length > 0 && (
-                <div className="pfd-reminderlist">
-                  {filteredReminders.slice(0, 5).map((r) => (
-                    <div key={r.id} className="pfd-reminderrow">
-                      <div className="pfd-remindericon">⏰</div>
-                      <div className="pfd-remindermeta">
-                        <div className="pfd-remindername">{r.title}</div>
-                        <div className="pfd-reminderdesc">{r.message || "Reminder"}</div>
-                        <div className="pfd-reminderdate">
-                          Due: {formatDate(r.reminder_date)}
+                {!apptsLoading && upcomingAppointments.length > 0 && (
+                  <div className="pfd-mini-list">
+                    {upcomingAppointments.slice(0, 4).map((appt) => (
+                      <div key={appt.id} className="pfd-mini-item">
+                        <div className="pfd-mini-item-icon">📅</div>
+                        <div className="pfd-mini-item-body">
+                          <div className="pfd-mini-item-title">
+                            {appt.title || appt.service || "Appointment"}
+                          </div>
+                          <div className="pfd-mini-item-text">
+                            {formatDateTime(appt.appointment_at)}
+                          </div>
+                          <div className="pfd-mini-item-sub">
+                            Pet: {appt.pet_name || appt.pet?.name || "Not specified"}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="pfd-card">
-              <div className="pfd-cardhead">
-                <div>
-                  <h2>Quick Actions</h2>
-                  <p>Jump to common tasks</p>
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div className="pfd-quickactions">
-                <button className="pfd-quickaction" onClick={() => navigate("/pets/create")}>
-                  <span className="pfd-quickicon">🐶</span>
-                  <span>Add Pet</span>
-                </button>
-
-                <button className="pfd-quickaction" onClick={() => navigate("/appointments/book")}>
-                  <span className="pfd-quickicon">📅</span>
-                  <span>Book Visit</span>
-                </button>
-
-                <button className="pfd-quickaction" onClick={() => navigate("/reminders")}>
-                  <span className="pfd-quickicon">⏰</span>
-                  <span>Reminders</span>
-                </button>
-
-                <button className="pfd-quickaction" onClick={() => navigate("/lostfound")}>
-                  <span className="pfd-quickicon">📍</span>
-                  <span>Lost &amp; Found</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="pfd-card pfd-span-2 pfd-welcome">
-              <div className="pfd-cardhead">
-                <div>
-                  <h2>Welcome to Pawfection Premium</h2>
-                  <p>Smart pet care in one modern platform</p>
-                </div>
-              </div>
-
-              <div className="pfd-welcome-grid">
-                <div className="pfd-welcome-copy">
-                  <div className="pfd-welcome-title">
-                    Everything your pet needs, all in one place.
+              <div className="pfd-board-column">
+                <div className="pfd-card-head">
+                  <div>
+                    <div className="pfd-card-kicker">Care tasks</div>
+                    <h2>Upcoming Reminders</h2>
+                    <p>Your next pet-care tasks at a glance.</p>
                   </div>
-                  <div className="pfd-welcome-text">
-                    Pawfection helps dog and cat owners in Ireland manage their pets’
-                    profiles, reminders, appointments, safety and day-to-day care with
-                    a premium and easy-to-use experience.
-                  </div>
+                  <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/reminders")}>
+                    View All
+                  </button>
                 </div>
 
-                <div className="pfd-feature-list">
-                  <div className="pfd-feature-item">
-                    <span>✔</span>
-                    <span>Track pets and profiles</span>
+                {remindersLoading && <div className="pfd-empty">Loading reminders…</div>}
+
+                {!remindersLoading && filteredReminders.length === 0 && (
+                  <div className="pfd-empty">No upcoming reminders found.</div>
+                )}
+
+                {!remindersLoading && filteredReminders.length > 0 && (
+                  <div className="pfd-reminder-list">
+                    {filteredReminders.slice(0, 4).map((r) => (
+                      <div key={r.id} className="pfd-reminder-row">
+                        <div className="pfd-reminder-icon">🐾</div>
+                        <div className="pfd-reminder-meta">
+                          <div className="pfd-reminder-name">{r.title}</div>
+                          <div className="pfd-reminder-desc">{r.message || "Reminder"}</div>
+                          <div className="pfd-reminder-date">
+                            Due: {formatDate(r.reminder_date)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="pfd-feature-item">
-                    <span>✔</span>
-                    <span>View upcoming appointments</span>
-                  </div>
-                  <div className="pfd-feature-item">
-                    <span>✔</span>
-                    <span>Manage reminders and wellness tasks</span>
-                  </div>
-                  <div className="pfd-feature-item">
-                    <span>✔</span>
-                    <span>Access community and lost &amp; found features</span>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
-          </section>
-        </main>
-      </div>
+          </article>
+
+          <article className="pfd-banner pfd-span-3">
+            <span className="pfd-banner-paw pfd-banner-paw-1">🐾</span>
+            <span className="pfd-banner-paw pfd-banner-paw-2">🐾</span>
+            <span className="pfd-banner-bone">🦴</span>
+
+            <div className="pfd-banner-copy">
+              <div className="pfd-card-kicker pfd-card-kicker-light">Premium story</div>
+              <h2>Everything your pet needs, in one warm playful dashboard.</h2>
+              <div className="pfd-banner-divider">
+                pawfectly organised, lovingly designed 🐾
+              </div>
+             
+            </div>
+
+            <div className="pfd-banner-actions">
+              <button className="pfd-quickaction" onClick={() => navigate("/pets/create")}>
+                <span className="pfd-quickicon">🐶</span>
+                <span>Add Pet</span>
+              </button>
+              <button className="pfd-quickaction" onClick={() => navigate("/inventory")}>
+                <span className="pfd-quickicon">📦</span>
+                <span>Inventory</span>
+              </button>
+              <button className="pfd-quickaction" onClick={() => navigate("/lostfound")}>
+                <span className="pfd-quickicon">📍</span>
+                <span>Lost &amp; Found</span>
+              </button>
+              <button className="pfd-quickaction" onClick={() => navigate("/community")}>
+                <span className="pfd-quickicon">💬</span>
+                <span>Community</span>
+              </button>
+            </div>
+          </article>
+        </section>
+      </main>
     </div>
   );
 }
