@@ -51,17 +51,13 @@ function ProtectedRoute({ children }) {
   return token ? children : <Navigate to="/login" replace />;
 }
 
-function PremiumRoute({ children }) {
+function PremiumPageRoute({ children }) {
   const token = localStorage.getItem("pawfection_token");
   const user = getStoredUser();
   const role = String(user?.role || localStorage.getItem("pawfection_role") || "").toLowerCase();
-  const accountType = String(
-    user?.account_type || localStorage.getItem("pawfection_account_type") || "basic"
-  ).toLowerCase();
 
   if (!token) return <Navigate to="/login" replace />;
   if (role === "admin") return <Navigate to="/admin/dashboard" replace />;
-  if (accountType !== "premium") return <Navigate to="/dashboard" replace />;
 
   return children;
 }
@@ -99,9 +95,9 @@ export default function App() {
         <Route
           path="/premium-dashboard"
           element={
-            <PremiumRoute>
+            <PremiumPageRoute>
               <PremiumDashboard />
-            </PremiumRoute>
+            </PremiumPageRoute>
           }
         />
 
@@ -263,11 +259,21 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
-          path="/upgrade"
+          path="/upgrade-premium"
           element={
             <ProtectedRoute>
               <UpgradePremium />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/vet-chat"
+          element={
+            <ProtectedRoute>
+              <Placeholder title="Vet Chat" />
             </ProtectedRoute>
           }
         />

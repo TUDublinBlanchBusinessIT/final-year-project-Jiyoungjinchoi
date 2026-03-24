@@ -288,6 +288,7 @@ export default function Dashboard() {
           <Link className="pf2-nav-item" to="/lostfound">Lost &amp; Found</Link>
           <Link className="pf2-nav-item" to="/community">Community</Link>
           <Link className="pf2-nav-item" to="/inventory">Inventory</Link>
+          <Link className="pf2-nav-item" to="/premium-dashboard">Premium My Pet</Link>
         </nav>
 
         <div className="pf2-sidebar-footer">
@@ -308,7 +309,7 @@ export default function Dashboard() {
               <div className="pf2-avatar">{(userName?.[0] || "U").toUpperCase()}</div>
               <div className="pf2-userchip-text">
                 <div className="pf2-userchip-name">{userName}</div>
-                <div className="pf2-userchip-sub">User</div>
+                <div className="pf2-userchip-sub">Standard User</div>
               </div>
             </div>
           </div>
@@ -330,6 +331,9 @@ export default function Dashboard() {
               </button>
               <button className="pf2-btn" onClick={() => navigate("/reminders")}>
                 View Reminders
+              </button>
+              <button className="pf2-btn" onClick={() => navigate("/premium-dashboard")}>
+                Explore Premium
               </button>
             </div>
           </div>
@@ -380,7 +384,7 @@ export default function Dashboard() {
                           <div className="pf2-petmeta">
                             <div className="pf2-petname">{pet.name}</div>
                             <div className="pf2-petdesc">
-                              {(pet.breed || pet.species || "Pet")}
+                              {pet.breed || pet.species || "Pet"}
                               {" • "}
                               {pet.age ? `${pet.age} yrs` : "Age n/a"}
                               {pet.weight ? ` • ${pet.weight}kg` : ""}
@@ -448,6 +452,30 @@ export default function Dashboard() {
               )}
             </div>
 
+            <div className="pf2-card">
+              <div className="pf2-cardhead">
+                <h2>Premium My Pet</h2>
+                <button
+                  className="pf2-btn pf2-btn-small"
+                  onClick={() => navigate("/premium-dashboard")}
+                >
+                  Open
+                </button>
+              </div>
+
+              <div className="pf2-empty" style={{ textAlign: "left" }}>
+                Unlock premium pet-care features like Vet Chat, extra support, and premium tools.
+                <div style={{ marginTop: "12px" }}>
+                  <button
+                    className="pf2-btn pf2-btn-primary"
+                    onClick={() => navigate("/premium-dashboard")}
+                  >
+                    View Premium Page
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="pf2-card pf2-welcome pf2-span-all">
               <div className="pf2-welcome-title">Welcome to Pawfection</div>
               <div className="pf2-welcome-sub">
@@ -456,8 +484,8 @@ export default function Dashboard() {
               <div className="pf2-welcome-text">
                 The Pawfection is a mobile-friendly application for dog and cat owners in
                 Ireland. The goal of Pawfection is to make it easy for pet owners to use
-                our platform to record, manage, and track essential information
-                related to their pets&apos; health, well-being, and safety.
+                our platform to record, manage, and track essential information related to
+                their pets&apos; health, well-being, and safety.
               </div>
             </div>
           </section>
