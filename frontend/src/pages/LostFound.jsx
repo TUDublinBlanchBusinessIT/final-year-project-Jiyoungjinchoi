@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
-import "./Dashboard.css";
-import "./Appointments.css";
+import "./PremiumDashboard.css";
+import "./LostFoundPremium.css";
 
 export default function LostFound() {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem("pawfection_token");
   const apiBase = "http://127.0.0.1:8000/api";
+
+  const accountType = String(
+    localStorage.getItem("pawfection_account_type") || "basic"
+  ).toLowerCase();
+  const isPremiumUser = accountType === "premium";
 
   const [userName, setUserName] = useState("Guest");
 
@@ -22,17 +27,43 @@ export default function LostFound() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(
+    () => localStorage.getItem("pawfection_lf_query") || ""
+  );
 
-  const [filters, setFilters] = useState({
-    species: "",
-    breed: "",
-    location: "",
-    radius_km: "",
-    sort: "date",
-    lat: "",
-    lng: "",
+  const [filters, setFilters] = useState(() => {
+    try {
+      const saved = localStorage.getItem("pawfection_lf_filters");
+      return saved
+        ? JSON.parse(saved)
+        : {
+            species: "",
+            breed: "",
+            location: "",
+            radius_km: "",
+            sort: "date",
+            lat: "",
+            lng: "",
+          };
+    } catch {
+      return {
+        species: "",
+        breed: "",
+        location: "",
+        radius_km: "",
+        sort: "date",
+        lat: "",
+        lng: "",
+      };
+    }
   });
+
+  const [priorityOnly, setPriorityOnly] = useState(
+    () => localStorage.getItem("pawfection_lf_priority_only") === "1"
+  );
+  const [areaAlertsEnabled, setAreaAlertsEnabled] = useState(
+    () => localStorage.getItem("pawfection_lf_area_alerts") === "1"
+  );
 
   const [showFoundForm, setShowFoundForm] = useState(false);
   const [foundForm, setFoundForm] = useState({
@@ -61,13 +92,38 @@ export default function LostFound() {
 
   const fieldStyle = {
     width: "100%",
-    height: 42,
-    borderRadius: 12,
-    border: "1px solid #e5e7eb",
-    padding: "0 12px",
+    height: 44,
+    borderRadius: 16,
+    border: "1px solid rgba(117, 70, 46, 0.12)",
+    padding: "0 14px",
     outline: "none",
-    background: "#fff",
+    background: "rgba(255, 251, 248, 0.96)",
+    color: "#6f402c",
+    fontWeight: 700,
+    boxShadow: "var(--pfd-shadow-sm)",
   };
+
+  const textareaStyle = {
+    width: "100%",
+    borderRadius: 16,
+    border: "1px solid rgba(117, 70, 46, 0.12)",
+    padding: 12,
+    resize: "vertical",
+    boxSizing: "border-box",
+    background: "rgba(255, 251, 248, 0.96)",
+    color: "#6f402c",
+    fontWeight: 700,
+    boxShadow: "var(--pfd-shadow-sm)",
+  };
+
+  const todayText = useMemo(() => {
+    return new Date().toLocaleDateString("en-IE", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }, []);
 
   const loadUserName = () => {
     try {
@@ -326,6 +382,24 @@ export default function LostFound() {
     }
   };
 
+  const saveCurrentSearch = () => {
+    localStorage.setItem("pawfection_lf_query", query);
+    localStorage.setItem("pawfection_lf_filters", JSON.stringify(filters));
+    localStorage.setItem("pawfection_lf_priority_only", priorityOnly ? "1" : "0");
+    setSuccess("Lost & Found search preferences saved on this device.");
+  };
+
+  const toggleAreaAlerts = () => {
+    const next = !areaAlertsEnabled;
+    setAreaAlertsEnabled(next);
+    localStorage.setItem("pawfection_lf_area_alerts", next ? "1" : "0");
+    setSuccess(
+      next
+        ? "Local Lost & Found alerts enabled on this device."
+        : "Local Lost & Found alerts turned off."
+    );
+  };
+
   useEffect(() => {
     loadUserName();
     reloadAll();
@@ -334,23 +408,32 @@ export default function LostFound() {
 
   const filteredLost = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return lostItems;
 
-    return (lostItems || []).filter((p) => {
-      const name = (p.pet_name || "").toLowerCase();
-      const desc = (p.description || "").toLowerCase();
-      const loc = (p.last_seen_location || "").toLowerCase();
-      const breed = (p.breed || "").toLowerCase();
-      const species = (p.species || "").toLowerCase();
-      return (
-        name.includes(q) ||
-        desc.includes(q) ||
-        loc.includes(q) ||
-        breed.includes(q) ||
-        species.includes(q)
-      );
-    });
-  }, [lostItems, query]);
+    let list = [...(lostItems || [])];
+
+    if (q) {
+      list = list.filter((p) => {
+        const name = (p.pet_name || "").toLowerCase();
+        const desc = (p.description || "").toLowerCase();
+        const loc = (p.last_seen_location || "").toLowerCase();
+        const breed = (p.breed || "").toLowerCase();
+        const species = (p.species || "").toLowerCase();
+        return (
+          name.includes(q) ||
+          desc.includes(q) ||
+          loc.includes(q) ||
+          breed.includes(q) ||
+          species.includes(q)
+        );
+      });
+    }
+
+    if (priorityOnly) {
+      list = list.filter((p) => p.is_priority);
+    }
+
+    return list;
+  }, [lostItems, query, priorityOnly]);
 
   const filteredFound = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -387,561 +470,721 @@ export default function LostFound() {
     });
   };
 
+  const priorityCount = useMemo(
+    () => (lostItems || []).filter((item) => item.is_priority).length,
+    [lostItems]
+  );
+
+  const featuredLost = useMemo(() => {
+    return filteredLost.find((item) => item.is_priority) || filteredLost[0] || null;
+  }, [filteredLost]);
+
+  const featuredLostImage = featuredLost?.photo_url || null;
+
   return (
-    <div className="pf2-shell">
-      <aside className="pf2-sidebar">
-        <div className="pf2-brand" onClick={() => navigate("/dashboard")} role="button">
-          <img className="pf2-brand-logo" src={PawfectionLogo} alt="Pawfection" />
-          <div className="pf2-brand-text">
-            <div className="pf2-brand-title">Pawfection</div>
-            <div className="pf2-brand-sub">Dashboard</div>
+    <div className="pfd-shell">
+      <header className="pfd-site-header">
+        <div
+          className="pfd-brand"
+          onClick={() => navigate(isPremiumUser ? "/premium-dashboard" : "/dashboard")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              navigate(isPremiumUser ? "/premium-dashboard" : "/dashboard");
+            }
+          }}
+        >
+          <img className="pfd-brand-logo" src={PawfectionLogo} alt="Pawfection" />
+          <div className="pfd-brand-copy">
+            <div className="pfd-brand-title">Pawfection</div>
+            <div className="pfd-brand-sub">
+              {isPremiumUser ? "Premium Lost & Found" : "Lost & Found"}
+            </div>
           </div>
         </div>
 
-        <nav className="pf2-nav">
-          <Link className="pf2-nav-item" to="/dashboard">Dashboard</Link>
-          <Link className="pf2-nav-item" to="/mypets">My Pets</Link>
-
-          <Link
-            className={`pf2-nav-item ${location.pathname.includes("/appointments") ? "active" : ""}`}
-            to="/appointments"
-          >
+        <nav className="pfd-topnav">
+          <Link className="pfd-topnav-item" to={isPremiumUser ? "/premium-dashboard" : "/dashboard"}>
+            {isPremiumUser ? "Premium My Pet" : "Dashboard"}
+          </Link>
+          <Link className="pfd-topnav-item" to="/mypets">
+            My Pets
+          </Link>
+          <Link className="pfd-topnav-item" to="/appointments">
             Appointments
           </Link>
-
-          <Link className="pf2-nav-item" to="/reminders">Reminders</Link>
-
-          <Link
-            className={`pf2-nav-item ${location.pathname.includes("/lostfound") ? "active" : ""}`}
-            to="/lostfound"
-          >
+          <Link className="pfd-topnav-item" to="/reminders">
+            Reminders
+          </Link>
+          <Link className="pfd-topnav-item active" to="/lostfound">
             Lost &amp; Found
           </Link>
-
-          <Link className="pf2-nav-item" to="/community">Community</Link>
-          <Link className="pf2-nav-item" to="/inventory">Inventory</Link>
+          <Link className="pfd-topnav-item" to="/community">
+            Community
+          </Link>
+          <Link className="pfd-topnav-item" to="/inventory">
+            Inventory
+          </Link>
+          <Link className="pfd-topnav-item" to="/profile">
+            Profile
+          </Link>
         </nav>
 
-        <div className="pf2-sidebar-footer">
-          <button className="pf2-btn pf2-btn-ghost" onClick={() => navigate("/profile")}>
-            View Profile
-          </button>
-        </div>
-      </aside>
+        <div className="pfd-header-side">
+          <div className="pfd-header-meta">
+            <div className="pfd-date-pill">{todayText}</div>
 
-      <div className="pf2-main">
-        <header className="pf2-topbar">
-          <div className="pf2-search">
+            <div className="pfd-userchip" title={userName}>
+              <div className="pfd-avatar">{(userName?.[0] || "G").toUpperCase()}</div>
+              <div className="pfd-userchip-text">
+                <div className="pfd-userchip-name">{userName}</div>
+                <div className="pfd-userchip-sub">
+                  {token ? (isPremiumUser ? "Premium User" : "Standard User") : "Guest"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pfd-search">
             <input
               placeholder="Search lost and found reports..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
+        </div>
+      </header>
 
-          <div className="pf2-topbar-right">
-            <div className="pf2-userchip" title={userName}>
-              <div className="pf2-avatar">{(userName?.[0] || "G").toUpperCase()}</div>
-              <div className="pf2-userchip-text">
-                <div className="pf2-userchip-name">{userName}</div>
-                <div className="pf2-userchip-sub">{token ? "User" : "Guest"}</div>
+      <main className="pfd-main">
+        <section className="pfd-hero plf-hero">
+          <span className="pfd-doodle pfd-doodle-paw-1">🐾</span>
+          <span className="pfd-doodle pfd-doodle-paw-2">🐾</span>
+          <span className="pfd-doodle pfd-doodle-bone">📍</span>
+          <span className="pfd-doodle pfd-doodle-cat">🔔</span>
+
+          <div className="pfd-hero-copy">
+            <div className="pfd-kicker">
+              {isPremiumUser ? "Pawfection Premium Safety" : "Pawfection Lost & Found"}
+            </div>
+            <h1 className="pfd-hero-title">Lost &amp; Found</h1>
+            <p className="pfd-hero-text">
+              Fast, localised lost-pet reporting with community sightings, smart filters, and
+              nearby search support. Premium users can boost visibility with Priority Alerts and
+              local alert preferences.
+            </p>
+
+            <div className="pfd-hero-chips">
+              <div className="pfd-chip">📍 {lostItems.length} active lost reports</div>
+              <div className="pfd-chip">🚨 {priorityCount} priority alerts</div>
+              <div className="pfd-chip">👀 {foundItems.length} found reports</div>
+              <div className="pfd-chip">
+                {areaAlertsEnabled ? "🔔 area alerts on" : "🔕 area alerts off"}
               </div>
             </div>
-          </div>
-        </header>
 
-        <main className="pf2-content">
-          <div className="pfa-head">
-            <div>
-              <h1 className="pfa-title">Lost &amp; Found</h1>
-              <p className="pfa-subtitle">
-                Community reports for lost pets and found pets in one place.
-              </p>
+            <div className="pfd-hero-actions">
+              <button
+                className="pfd-btn pfd-btn-primary"
+                onClick={() => {
+                  if (!token) return navigate("/login");
+                  navigate("/lostfound/report");
+                }}
+              >
+                + Report Lost Pet
+              </button>
+              <button className="pfd-btn" onClick={useMyLocation}>
+                Use My Location
+              </button>
+              <button
+                className="pfd-btn"
+                onClick={() => setPriorityOnly((prev) => !prev)}
+              >
+                {priorityOnly ? "Show All Reports" : "Priority Only"}
+              </button>
+              <button className="pfd-btn" onClick={reloadAll}>
+                Refresh Feed
+              </button>
             </div>
           </div>
 
-          {error && <div className="pfa-alert">{error}</div>}
-          {success && <div className="pfa-success">{success}</div>}
-
-          <section className="pfa-grid-one">
-            <div className="pfa-card">
-              <div className="pfa-cardtop">
-                <div>
-                  <div className="pfa-cardtitle">Lost Reports</div>
-                  <div className="pfa-mini">
-                    Registered users can choose one of their pets and report it as lost.
-                  </div>
-                </div>
-
-                <div className="pfa-actions-right">
-                  <button
-                    className="pf2-btn pf2-btn-primary"
-                    onClick={() => {
-                      if (!token) return navigate("/login");
-                      navigate("/lostfound/report");
-                    }}
-                  >
-                    + Report Lost Pet
-                  </button>
-
-                  <button className="pf2-btn" onClick={reloadAll} disabled={loadingLost || loadingFound}>
-                    Refresh
-                  </button>
-                </div>
+          <div className="pfd-hero-visual">
+            <div className="pfd-speech pfd-speech-left">
+              <div className="pfd-speech-title">Status</div>
+              <div className="pfd-speech-text">
+                {isPremiumUser
+                  ? "Priority alerts and local alert preferences are available."
+                  : "Upgrade to premium for boosted lost-pet visibility."}
               </div>
+            </div>
 
-              <div style={{ padding: "0 18px 18px" }}>
-                <div
-                  style={{
-                    marginTop: 12,
-                    background: "#fff",
-                    border: "1px solid #eef0f4",
-                    borderRadius: 16,
-                    padding: 14,
-                    boxShadow: "0 10px 25px rgba(0,0,0,.04)",
-                  }}
-                >
-                  <div style={{ fontWeight: 800, marginBottom: 10, color: "#111827" }}>
-                    Filters
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "160px 1.2fr 1.2fr 160px 160px",
-                      gap: 10,
-                      alignItems: "center",
-                    }}
-                  >
-                    <select
-                      value={filters.species}
-                      onChange={(e) => setFilters((p) => ({ ...p, species: e.target.value }))}
-                      style={fieldStyle}
-                    >
-                      <option value="">All species</option>
-                      <option value="Dog">Dog</option>
-                      <option value="Cat">Cat</option>
-                      <option value="Other">Other</option>
-                    </select>
-
-                    <input
-                      placeholder="Breed contains..."
-                      value={filters.breed}
-                      onChange={(e) => setFilters((p) => ({ ...p, breed: e.target.value }))}
-                      style={fieldStyle}
-                    />
-
-                    <input
-                      placeholder="Location contains..."
-                      value={filters.location}
-                      onChange={(e) => setFilters((p) => ({ ...p, location: e.target.value }))}
-                      style={fieldStyle}
-                    />
-
-                    <select
-                      value={filters.radius_km}
-                      onChange={(e) => setFilters((p) => ({ ...p, radius_km: e.target.value }))}
-                      style={fieldStyle}
-                    >
-                      <option value="">Radius (any)</option>
-                      <option value="1">1 km</option>
-                      <option value="5">5 km</option>
-                      <option value="10">10 km</option>
-                      <option value="25">25 km</option>
-                    </select>
-
-                    <select
-                      value={filters.sort}
-                      onChange={(e) => setFilters((p) => ({ ...p, sort: e.target.value }))}
-                      style={fieldStyle}
-                    >
-                      <option value="date">Sort: newest</option>
-                      <option value="proximity">Sort: nearest</option>
-                    </select>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      flexWrap: "wrap",
-                      marginTop: 12,
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button className="pf2-btn" type="button" onClick={useMyLocation}>
-                        Use my location
-                      </button>
-
-                      <button
-                        className="pf2-btn pf2-btn-primary"
-                        type="button"
-                        onClick={fetchLostPets}
-                      >
-                        Apply filters
-                      </button>
-
-                      <button
-                        className="pf2-btn"
-                        type="button"
-                        onClick={() => {
-                          setFilters({
-                            species: "",
-                            breed: "",
-                            location: "",
-                            radius_km: "",
-                            sort: "date",
-                            lat: "",
-                            lng: "",
-                          });
-                          fetchLostPets();
-                        }}
-                      >
-                        Reset
-                      </button>
-                    </div>
-
-                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                      {filters.lat && filters.lng ? (
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 800,
-                            color: "#16a34a",
-                            background: "#f0fdf4",
-                            border: "1px solid #bbf7d0",
-                            padding: "6px 10px",
-                            borderRadius: 999,
-                          }}
-                        >
-                          Using coords ✓
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: "#6b7280",
-                            background: "#f9fafb",
-                            border: "1px solid #e5e7eb",
-                            padding: "6px 10px",
-                            borderRadius: 999,
-                          }}
-                        >
-                          No coords
-                        </span>
-                      )}
-                    </div>
+            <article className="pfd-hero-photo-card">
+              {featuredLostImage ? (
+                <img
+                  src={featuredLostImage}
+                  alt={featuredLost?.pet_name || "Lost pet"}
+                />
+              ) : (
+                <div className="pfd-photo-empty">
+                  <div className="pfd-photo-empty-icon">🐾</div>
+                  <div className="pfd-photo-empty-title">Lost &amp; Found spotlight</div>
+                  <div className="pfd-photo-empty-text">
+                    Report a lost pet to feature it here and help nearby users recognise it quickly.
                   </div>
                 </div>
-              </div>
-
-              {loadingLost && <div className="pfa-empty">Loading lost reports…</div>}
-
-              {!loadingLost && filteredLost.length === 0 && (
-                <div className="pfa-empty">No matching lost reports found.</div>
               )}
 
-              {!loadingLost && filteredLost.length > 0 && (
-                <div className="pfa-list">
-                  {filteredLost.map((p) => {
-                    const name = p.pet_name || "Unnamed Pet";
-                    const status = p.status || "Active";
+              <div className="pfd-hero-photo-overlay">
+                <div className="pfd-card-kicker pfd-card-kicker-light">
+                  {featuredLost?.is_priority ? "Priority report" : "Featured report"}
+                </div>
+                <div className="pfd-hero-photo-name">
+                  {featuredLost?.pet_name || "No active report"}
+                </div>
+                <div className="pfd-hero-photo-meta">
+                  {featuredLost
+                    ? `${featuredLost.species || "Pet"}${featuredLost.breed ? ` • ${featuredLost.breed}` : ""}${
+                        featuredLost.last_seen_location
+                          ? ` • ${featuredLost.last_seen_location}`
+                          : ""
+                      }`
+                    : "Create or browse reports to see a featured lost pet here."}
+                </div>
+              </div>
+            </article>
 
-                    return (
-                      <div key={p.id} className="pfa-row">
-                        <div
-                          className="pfa-left"
-                          style={{ cursor: "pointer" }}
-                          onClick={() => navigate(`/lostfound/${p.id}`)}
-                          title="View report details"
-                        >
-                          <div className="pfa-name">
-                            {name} • <span className="pfa-chip">{status}</span>
-                          </div>
+            <div className="pfd-speech pfd-speech-right">
+              <div className="pfd-speech-title">Up next</div>
+              <div className="pfd-speech-text">
+                {featuredLost?.pet_name
+                  ? `${featuredLost.pet_name} needs local sightings.`
+                  : "No priority report selected."}
+              </div>
+            </div>
+          </div>
+        </section>
 
-                          <div className="pfa-sub">
-                            {p.species ? `${p.species}` : "—"}
-                            {p.breed ? ` • ${p.breed}` : ""}
-                            {p.age ? ` • Age ${p.age}` : ""}
-                          </div>
+        {error && <div className="plf-alert">{error}</div>}
+        {success && <div className="plf-success">{success}</div>}
 
-                          <div className="pfa-sub">{p.description || "No description"}</div>
-                          <div className="pfa-sub">
-                            {p.last_seen_location ? `Last seen: ${p.last_seen_location}` : "—"}
-                          </div>
-                          <div className="pfa-sub2">
-                            Reported by: {p.owner_name || "Unknown owner"}
-                          </div>
+        <section className="pfd-collage">
+          <article className="pfd-card pfd-span-2 plf-card-soft">
+            <div className="pfd-card-head">
+              <div>
+                <div className="pfd-card-kicker">Premium tools</div>
+                <h2>Alerts & Search Controls</h2>
+                <p>
+                  Manage search filters, local area alerts, and premium report visibility from one
+                  place.
+                </p>
+              </div>
+              <button className="pfd-btn pfd-btn-small" onClick={saveCurrentSearch}>
+                Save Search
+              </button>
+            </div>
 
-                          {p.distance_km != null && (
-                            <div className="pfa-sub2">Distance: {p.distance_km} km</div>
-                          )}
+            <div className="plf-filter-grid">
+              <select
+                value={filters.species}
+                onChange={(e) => setFilters((p) => ({ ...p, species: e.target.value }))}
+                style={fieldStyle}
+              >
+                <option value="">All species</option>
+                <option value="Dog">Dog</option>
+                <option value="Cat">Cat</option>
+                <option value="Other">Other</option>
+              </select>
+
+              <input
+                placeholder="Breed contains..."
+                value={filters.breed}
+                onChange={(e) => setFilters((p) => ({ ...p, breed: e.target.value }))}
+                style={fieldStyle}
+              />
+
+              <input
+                placeholder="Location contains..."
+                value={filters.location}
+                onChange={(e) => setFilters((p) => ({ ...p, location: e.target.value }))}
+                style={fieldStyle}
+              />
+
+              <select
+                value={filters.radius_km}
+                onChange={(e) => setFilters((p) => ({ ...p, radius_km: e.target.value }))}
+                style={fieldStyle}
+              >
+                <option value="">Radius (any)</option>
+                <option value="1">1 km</option>
+                <option value="5">5 km</option>
+                <option value="10">10 km</option>
+                <option value="25">25 km</option>
+              </select>
+
+              <select
+                value={filters.sort}
+                onChange={(e) => setFilters((p) => ({ ...p, sort: e.target.value }))}
+                style={fieldStyle}
+              >
+                <option value="date">Sort: newest</option>
+                <option value="proximity">Sort: nearest</option>
+              </select>
+            </div>
+
+            <div className="plf-action-row">
+              <button className="pfd-btn" onClick={useMyLocation}>
+                Use My Location
+              </button>
+              <button className="pfd-btn pfd-btn-primary" onClick={fetchLostPets}>
+                Apply Filters
+              </button>
+              <button
+                className="pfd-btn"
+                onClick={() => {
+                  setFilters({
+                    species: "",
+                    breed: "",
+                    location: "",
+                    radius_km: "",
+                    sort: "date",
+                    lat: "",
+                    lng: "",
+                  });
+                  setPriorityOnly(false);
+                  setQuery("");
+                  setSuccess("Filters reset.");
+                  fetchLostPets();
+                }}
+              >
+                Reset
+              </button>
+              <button className="pfd-btn" onClick={toggleAreaAlerts}>
+                {areaAlertsEnabled ? "Disable Area Alerts" : "Enable Area Alerts"}
+              </button>
+            </div>
+
+            <div className="pfd-mini-list" style={{ marginTop: 16 }}>
+              <div className="pfd-mini-item">
+                <div className="pfd-mini-item-icon">🚨</div>
+                <div className="pfd-mini-item-body">
+                  <div className="pfd-mini-item-title">Priority Alerts</div>
+                  <div className="pfd-mini-item-text">
+                    {isPremiumUser
+                      ? "Priority lost reports are highlighted and boosted in your premium view."
+                      : "Upgrade to premium to boost your lost report visibility."}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pfd-mini-item">
+                <div className="pfd-mini-item-icon">📍</div>
+                <div className="pfd-mini-item-body">
+                  <div className="pfd-mini-item-title">Nearby Search</div>
+                  <div className="pfd-mini-item-text">
+                    {filters.lat && filters.lng
+                      ? "Coordinates detected. Radius and proximity filters are ready to use."
+                      : "Use your location to search and rank reports by distance."}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pfd-mini-item">
+                <div className="pfd-mini-item-icon">🔔</div>
+                <div className="pfd-mini-item-body">
+                  <div className="pfd-mini-item-title">Local Area Alerts</div>
+                  <div className="pfd-mini-item-text">
+                    {areaAlertsEnabled
+                      ? "Area alerts are enabled on this device."
+                      : "Turn on area alerts to surface nearby Lost & Found activity."}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article className="pfd-card pfd-card-care">
+            <div className="pfd-card-kicker">Safety board</div>
+
+            <div className="pfd-care-ring">
+              <div className="pfd-care-ring-value">{priorityCount}</div>
+              <div className="pfd-care-ring-text">priority alerts</div>
+            </div>
+
+            <div className="pfd-care-block">
+              <div className="pfd-care-label">Featured lost pet</div>
+              <div className="pfd-care-main">
+                {featuredLost?.pet_name || "No active report"}
+              </div>
+              <div className="pfd-care-sub">
+                {featuredLost?.last_seen_location || "Report a lost pet to create live alerts."}
+              </div>
+            </div>
+
+            <div className="pfd-care-divider" />
+
+            <div className="pfd-care-block">
+              <div className="pfd-care-label">Found reports</div>
+              <div className="pfd-care-main">{foundItems.length}</div>
+              <div className="pfd-care-sub">
+                Community submissions and comment activity.
+              </div>
+            </div>
+
+            <div className="pfd-care-actions">
+              <button
+                className="pfd-btn pfd-btn-small"
+                onClick={() => {
+                  if (!token) return navigate("/login");
+                  navigate("/lostfound/report");
+                }}
+              >
+                Report Lost Pet
+              </button>
+              <button
+                className="pfd-btn pfd-btn-small"
+                onClick={() => setShowFoundForm((prev) => !prev)}
+              >
+                {showFoundForm ? "Close Found Form" : "Report Found Pet"}
+              </button>
+            </div>
+          </article>
+
+          <article className="pfd-card pfd-card-gallery pfd-span-2">
+            <div className="pfd-card-head">
+              <div>
+                <div className="pfd-card-kicker">Community alerts</div>
+                <h2>Lost Reports</h2>
+                <p>
+                  Search by species, breed, location, radius, and priority. Premium priority alerts
+                  stay highlighted.
+                </p>
+              </div>
+              <button className="pfd-btn pfd-btn-small" onClick={reloadAll}>
+                Refresh
+              </button>
+            </div>
+
+            {loadingLost && <div className="pfd-empty">Loading lost reports…</div>}
+
+            {!loadingLost && filteredLost.length === 0 && (
+              <div className="pfd-empty">No matching lost reports found.</div>
+            )}
+
+            {!loadingLost && filteredLost.length > 0 && (
+              <div className="plf-report-list">
+                {filteredLost.map((p) => {
+                  const name = p.pet_name || "Unnamed Pet";
+                  const status = p.status || "Active";
+
+                  return (
+                    <div
+                      key={p.id}
+                      className={`plf-report-row ${p.is_priority ? "plf-report-row-priority" : ""}`}
+                    >
+                      <div
+                        className="plf-report-left"
+                        onClick={() => navigate(`/lostfound/${p.id}`)}
+                        title="View report details"
+                      >
+                        <div className="plf-report-head">
+                          <div className="plf-report-name">{name}</div>
+                          <div className="plf-report-badges">
+                            <span className="plf-badge plf-badge-soft">{status}</span>
+                            {p.is_priority && (
+                              <span className="plf-badge plf-badge-priority">
+                                Priority Alert
+                              </span>
+                            )}
+                            {p.owner_account_type === "premium" && (
+                              <span className="plf-badge plf-badge-dark">Premium</span>
+                            )}
+                          </div>
                         </div>
 
-                        <div className="pfa-right">
+                        <div className="plf-report-meta">
+                          {p.species ? `${p.species}` : "—"}
+                          {p.breed ? ` • ${p.breed}` : ""}
+                          {p.age ? ` • Age ${p.age}` : ""}
+                          {p.distance_km != null ? ` • ${p.distance_km} km away` : ""}
+                        </div>
+
+                        <div className="plf-report-text">{p.description || "No description"}</div>
+                        <div className="plf-report-meta">
+                          {p.last_seen_location
+                            ? `Last seen: ${p.last_seen_location}`
+                            : "Last seen: —"}
+                        </div>
+                        <div className="plf-report-meta">
+                          Reported by: {p.owner_name || "Unknown owner"}
+                        </div>
+                      </div>
+
+                      <div className="plf-report-actions">
+                        <button
+                          className="pfd-btn pfd-btn-small"
+                          onClick={() => navigate(`/lostfound/${p.id}/sighting`)}
+                        >
+                          Submit Sighting
+                        </button>
+
+                        {token && (
                           <button
-                            className="pf2-btn pf2-btn-small"
-                            onClick={() => navigate(`/lostfound/${p.id}/sighting`)}
+                            className="pfd-btn pfd-btn-small pfd-btn-danger"
+                            onClick={() => markResolved(p.id)}
+                            disabled={busyId === p.id}
                           >
-                            Submit Sighting
+                            {busyId === p.id ? "..." : "Mark Resolved"}
                           </button>
-
-                          {token && (
-                            <button
-                              className="pf2-btn pf2-btn-small pfa-deletebtn"
-                              onClick={() => markResolved(p.id)}
-                              disabled={busyId === p.id}
-                            >
-                              {busyId === p.id ? "..." : "Mark Resolved"}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </section>
-
-          <section className="pfa-grid-one" style={{ marginTop: 22 }}>
-            <div className="pfa-card">
-              <div className="pfa-cardtop">
-                <div>
-                  <div className="pfa-cardtitle">Found Reports</div>
-                  <div className="pfa-mini">
-                    Community members can report pets they have seen and help each other through comments.
-                  </div>
-                </div>
-
-                <div className="pfa-actions-right">
-                  <button
-                    className="pf2-btn pf2-btn-primary"
-                    onClick={() => {
-                      if (!token) return navigate("/login");
-                      setShowFoundForm((prev) => !prev);
-                    }}
-                  >
-                    {showFoundForm ? "Close Form" : "+ Report Found Pet"}
-                  </button>
-                </div>
-              </div>
-
-              {showFoundForm && (
-                <div style={{ padding: "0 18px 18px" }}>
-                  <form
-                    onSubmit={submitFoundReport}
-                    style={{
-                      border: "1px solid #eef0f4",
-                      borderRadius: 16,
-                      padding: 16,
-                      background: "#fff",
-                      display: "grid",
-                      gap: 12,
-                    }}
-                  >
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-                      <input
-                        style={fieldStyle}
-                        placeholder="Species"
-                        value={foundForm.species}
-                        onChange={(e) => setFoundForm((p) => ({ ...p, species: e.target.value }))}
-                      />
-                      <input
-                        style={fieldStyle}
-                        placeholder="Breed"
-                        value={foundForm.breed}
-                        onChange={(e) => setFoundForm((p) => ({ ...p, breed: e.target.value }))}
-                      />
-                      <input
-                        style={fieldStyle}
-                        placeholder="Colour"
-                        value={foundForm.colour}
-                        onChange={(e) => setFoundForm((p) => ({ ...p, colour: e.target.value }))}
-                      />
-                    </div>
-
-                    <textarea
-                      placeholder="Description"
-                      value={foundForm.description}
-                      onChange={(e) => setFoundForm((p) => ({ ...p, description: e.target.value }))}
-                      rows={4}
-                      style={{
-                        width: "100%",
-                        borderRadius: 12,
-                        border: "1px solid #e5e7eb",
-                        padding: 12,
-                        resize: "vertical",
-                        boxSizing: "border-box",
-                      }}
-                    />
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                      <input
-                        style={fieldStyle}
-                        placeholder="Location found"
-                        value={foundForm.location_found}
-                        onChange={(e) => setFoundForm((p) => ({ ...p, location_found: e.target.value }))}
-                      />
-                      <input
-                        style={fieldStyle}
-                        type="datetime-local"
-                        value={foundForm.found_at}
-                        onChange={(e) => setFoundForm((p) => ({ ...p, found_at: e.target.value }))}
-                      />
-                    </div>
-
-                    <textarea
-                      placeholder="Additional notes (optional)"
-                      value={foundForm.notes}
-                      onChange={(e) => setFoundForm((p) => ({ ...p, notes: e.target.value }))}
-                      rows={3}
-                      style={{
-                        width: "100%",
-                        borderRadius: 12,
-                        border: "1px solid #e5e7eb",
-                        padding: 12,
-                        resize: "vertical",
-                        boxSizing: "border-box",
-                      }}
-                    />
-
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setFoundForm((p) => ({ ...p, photo: e.target.files?.[0] || null }))}
-                    />
-
-                    <button className="pf2-btn pf2-btn-primary" type="submit">
-                      Submit Found Report
-                    </button>
-                  </form>
-                </div>
-              )}
-
-              {loadingFound && <div className="pfa-empty">Loading found reports…</div>}
-
-              {!loadingFound && filteredFound.length === 0 && (
-                <div className="pfa-empty">No found reports yet.</div>
-              )}
-
-              {!loadingFound && filteredFound.length > 0 && (
-                <div className="pfa-list">
-                  {filteredFound.map((item) => (
-                    <div key={item.id} className="pfa-row" style={{ alignItems: "flex-start" }}>
-                      <div className="pfa-left" style={{ width: "100%" }}>
-                        <div className="pfa-name">
-                          Found Report #{item.id} • <span className="pfa-chip">Found</span>
-                        </div>
-
-                        <div className="pfa-sub">
-                          {[item.species, item.breed, item.colour].filter(Boolean).join(" • ") || "Pet details not specified"}
-                        </div>
-
-                        <div className="pfa-sub">{item.description}</div>
-                        <div className="pfa-sub">
-                          {item.location_found ? `Location: ${item.location_found}` : "—"}
-                        </div>
-                        <div className="pfa-sub2">
-                          Found at: {fmt(item.found_at)} • Reported by: {item.reporter_name || "Community Member"}
-                        </div>
-
-                        {item.notes && <div className="pfa-sub2">Notes: {item.notes}</div>}
-
-                        {item.photo_url && (
-                          <div style={{ marginTop: 12 }}>
-                            <img
-                              src={item.photo_url}
-                              alt="Found report"
-                              style={{
-                                width: 140,
-                                height: 140,
-                                objectFit: "cover",
-                                borderRadius: 14,
-                                border: "1px solid #e5e7eb",
-                              }}
-                            />
-                          </div>
                         )}
-
-                        <div
-                          style={{
-                            marginTop: 14,
-                            borderTop: "1px solid #eef0f4",
-                            paddingTop: 14,
-                          }}
-                        >
-                          <div style={{ fontWeight: 800, marginBottom: 8 }}>Comments</div>
-
-                          {(item.comments || []).length === 0 ? (
-                            <div className="pfa-sub2">No comments yet.</div>
-                          ) : (
-                            <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-                              {item.comments.map((comment) => (
-                                <div
-                                  key={comment.id}
-                                  style={{
-                                    border: "1px solid #eef0f4",
-                                    borderRadius: 12,
-                                    padding: 10,
-                                    background: "#fafafa",
-                                  }}
-                                >
-                                  <div style={{ fontWeight: 700, fontSize: 14 }}>
-                                    {comment.commenter_name}
-                                  </div>
-                                  <div style={{ marginTop: 4 }}>{comment.comment}</div>
-                                  <div style={{ marginTop: 4, fontSize: 12, color: "#6b7280" }}>
-                                    {fmt(comment.created_at)}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                            <input
-                              value={commentText[item.id] || ""}
-                              onChange={(e) =>
-                                setCommentText((prev) => ({
-                                  ...prev,
-                                  [item.id]: e.target.value,
-                                }))
-                              }
-                              placeholder={token ? "Write a comment..." : "Log in to comment"}
-                              disabled={!token}
-                              style={{
-                                flex: 1,
-                                height: 42,
-                                borderRadius: 12,
-                                border: "1px solid #e5e7eb",
-                                padding: "0 12px",
-                                outline: "none",
-                                background: "#fff",
-                              }}
-                            />
-                            <button
-                              className="pf2-btn pf2-btn-small"
-                              onClick={() => submitComment(item.id)}
-                              disabled={!token}
-                              type="button"
-                            >
-                              Post
-                            </button>
-                          </div>
-                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
+              </div>
+            )}
+          </article>
+
+          <article className="pfd-card pfd-card-arch">
+            <div className="pfd-card-kicker">Priority spotlight</div>
+            <div className="pfd-arch-frame">
+              {featuredLostImage ? (
+                <img src={featuredLostImage} alt={featuredLost?.pet_name || "Featured lost pet"} />
+              ) : (
+                <div className="pfd-arch-empty">📍</div>
               )}
             </div>
-          </section>
-        </main>
-      </div>
+            <div className="pfd-arch-name">{featuredLost?.pet_name || "No Report"}</div>
+            <div className="pfd-arch-meta">
+              {featuredLost?.last_seen_location || "Priority alerts will be featured here."}
+            </div>
+          </article>
+
+          <article className="pfd-card pfd-card-board pfd-span-3">
+            <div className="pfd-card-head">
+              <div>
+                <div className="pfd-card-kicker">Community support</div>
+                <h2>Found Reports</h2>
+                <p>Report sightings, add comments, and help reunite pets with their owners.</p>
+              </div>
+              <button
+                className="pfd-btn pfd-btn-small"
+                onClick={() => {
+                  if (!token) return navigate("/login");
+                  setShowFoundForm((prev) => !prev);
+                }}
+              >
+                {showFoundForm ? "Close Form" : "+ Report Found Pet"}
+              </button>
+            </div>
+
+            {showFoundForm && (
+              <div className="plf-found-form">
+                <form onSubmit={submitFoundReport} style={{ display: "grid", gap: 12 }}>
+                  <div className="plf-found-grid-3">
+                    <input
+                      style={fieldStyle}
+                      placeholder="Species"
+                      value={foundForm.species}
+                      onChange={(e) => setFoundForm((p) => ({ ...p, species: e.target.value }))}
+                    />
+                    <input
+                      style={fieldStyle}
+                      placeholder="Breed"
+                      value={foundForm.breed}
+                      onChange={(e) => setFoundForm((p) => ({ ...p, breed: e.target.value }))}
+                    />
+                    <input
+                      style={fieldStyle}
+                      placeholder="Colour"
+                      value={foundForm.colour}
+                      onChange={(e) => setFoundForm((p) => ({ ...p, colour: e.target.value }))}
+                    />
+                  </div>
+
+                  <textarea
+                    placeholder="Description"
+                    value={foundForm.description}
+                    onChange={(e) => setFoundForm((p) => ({ ...p, description: e.target.value }))}
+                    rows={4}
+                    style={textareaStyle}
+                  />
+
+                  <div className="plf-found-grid-2">
+                    <input
+                      style={fieldStyle}
+                      placeholder="Location found"
+                      value={foundForm.location_found}
+                      onChange={(e) =>
+                        setFoundForm((p) => ({ ...p, location_found: e.target.value }))
+                      }
+                    />
+                    <input
+                      style={fieldStyle}
+                      type="datetime-local"
+                      value={foundForm.found_at}
+                      onChange={(e) => setFoundForm((p) => ({ ...p, found_at: e.target.value }))}
+                    />
+                  </div>
+
+                  <textarea
+                    placeholder="Additional notes (optional)"
+                    value={foundForm.notes}
+                    onChange={(e) => setFoundForm((p) => ({ ...p, notes: e.target.value }))}
+                    rows={3}
+                    style={textareaStyle}
+                  />
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      setFoundForm((p) => ({ ...p, photo: e.target.files?.[0] || null }))
+                    }
+                  />
+
+                  <button className="pfd-btn pfd-btn-primary" type="submit">
+                    Submit Found Report
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {loadingFound && <div className="pfd-empty">Loading found reports…</div>}
+
+            {!loadingFound && filteredFound.length === 0 && (
+              <div className="pfd-empty">No found reports yet.</div>
+            )}
+
+            {!loadingFound && filteredFound.length > 0 && (
+              <div className="plf-found-list">
+                {filteredFound.map((item) => (
+                  <div key={item.id} className="plf-found-row">
+                    <div className="plf-found-main">
+                      <div className="plf-report-head">
+                        <div className="plf-report-name">Found Report #{item.id}</div>
+                        <div className="plf-report-badges">
+                          <span className="plf-badge plf-badge-soft">Found</span>
+                        </div>
+                      </div>
+
+                      <div className="plf-report-meta">
+                        {[item.species, item.breed, item.colour].filter(Boolean).join(" • ") ||
+                          "Pet details not specified"}
+                      </div>
+
+                      <div className="plf-report-text">{item.description}</div>
+
+                      <div className="plf-report-meta">
+                        {item.location_found ? `Location: ${item.location_found}` : "Location: —"}
+                      </div>
+
+                      <div className="plf-report-meta">
+                        Found at: {fmt(item.found_at)} • Reported by:{" "}
+                        {item.reporter_name || "Community Member"}
+                      </div>
+
+                      {item.notes && <div className="plf-report-meta">Notes: {item.notes}</div>}
+
+                      {(item.comments || []).length > 0 && (
+                        <div className="plf-comments-block">
+                          {(item.comments || []).map((comment) => (
+                            <div key={comment.id} className="plf-comment">
+                              <div className="plf-comment-name">{comment.commenter_name}</div>
+                              <div className="plf-comment-text">{comment.comment}</div>
+                              <div className="plf-comment-date">{fmt(comment.created_at)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {(item.comments || []).length === 0 && (
+                        <div className="pfd-empty" style={{ paddingTop: 0 }}>
+                          No comments yet.
+                        </div>
+                      )}
+
+                      <div className="plf-comment-form">
+                        <input
+                          value={commentText[item.id] || ""}
+                          onChange={(e) =>
+                            setCommentText((prev) => ({
+                              ...prev,
+                              [item.id]: e.target.value,
+                            }))
+                          }
+                          placeholder={token ? "Write a comment..." : "Log in to comment"}
+                          disabled={!token}
+                          style={fieldStyle}
+                        />
+                        <button
+                          className="pfd-btn pfd-btn-small"
+                          onClick={() => submitComment(item.id)}
+                          disabled={!token}
+                          type="button"
+                        >
+                          Post
+                        </button>
+                      </div>
+                    </div>
+
+                    {item.photo_url && (
+                      <div className="plf-found-photo">
+                        <img src={item.photo_url} alt="Found report" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </article>
+
+          <article className="pfd-banner pfd-span-3">
+            <span className="pfd-banner-paw pfd-banner-paw-1">🐾</span>
+            <span className="pfd-banner-paw pfd-banner-paw-2">🐾</span>
+            <span className="pfd-banner-bone">📍</span>
+
+            <div className="pfd-banner-copy">
+              <div className="pfd-card-kicker pfd-card-kicker-light">Safety network</div>
+              <h2>
+                {isPremiumUser
+                  ? "Priority alerts, saved searches, and nearby reporting in one premium safety hub."
+                  : "Lost & Found helps nearby users respond quickly when a pet goes missing."}
+              </h2>
+              <div className="pfd-banner-divider">
+                fast alerts, nearby search, community support 🐾
+              </div>
+            </div>
+
+            <div className="pfd-banner-actions">
+              <button
+                className="pfd-quickaction"
+                onClick={() => {
+                  if (!token) return navigate("/login");
+                  navigate("/lostfound/report");
+                }}
+              >
+                <span className="pfd-quickicon">📍</span>
+                <span>Report Lost Pet</span>
+              </button>
+
+              <button className="pfd-quickaction" onClick={useMyLocation}>
+                <span className="pfd-quickicon">🧭</span>
+                <span>Use My Location</span>
+              </button>
+
+              <button className="pfd-quickaction" onClick={saveCurrentSearch}>
+                <span className="pfd-quickicon">💾</span>
+                <span>Save Search</span>
+              </button>
+
+              <button className="pfd-quickaction" onClick={toggleAreaAlerts}>
+                <span className="pfd-quickicon">🔔</span>
+                <span>{areaAlertsEnabled ? "Area Alerts On" : "Enable Alerts"}</span>
+              </button>
+            </div>
+          </article>
+        </section>
+      </main>
     </div>
   );
 }
