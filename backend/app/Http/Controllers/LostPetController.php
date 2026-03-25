@@ -14,7 +14,7 @@ class LostPetController extends Controller
     public function index(Request $request)
     {
         $q = Pet::query()
-            ->with('user:id,name')
+            ->with('user:id,name,account_type')
             ->where('is_lost', true)
             ->whereNull('archived_at')
             ->where(function ($q2) {
@@ -64,12 +64,15 @@ class LostPetController extends Controller
             }
 
             if ($sort === 'proximity') {
-                $q->orderBy('distance_km', 'asc');
+                $q->orderByDesc('is_priority')
+                  ->orderBy('distance_km', 'asc');
             } else {
-                $q->orderByDesc('reported_lost_at');
+                $q->orderByDesc('is_priority')
+                  ->orderByDesc('reported_lost_at');
             }
         } else {
-            $q->orderByDesc('reported_lost_at');
+            $q->orderByDesc('is_priority')
+              ->orderByDesc('reported_lost_at');
         }
 
         $lostPets = $q->get()->map(fn ($pet) => $this->formatLostPet($pet));
@@ -87,7 +90,7 @@ class LostPetController extends Controller
             return response()->json(['message' => 'Lost report not found.'], 404);
         }
 
-        $pet->load('user:id,name');
+        $pet->load('user:id,name,account_type');
 
         return response()->json($this->formatLostPet($pet), 200);
     }
@@ -105,6 +108,7 @@ class LostPetController extends Controller
             'photo' => ['nullable', 'image', 'max:4096'],
             'last_seen_lat' => ['nullable', 'numeric'],
             'last_seen_lng' => ['nullable', 'numeric'],
+            'is_priority' => ['nullable', 'boolean'],
         ]);
 
         $user = $request->user();
@@ -122,11 +126,13 @@ class LostPetController extends Controller
         if ($pet->is_lost && $pet->lost_status !== 'Resolved' && !$pet->archived_at) {
             return response()->json([
                 'message' => 'This pet already has an active lost report.',
-                'data' => $this->formatLostPet($pet->load('user:id,name')),
+                'data' => $this->formatLostPet($pet->load('user:id,name,account_type')),
             ], 422);
         }
 
-        // Fallback to pet profile photo if no new photo uploaded
+        $isPremiumUser = strtolower((string) ($user->account_type ?? 'basic')) === 'premium';
+        $isPriority = $isPremiumUser ? (bool) ($validated['is_priority'] ?? false) : false;
+
         $photoPath = $pet->lost_photo_path ?: $pet->photo_path;
 
         if ($request->hasFile('photo')) {
@@ -135,6 +141,7 @@ class LostPetController extends Controller
 
         $pet->update([
             'is_lost' => true,
+            'is_priority' => $isPriority,
             'lost_status' => 'Active',
             'lost_description' => $validated['description'],
             'last_seen_location' => $validated['last_seen_location'],
@@ -146,7 +153,7 @@ class LostPetController extends Controller
             'archived_at' => null,
         ]);
 
-        $pet->load('user:id,name');
+        $pet->load('user:id,name,account_type');
 
         return response()->json($this->formatLostPet($pet), 201);
     }
@@ -169,16 +176,17 @@ class LostPetController extends Controller
         if ($pet->lost_status === 'Resolved' || $pet->archived_at) {
             return response()->json([
                 'message' => 'This report is already resolved.',
-                'data' => $this->formatLostPet($pet->load('user:id,name')),
+                'data' => $this->formatLostPet($pet->load('user:id,name,account_type')),
             ], 200);
         }
 
         $pet->lost_status = 'Resolved';
         $pet->resolved_at = now();
         $pet->archived_at = now();
+        $pet->is_priority = false;
         $pet->save();
 
-        $pet->load('user:id,name');
+        $pet->load('user:id,name,account_type');
 
         return response()->json([
             'message' => 'Lost pet report marked as Resolved.',
@@ -196,6 +204,8 @@ class LostPetController extends Controller
             $photoUrl = asset('storage/' . $pet->photo_path);
         }
 
+        $ownerAccountType = strtolower((string) optional($pet->user)->account_type);
+
         return [
             'id' => $pet->id,
             'pet_name' => $pet->name,
@@ -208,6 +218,8 @@ class LostPetController extends Controller
             'age' => $pet->age,
             'gender' => $pet->gender,
             'owner_name' => optional($pet->user)->name,
+            'owner_account_type' => $ownerAccountType ?: 'basic',
+            'is_priority' => (bool) $pet->is_priority,
             'last_seen_lat' => $pet->last_seen_lat,
             'last_seen_lng' => $pet->last_seen_lng,
             'distance_km' => isset($pet->distance_km) ? round((float) $pet->distance_km, 2) : null,

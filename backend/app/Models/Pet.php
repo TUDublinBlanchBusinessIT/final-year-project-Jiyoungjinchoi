@@ -58,6 +58,7 @@ class Pet extends Model
 
         // Lost & Found
         'is_lost',
+        'is_priority',
         'lost_status',
         'lost_description',
         'last_seen_location',
@@ -75,6 +76,7 @@ class Pet extends Model
         'last_grooming_date' => 'date',
         'last_vet_visit' => 'date',
         'is_lost' => 'boolean',
+        'is_priority' => 'boolean',
         'reported_lost_at' => 'datetime',
         'resolved_at' => 'datetime',
         'archived_at' => 'datetime',
