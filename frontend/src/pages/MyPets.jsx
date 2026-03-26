@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
-import "./Dashboard.css";
+import "./MyPets.css";
 
 export default function MyPets() {
   const navigate = useNavigate();
 
   const [userName, setUserName] = useState("User");
 
-  // Pets state
   const [pets, setPets] = useState([]);
   const [petsLoading, setPetsLoading] = useState(false);
   const [petsError, setPetsError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const token = localStorage.getItem("pawfection_token");
 
@@ -55,7 +55,11 @@ export default function MyPets() {
   };
 
   useEffect(() => {
-    // Load user name
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
     try {
       const savedUser = localStorage.getItem("pawfection_user");
       if (savedUser) {
@@ -68,6 +72,7 @@ export default function MyPets() {
           localStorage.getItem("pawfection_user_name") ||
           localStorage.getItem("user_name") ||
           localStorage.getItem("name");
+
         if (fallbackName) setUserName(fallbackName);
       }
     } catch {
@@ -128,23 +133,57 @@ export default function MyPets() {
     }
   };
 
+  const filteredPets = useMemo(() => {
+    if (!searchTerm.trim()) return pets;
+
+    const q = searchTerm.toLowerCase();
+
+    return pets.filter((pet) =>
+      [pet?.name, pet?.breed, pet?.species]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q))
+    );
+  }, [pets, searchTerm]);
+
   const stats = useMemo(() => {
     const petCount = pets?.length || 0;
+
     return [
-      { label: "Pets", value: String(petCount), sub: "Registered", tone: "blue", icon: "🐾" },
-      { label: "Appointments", value: "0", sub: "Upcoming", tone: "mint", icon: "📅" },
-      { label: "Reminders", value: "0", sub: "Active", tone: "peach", icon: "⏰" },
+      {
+        label: "Pets",
+        value: String(petCount),
+        sub: "Registered",
+        tone: "blue",
+        icon: "🐾",
+      },
+      {
+        label: "Appointments",
+        value: "0",
+        sub: "Upcoming",
+        tone: "mint",
+        icon: "📅",
+      },
+      {
+        label: "Reminders",
+        value: "0",
+        sub: "Active",
+        tone: "peach",
+        icon: "⏰",
+      },
     ];
   }, [pets]);
 
   return (
     <div className="pf2-shell">
-      {/* Sidebar */}
       <aside className="pf2-sidebar">
         <div
           className="pf2-brand"
           onClick={() => navigate("/dashboard")}
           role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") navigate("/dashboard");
+          }}
         >
           <img className="pf2-brand-logo" src={PawfectionLogo} alt="Pawfection" />
           <div className="pf2-brand-text">
@@ -154,28 +193,47 @@ export default function MyPets() {
         </div>
 
         <nav className="pf2-nav">
-          <Link className="pf2-nav-item" to="/dashboard">Dashboard</Link>
-          <Link className="pf2-nav-item active" to="/mypets">My Pets</Link>
-          <Link className="pf2-nav-item" to="/appointments">Appointments</Link>
-          <Link className="pf2-nav-item" to="/reminders">Reminders</Link>
-          <Link className="pf2-nav-item" to="/lostfound">Lost &amp; Found</Link>
-          <Link className="pf2-nav-item" to="/community">Community</Link>
-          <Link className="pf2-nav-item" to="/inventory">Inventory</Link>
+          <Link className="pf2-nav-item" to="/dashboard">
+            Dashboard
+          </Link>
+          <Link className="pf2-nav-item active" to="/pets/1">
+            View My Pet
+          </Link>
+          <Link className="pf2-nav-item" to="/appointments">
+            Appointments
+          </Link>
+          <Link className="pf2-nav-item" to="/reminders">
+            Reminders
+          </Link>
+          <Link className="pf2-nav-item" to="/lostfound">
+            Lost &amp; Found
+          </Link>
+          <Link className="pf2-nav-item" to="/community">
+            Community
+          </Link>
+          <Link className="pf2-nav-item" to="/inventory">
+            Inventory
+          </Link>
         </nav>
 
         <div className="pf2-sidebar-footer">
-          <button className="pf2-btn pf2-btn-ghost" onClick={() => navigate("/profile")}>
+          <button
+            className="pf2-btn pf2-btn-ghost"
+            onClick={() => navigate("/profile")}
+          >
             View Profile
           </button>
         </div>
       </aside>
 
-      {/* Main */}
       <div className="pf2-main">
-        {/* Topbar */}
         <header className="pf2-topbar">
           <div className="pf2-search">
-            <input placeholder="Search pets..." />
+            <input
+              placeholder="Search pets..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
           <div className="pf2-topbar-right">
@@ -192,18 +250,20 @@ export default function MyPets() {
         <main className="pf2-content">
           <div className="pf2-pagehead">
             <div>
-              <h1 className="pf2-title">My Pets</h1>
-              <p className="pf2-subtitle">All pets linked to your account.</p>
+              <h1 className="pf2-title">View My Pet</h1>
+              <p className="pf2-subtitle">View your pet profile and details.</p>
             </div>
 
             <div className="pf2-actions">
-              <button className="pf2-btn pf2-btn-primary" onClick={() => navigate("/pets/create")}>
+              <button
+                className="pf2-btn pf2-btn-primary"
+                onClick={() => navigate("/pets/create")}
+              >
                 + Add Pet
               </button>
             </div>
           </div>
 
-          {/* Optional stats row (keeps it consistent with dashboard look) */}
           <section className="pf2-stats">
             {stats.map((s) => (
               <div key={s.label} className={`pf2-stat pf2-${s.tone}`}>
@@ -218,25 +278,31 @@ export default function MyPets() {
           </section>
 
           <section className="pf2-grid">
-            <div className="pf2-card pf2-span-2">
+            <div className="pf2-card">
               <div className="pf2-cardhead">
-                <h2>All Pets</h2>
+                <h2>View My Pet</h2>
                 <button className="pf2-btn pf2-btn-small" onClick={fetchPets}>
                   Refresh
                 </button>
               </div>
 
               {petsLoading && <div className="pf2-empty">Loading pets…</div>}
+
               {!petsLoading && petsError && <div className="pf2-empty">{petsError}</div>}
+
               {!petsLoading && !petsError && pets.length === 0 && (
                 <div className="pf2-empty">
                   No pets yet. Click <b>+ Add Pet</b> to create one.
                 </div>
               )}
 
-              {!petsLoading && !petsError && pets.length > 0 && (
+              {!petsLoading && !petsError && pets.length > 0 && filteredPets.length === 0 && (
+                <div className="pf2-empty">No pets match your search.</div>
+              )}
+
+              {!petsLoading && !petsError && filteredPets.length > 0 && (
                 <div className="pf2-petlist">
-                  {pets.map((pet) => {
+                  {filteredPets.map((pet) => {
                     const imgSrc = getPetImageSrc(pet);
 
                     return (
@@ -249,7 +315,7 @@ export default function MyPets() {
                           <div className="pf2-petmeta">
                             <div className="pf2-petname">{pet.name}</div>
                             <div className="pf2-petdesc">
-                              {(pet.breed || pet.species || "Pet")}
+                              {pet.breed || pet.species || "Pet"}
                               {" • "}
                               {pet.age ? `${pet.age} yrs` : "Age n/a"}
                               {pet.weight ? ` • ${pet.weight}kg` : ""}
@@ -258,7 +324,6 @@ export default function MyPets() {
                         </div>
 
                         <div className="pf2-petactions">
-                          {/* ✅ View button = Soon colour */}
                           <button
                             className="pf2-btn pf2-btn-small pf2-btn-soon"
                             onClick={() => navigate(`/pets/${pet.id}`)}
@@ -266,7 +331,6 @@ export default function MyPets() {
                             View
                           </button>
 
-                          {/* ✅ Edit button = Inventory Edit blue */}
                           <button
                             className="pf2-btn pf2-btn-small pf2-btn-edit"
                             onClick={() => navigate(`/pets/${pet.id}/edit`)}

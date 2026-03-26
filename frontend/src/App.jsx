@@ -83,54 +83,13 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
 
+        {/* Normal user routes */}
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/premium-dashboard"
-          element={
-            <PremiumPageRoute>
-              <PremiumDashboard />
-            </PremiumPageRoute>
-          }
-        />
-
-        <Route
-          path="/admin/dashboard"
-          element={
-            <AdminRoute>
-              <AdminDashboard />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/moderation"
-          element={
-            <AdminRoute>
-              <AdminModeration />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/lost-found"
-          element={
-            <AdminRoute>
-              <AdminLostFound />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/users"
-          element={
-            <AdminRoute>
-              <AdminUsers />
-            </AdminRoute>
           }
         />
 
@@ -183,7 +142,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/appointments"
           element={
@@ -200,7 +158,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/reminders"
           element={
@@ -217,7 +174,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/lostfound"
           element={
@@ -250,13 +206,112 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/profile"
           element={
             <ProtectedRoute>
               <ViewProfile />
             </ProtectedRoute>
+          }
+        />
+
+        {/* Premium routes */}
+        <Route
+          path="/premium-dashboard"
+          element={
+            <PremiumPageRoute>
+              <PremiumDashboard />
+            </PremiumPageRoute>
+          }
+        />
+        <Route
+          path="/premium/pets/:id"
+          element={
+            <PremiumPageRoute>
+              <PetOverview />
+            </PremiumPageRoute>
+          }
+        />
+        <Route
+          path="/premium/pets/:id/edit"
+          element={
+            <PremiumPageRoute>
+              <EditPet />
+            </PremiumPageRoute>
+          }
+        />
+        <Route
+          path="/premium/appointments"
+          element={
+            <PremiumPageRoute>
+              <Appointments />
+            </PremiumPageRoute>
+          }
+        />
+        <Route
+          path="/premium/reminders"
+          element={
+            <PremiumPageRoute>
+              <Reminders />
+            </PremiumPageRoute>
+          }
+        />
+        <Route
+          path="/premium/community"
+          element={
+            <PremiumPageRoute>
+              <Community />
+            </PremiumPageRoute>
+          }
+        />
+        <Route
+          path="/premium/inventory"
+          element={
+            <PremiumPageRoute>
+              <Inventory />
+            </PremiumPageRoute>
+          }
+        />
+        <Route
+          path="/premium/profile"
+          element={
+            <PremiumPageRoute>
+              <ViewProfile />
+            </PremiumPageRoute>
+          }
+        />
+
+        {/* Admin routes */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/moderation"
+          element={
+            <AdminRoute>
+              <AdminModeration />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/lost-found"
+          element={
+            <AdminRoute>
+              <AdminLostFound />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <AdminUsers />
+            </AdminRoute>
           }
         />
 

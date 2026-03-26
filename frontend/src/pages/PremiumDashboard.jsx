@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
+import PremiumPetInsights from "../components/PremiumPetInsights";
 import "./PremiumDashboard.css";
 
 export default function PremiumDashboard() {
@@ -137,7 +138,9 @@ export default function PremiumDashboard() {
 
   useEffect(() => {
     const savedToken = localStorage.getItem("pawfection_token");
-    const savedRole = String(localStorage.getItem("pawfection_role") || "").toLowerCase();
+    const savedRole = String(
+      localStorage.getItem("pawfection_role") || ""
+    ).toLowerCase();
     const savedAccountType = String(
       localStorage.getItem("pawfection_account_type") || "standard"
     ).toLowerCase();
@@ -185,7 +188,6 @@ export default function PremiumDashboard() {
 
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const getPetImageSrc = (pet) => {
@@ -253,6 +255,14 @@ export default function PremiumDashboard() {
       navigate("/vet-chat");
     } else {
       navigate("/upgrade-premium");
+    }
+  };
+
+  const handleViewMyPet = () => {
+    if (pets.length > 0) {
+      navigate(`/premium/pets/${pets[0].id}`);
+    } else {
+      navigate("/premium-dashboard");
     }
   };
 
@@ -362,10 +372,7 @@ export default function PremiumDashboard() {
   const heroPet = visiblePets[0] || pets[0] || null;
   const heroPetImage = heroPet ? getPetImageSrc(heroPet) : null;
 
-  const sidePet = visiblePets[1] || pets[1] || heroPet || null;
-  const sidePetImage = sidePet ? getPetImageSrc(sidePet) : null;
-
-  const tallPet = visiblePets[2] || pets[2] || sidePet || heroPet || null;
+  const tallPet = visiblePets[2] || pets[2] || heroPet || null;
   const tallPetImage = tallPet ? getPetImageSrc(tallPet) : null;
 
   const heroReminder = filteredReminders[0] || upcomingReminders[0] || null;
@@ -393,25 +400,30 @@ export default function PremiumDashboard() {
           <Link className="pfd-topnav-item active" to="/premium-dashboard">
             Premium My Pet
           </Link>
-          <Link className="pfd-topnav-item" to="/mypets">
-            My Pets
+
+          <Link
+            className="pfd-topnav-item"
+            to={pets.length > 0 ? `/premium/pets/${pets[0].id}` : "/premium-dashboard"}
+          >
+            View My Pet
           </Link>
-          <Link className="pfd-topnav-item" to="/appointments">
+
+          <Link className="pfd-topnav-item" to="/premium/appointments">
             Appointments
           </Link>
-          <Link className="pfd-topnav-item" to="/reminders">
+          <Link className="pfd-topnav-item" to="/premium/reminders">
             Reminders
           </Link>
           <Link className="pfd-topnav-item" to="/lostfound">
             Lost &amp; Found
           </Link>
-          <Link className="pfd-topnav-item" to="/community">
+          <Link className="pfd-topnav-item" to="/premium/community">
             Community
           </Link>
-          <Link className="pfd-topnav-item" to="/inventory">
+          <Link className="pfd-topnav-item" to="/premium/inventory">
             Inventory
           </Link>
-          <Link className="pfd-topnav-item" to="/profile">
+          <Link className="pfd-topnav-item" to="/premium/profile">
             Profile
           </Link>
         </nav>
@@ -474,10 +486,10 @@ export default function PremiumDashboard() {
               <button className="pfd-btn pfd-btn-primary" onClick={handleVetChat}>
                 {isPremium ? "Open Vet Chat" : "Upgrade for Vet Chat"}
               </button>
-              <button className="pfd-btn" onClick={() => navigate("/mypets")}>
-                View My Pets
+              <button className="pfd-btn" onClick={handleViewMyPet}>
+                View My Pet
               </button>
-              <button className="pfd-btn" onClick={() => navigate("/appointments/book")}>
+              <button className="pfd-btn" onClick={() => navigate("/premium/appointments")}>
                 Book Appointment
               </button>
             </div>
@@ -622,10 +634,10 @@ export default function PremiumDashboard() {
             </div>
 
             <div className="pfd-care-actions">
-              <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/appointments")}>
+              <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/premium/appointments")}>
                 Appointments
               </button>
-              <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/reminders")}>
+              <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/premium/reminders")}>
                 Reminders
               </button>
             </div>
@@ -635,11 +647,11 @@ export default function PremiumDashboard() {
             <div className="pfd-card-head">
               <div>
                 <div className="pfd-card-kicker">Pet gallery</div>
-                <h2>My Pets</h2>
+                <h2>View My Pet</h2>
                 <p>Your uploaded photos arranged in a playful premium board.</p>
               </div>
-              <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/mypets")}>
-                View All
+              <button className="pfd-btn pfd-btn-small" onClick={handleViewMyPet}>
+                Open Pet
               </button>
             </div>
 
@@ -673,7 +685,13 @@ export default function PremiumDashboard() {
                         <div className="pfd-pet-tile-actions">
                           <button
                             className="pfd-btn pfd-btn-small"
-                            onClick={() => navigate(`/pets/${pet.id}/edit`)}
+                            onClick={() => navigate(`/premium/pets/${pet.id}`)}
+                          >
+                            View
+                          </button>
+                          <button
+                            className="pfd-btn pfd-btn-small"
+                            onClick={() => navigate(`/premium/pets/${pet.id}/edit`)}
                           >
                             Edit
                           </button>
@@ -722,7 +740,7 @@ export default function PremiumDashboard() {
                     <h2>Upcoming Appointments</h2>
                     <p>Your nearest booked visits.</p>
                   </div>
-                  <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/appointments")}>
+                  <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/premium/appointments")}>
                     Open
                   </button>
                 </div>
@@ -762,7 +780,7 @@ export default function PremiumDashboard() {
                     <h2>Upcoming Reminders</h2>
                     <p>Your next pet-care tasks at a glance.</p>
                   </div>
-                  <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/reminders")}>
+                  <button className="pfd-btn pfd-btn-small" onClick={() => navigate("/premium/reminders")}>
                     View All
                   </button>
                 </div>
@@ -793,6 +811,13 @@ export default function PremiumDashboard() {
             </div>
           </article>
 
+          <PremiumPetInsights
+            pets={pets}
+            upcomingReminders={upcomingReminders}
+            appointments={appointments}
+            isPremium={isPremium}
+          />
+
           <article className="pfd-banner pfd-span-3">
             <span className="pfd-banner-paw pfd-banner-paw-1">🐾</span>
             <span className="pfd-banner-paw pfd-banner-paw-2">🐾</span>
@@ -819,11 +844,11 @@ export default function PremiumDashboard() {
                 <span className="pfd-quickicon">💬</span>
                 <span>{isPremium ? "Vet Chat" : "Unlock Vet Chat"}</span>
               </button>
-              <button className="pfd-quickaction" onClick={() => navigate("/inventory")}>
+              <button className="pfd-quickaction" onClick={() => navigate("/premium/inventory")}>
                 <span className="pfd-quickicon">📦</span>
                 <span>Inventory</span>
               </button>
-              <button className="pfd-quickaction" onClick={() => navigate("/community")}>
+              <button className="pfd-quickaction" onClick={() => navigate("/premium/community")}>
                 <span className="pfd-quickicon">💬</span>
                 <span>Community</span>
               </button>
