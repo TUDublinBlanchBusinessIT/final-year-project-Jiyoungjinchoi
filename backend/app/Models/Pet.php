@@ -91,4 +91,9 @@ class Pet extends Model
     {
         return $this->hasMany(\App\Models\Reminder::class);
     }
+
+    public function healthLogs()
+    {
+        return $this->hasMany(\App\Models\PetHealthLog::class)->orderByDesc('log_date');
+    }
 }
