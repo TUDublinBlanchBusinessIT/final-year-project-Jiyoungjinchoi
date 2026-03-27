@@ -16,6 +16,15 @@ export default function MyPets() {
 
   const token = localStorage.getItem("pawfection_token");
 
+  const accountType = String(
+    localStorage.getItem("pawfection_account_type") || "basic"
+  ).toLowerCase();
+
+  const isPremiumUser = accountType === "premium";
+
+  const dashboardRoute = isPremiumUser ? "/premium-dashboard" : "/dashboard";
+  const myPetsRoute = isPremiumUser ? "/premium-mypets" : "/mypets";
+
   const fetchPets = async () => {
     if (!token) {
       navigate("/login");
@@ -178,11 +187,13 @@ export default function MyPets() {
       <aside className="pf2-sidebar">
         <div
           className="pf2-brand"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(dashboardRoute)}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") navigate("/dashboard");
+            if (e.key === "Enter" || e.key === " ") {
+              navigate(dashboardRoute);
+            }
           }}
         >
           <img className="pf2-brand-logo" src={PawfectionLogo} alt="Pawfection" />
@@ -193,10 +204,10 @@ export default function MyPets() {
         </div>
 
         <nav className="pf2-nav">
-          <Link className="pf2-nav-item" to="/dashboard">
+          <Link className="pf2-nav-item" to={dashboardRoute}>
             Dashboard
           </Link>
-          <Link className="pf2-nav-item active" to="/pets/1">
+          <Link className="pf2-nav-item active" to={myPetsRoute}>
             View My Pet
           </Link>
           <Link className="pf2-nav-item" to="/appointments">
@@ -241,7 +252,9 @@ export default function MyPets() {
               <div className="pf2-avatar">{(userName?.[0] || "U").toUpperCase()}</div>
               <div className="pf2-userchip-text">
                 <div className="pf2-userchip-name">{userName}</div>
-                <div className="pf2-userchip-sub">User</div>
+                <div className="pf2-userchip-sub">
+                  {isPremiumUser ? "Premium User" : "User"}
+                </div>
               </div>
             </div>
           </div>
@@ -326,14 +339,26 @@ export default function MyPets() {
                         <div className="pf2-petactions">
                           <button
                             className="pf2-btn pf2-btn-small pf2-btn-soon"
-                            onClick={() => navigate(`/pets/${pet.id}`)}
+                            onClick={() =>
+                              navigate(
+                                isPremiumUser
+                                  ? `/premium-pets/${pet.id}`
+                                  : `/pets/${pet.id}`
+                              )
+                            }
                           >
                             View
                           </button>
 
                           <button
                             className="pf2-btn pf2-btn-small pf2-btn-edit"
-                            onClick={() => navigate(`/pets/${pet.id}/edit`)}
+                            onClick={() =>
+                              navigate(
+                                isPremiumUser
+                                  ? `/premium-pets/${pet.id}/edit`
+                                  : `/pets/${pet.id}/edit`
+                              )
+                            }
                           >
                             Edit
                           </button>

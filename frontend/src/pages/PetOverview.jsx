@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
+import PawfectionLogo from "../assets/PawfectionLogo.png";
+import "./Dashboard.css";
 import "./PetOverview.css";
 
 const TABS = ["Overview", "Health", "Diet", "Behaviour", "Reminders", "Guidance"];
@@ -93,6 +95,7 @@ function getGuidanceTips(pet) {
 
 export default function PetOverview() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
 
   const token = localStorage.getItem("pawfection_token");
@@ -113,10 +116,23 @@ export default function PetOverview() {
 
   const isPremium = accountType === "premium";
 
+  const [userName, setUserName] = useState("User");
   const [pet, setPet] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [tab, setTab] = useState("Overview");
+
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem("pawfection_user");
+      if (savedUser) {
+        const userObj = JSON.parse(savedUser);
+        if (userObj?.name) setUserName(userObj.name);
+      }
+    } catch {
+      setUserName("User");
+    }
+  }, []);
 
   const imgSrc = useMemo(() => {
     if (!pet) return null;
@@ -127,7 +143,6 @@ export default function PetOverview() {
   }, [pet]);
 
   const calculatedAge = useMemo(() => calculateAge(pet?.dob), [pet?.dob]);
-
   const guidanceTips = useMemo(() => getGuidanceTips(pet), [pet]);
 
   const upcomingReminders = useMemo(() => {
@@ -198,8 +213,8 @@ export default function PetOverview() {
 
   const nextReminder = upcomingReminders[0] || null;
 
-  const backToPetsRoute = isPremium ? "/premium-dashboard" : "/mypets";
-  const editPetRoute = isPremium ? `/premium/pets/${id}/edit` : `/pets/${id}/edit`;
+  const dashboardRoute = isPremium ? "/premium-dashboard" : "/dashboard";
+  const editPetRoute = isPremium ? `/premium-pets/${id}/edit` : `/pets/${id}/edit`;
   const remindersRoute = isPremium ? "/premium/reminders" : "/reminders";
 
   useEffect(() => {
@@ -220,7 +235,7 @@ export default function PetOverview() {
           },
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
           setErr(data?.message || "Failed to load pet.");
@@ -240,332 +255,309 @@ export default function PetOverview() {
   }, [id, navigate, token]);
 
   return (
-    <div className="po-page">
-      <div className="po-shell">
-        <div className="po-topbar">
-          <button className="po-back-btn" onClick={() => navigate(backToPetsRoute)}>
-            ← Back to My Pet
-          </button>
-
-          <div className="po-topbar-actions">
-            <button className="po-btn" onClick={() => navigate(backToPetsRoute)}>
-              {isPremium ? "Premium My Pet" : "All Pets"}
-            </button>
-            <button className="po-btn po-btn-primary" onClick={() => navigate(editPetRoute)}>
-              Edit Pet
-            </button>
+    <div className="pf2-shell">
+      <aside className="pf2-sidebar">
+        <div
+          className="pf2-brand"
+          onClick={() => navigate(dashboardRoute)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") navigate(dashboardRoute);
+          }}
+        >
+          <img className="pf2-brand-logo" src={PawfectionLogo} alt="Pawfection" />
+          <div className="pf2-brand-text">
+            <div className="pf2-brand-title">Pawfection</div>
+            <div className="pf2-brand-sub">Dashboard</div>
           </div>
         </div>
 
-        <div className="po-card">
-          {loading && <div className="po-empty">Loading pet profile...</div>}
-          {!loading && err && <div className="po-empty">{err}</div>}
+        <nav className="pf2-nav">
+          <Link className="pf2-nav-item" to={dashboardRoute}>
+            Dashboard
+          </Link>
+          <Link className="pf2-nav-item active" to="/mypets">
+            View My Pet
+          </Link>
+          <Link className="pf2-nav-item" to="/appointments">
+            Appointments
+          </Link>
+          <Link className="pf2-nav-item" to="/reminders">
+            Reminders
+          </Link>
+          <Link className="pf2-nav-item" to="/lostfound">
+            Lost &amp; Found
+          </Link>
+          <Link className="pf2-nav-item" to="/community">
+            Community
+          </Link>
+          <Link className="pf2-nav-item" to="/inventory">
+            Inventory
+          </Link>
+        </nav>
+
+        <div className="pf2-sidebar-footer">
+          <button
+            className="pf2-btn pf2-btn-ghost"
+            onClick={() => navigate("/profile")}
+          >
+            View Profile
+          </button>
+        </div>
+      </aside>
+
+      <div className="pf2-main">
+        <header className="pf2-topbar">
+          <div className="pf2-search">
+            <input value={pet?.name || ""} placeholder="Search pets..." readOnly />
+          </div>
+
+          <div className="pf2-topbar-right">
+            <div className="pf2-userchip" title={userName}>
+              <div className="pf2-avatar">{(userName?.[0] || "U").toUpperCase()}</div>
+              <div className="pf2-userchip-text">
+                <div className="pf2-userchip-name">{userName}</div>
+                <div className="pf2-userchip-sub">
+                  {isPremium ? "Premium User" : "User"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="pf2-content">
+          <div className="pov-head">
+            <div>
+              <h1 className="pov-title">Pet Overview</h1>
+              <p className="pov-subtitle">
+                View your pet’s information, reminders, health summary, and guidance.
+              </p>
+            </div>
+
+            <div className="pov-actions">
+              <button className="pf2-btn" onClick={() => navigate("/mypets")}>
+                Back
+              </button>
+              <button
+                className="pf2-btn pf2-btn-primary"
+                onClick={() => navigate(editPetRoute)}
+              >
+                Edit Pet
+              </button>
+            </div>
+          </div>
+
+          {loading && <div className="pov-empty">Loading pet profile...</div>}
+          {!loading && err && <div className="pov-alert">{err}</div>}
 
           {!loading && !err && pet && (
             <>
-              <section className="po-hero">
-                <div className="po-hero-main">
-                  <div className="po-photo-card">
-                    {imgSrc ? (
-                      <img src={imgSrc} alt={pet.name} className="po-photo" />
-                    ) : (
-                      <div className="po-photo-placeholder">🐾</div>
-                    )}
+              <section className="pf2-stats">
+                <div className="pf2-stat pf2-blue">
+                  <div className="pf2-stat-top">
+                    <div className="pf2-stat-label">Care Score</div>
+                    <div className="pf2-stat-icon pf2-icon-blue">🐾</div>
+                  </div>
+                  <div className="pf2-stat-value">{careScore}%</div>
+                  <div className="pf2-stat-sub">Profile strength</div>
+                </div>
 
-                    <div className="po-photo-overlay">
-                      <div className="po-kicker">
-                        {isPremium ? "Premium Pet Profile" : "Pet Profile"}
-                      </div>
+                <div className="pf2-stat pf2-mint">
+                  <div className="pf2-stat-top">
+                    <div className="pf2-stat-label">Reminders</div>
+                    <div className="pf2-stat-icon pf2-icon-mint">⏰</div>
+                  </div>
+                  <div className="pf2-stat-value">{upcomingReminders.length}</div>
+                  <div className="pf2-stat-sub">Upcoming</div>
+                </div>
 
-                      <div className="po-title-row">
-                        <h1>{pet.name}</h1>
-                        {isPremium && <span className="po-premium-badge">Premium</span>}
-                      </div>
+                <div className="pf2-stat pf2-peach">
+                  <div className="pf2-stat-top">
+                    <div className="pf2-stat-label">Profile</div>
+                    <div className="pf2-stat-icon pf2-icon-peach">📋</div>
+                  </div>
+                  <div className="pf2-stat-value">{profileCompleteness}%</div>
+                  <div className="pf2-stat-sub">Complete</div>
+                </div>
+              </section>
 
-                      <p className="po-meta">
+              <section className="pov-grid">
+                <div className="pov-card">
+                  <div className="pov-cardhead">
+                    <div>
+                      <div className="pov-cardtitle">{pet.name || "Pet"}</div>
+                      <div className="pov-mini">
                         {pet.species || "Pet"}
                         {pet.breed ? ` • ${pet.breed}` : ""}
                         {calculatedAge !== null ? ` • ${calculatedAge} yrs` : ""}
                         {pet.weight ? ` • ${pet.weight}kg` : ""}
-                      </p>
-
-                      <div className="po-chip-row">
-                        <span className="po-chip">Care Score {careScore}%</span>
-                        <span className="po-chip">
-                          {profileCompleteness}% Profile Complete
-                        </span>
-                        <span className="po-chip">
-                          {upcomingReminders.length} Reminder
-                          {upcomingReminders.length === 1 ? "" : "s"}
-                        </span>
-                      </div>
-
-                      <div className="po-action-row">
-                        <button
-                          className="po-btn po-btn-primary"
-                          onClick={() => navigate(editPetRoute)}
-                        >
-                          Edit Profile
-                        </button>
-
-                        <button
-                          className="po-btn"
-                          onClick={() => navigate(remindersRoute)}
-                        >
-                          View Reminders
-                        </button>
-
-                        {isPremium && (
-                          <button
-                            className="po-btn"
-                            onClick={() => navigate("/vet-chat")}
-                          >
-                            Ask Vet Chat
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="po-hero-side">
-                  <div className="po-mini-card">
-                    <div className="po-mini-label">Health Snapshot</div>
-                    <div className="po-mini-main">
-                      {pet.vaccination_status || "No status added"}
+                  <div className="pov-profileblock">
+                    <div className="pov-imagebox">
+                      {imgSrc ? (
+                        <img src={imgSrc} alt={pet.name} className="pov-image" />
+                      ) : (
+                        <div className="pov-imageplaceholder">🐾</div>
+                      )}
                     </div>
-                    <div className="po-mini-sub">
-                      Last vet visit: {formatDate(pet.last_vet_visit)}
-                    </div>
-                  </div>
 
-                  <div className="po-mini-card">
-                    <div className="po-mini-label">Next Care Focus</div>
-                    <div className="po-mini-main">
-                      {nextReminder?.title || "No reminder due"}
-                    </div>
-                    <div className="po-mini-sub">
-                      {nextReminder
-                        ? `Due ${formatDate(nextReminder.reminder_date)}`
-                        : "Everything looks calm right now."}
-                    </div>
-                  </div>
-
-                  <div className="po-mini-card">
-                    <div className="po-mini-label">Lifestyle Summary</div>
-                    <div className="po-mini-main">
-                      {pet.activity_level || "Activity not set"}
-                    </div>
-                    <div className="po-mini-sub">
-                      Diet: {pet.diet || pet.food_type || "Not added"}
-                    </div>
-                  </div>
-
-                  {isPremium && (
-                    <div className="po-mini-card po-mini-card-highlight">
-                      <div className="po-mini-label">Premium Guidance</div>
-                      <div className="po-mini-main">Smart care tools active</div>
-                      <div className="po-mini-sub">
-                        Personalised guidance and premium support are enabled for this pet.
+                    <div className="pov-infobox">
+                      <div className="pov-info-row">
+                        <span className="pov-info-label">Date of Birth</span>
+                        <span>{formatDate(pet.dob)}</span>
+                      </div>
+                      <div className="pov-info-row">
+                        <span className="pov-info-label">Gender</span>
+                        <span>{pet.gender || "-"}</span>
+                      </div>
+                      <div className="pov-info-row">
+                        <span className="pov-info-label">Vaccination Status</span>
+                        <span>{pet.vaccination_status || "-"}</span>
+                      </div>
+                      <div className="pov-info-row">
+                        <span className="pov-info-label">Last Vet Visit</span>
+                        <span>{formatDate(pet.last_vet_visit)}</span>
+                      </div>
+                      <div className="pov-info-row">
+                        <span className="pov-info-label">Microchip Number</span>
+                        <span>{pet.microchip_number || "Not added"}</span>
+                      </div>
+                      <div className="pov-info-row">
+                        <span className="pov-info-label">Activity Level</span>
+                        <span>{pet.activity_level || "Not added"}</span>
                       </div>
                     </div>
-                  )}
-                </div>
-              </section>
-
-              <section className="po-insight-strip">
-                <div className="po-strip-card">
-                  <div className="po-strip-label">Profile Completeness</div>
-                  <div className="po-strip-value">{profileCompleteness}%</div>
-                </div>
-
-                <div className="po-strip-card">
-                  <div className="po-strip-label">Reminders Due</div>
-                  <div className="po-strip-value">{upcomingReminders.length}</div>
-                </div>
-
-                <div className="po-strip-card">
-                  <div className="po-strip-label">Vaccination</div>
-                  <div className="po-strip-value-small">
-                    {pet.vaccination_status || "Not set"}
                   </div>
-                </div>
 
-                <div className="po-strip-card">
-                  <div className="po-strip-label">Microchip</div>
-                  <div className="po-strip-value-small">
-                    {pet.microchip_number || "Not added"}
+                  <div className="pov-tabs">
+                    {TABS.map((t) => (
+                      <button
+                        key={t}
+                        className={`pov-tab ${tab === t ? "active" : ""}`}
+                        onClick={() => setTab(t)}
+                      >
+                        {t}
+                      </button>
+                    ))}
                   </div>
-                </div>
-              </section>
 
-              <div className="po-tabs">
-                {TABS.map((t) => (
-                  <button
-                    key={t}
-                    className={`po-tab-btn ${tab === t ? "active" : ""}`}
-                    onClick={() => setTab(t)}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-
-              <section className="po-content-grid">
-                <div className="po-main-panel">
-                  <div className="po-section-card">
+                  <div className="pov-tabpanel">
                     {tab === "Overview" && (
-                      <div className="po-detail-list">
-                        <div className="po-detail-row">
-                          <span className="po-detail-label">Notes</span>
+                      <div className="pov-detail-list">
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Notes</span>
                           <span>{pet.notes?.trim() ? pet.notes : "No notes added"}</span>
                         </div>
-                        <div className="po-detail-row">
-                          <span className="po-detail-label">Date of Birth</span>
-                          <span>{formatDate(pet.dob)}</span>
-                        </div>
-                        <div className="po-detail-row">
-                          <span className="po-detail-label">Gender</span>
-                          <span>{pet.gender || "-"}</span>
-                        </div>
-                        <div className="po-detail-row">
-                          <span className="po-detail-label">Species</span>
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Species</span>
                           <span>{pet.species || "-"}</span>
                         </div>
-                        <div className="po-detail-row">
-                          <span className="po-detail-label">Breed</span>
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Breed</span>
                           <span>{pet.breed || "-"}</span>
                         </div>
-                        <div className="po-detail-row">
-                          <span className="po-detail-label">Weight</span>
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Weight</span>
                           <span>{pet.weight ? `${pet.weight}kg` : "-"}</span>
                         </div>
                       </div>
                     )}
 
                     {tab === "Health" && (
-                      <>
-                        {pet.vaccination_status ||
-                        pet.last_vet_visit ||
-                        pet.medical_notes ||
-                        pet.health_conditions ? (
-                          <div className="po-detail-list">
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Vaccination Status</span>
-                              <span>{pet.vaccination_status || "-"}</span>
-                            </div>
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Last Vet Visit</span>
-                              <span>{formatDate(pet.last_vet_visit)}</span>
-                            </div>
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Health Conditions</span>
-                              <span>{pet.health_conditions || "None recorded"}</span>
-                            </div>
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Medical Notes</span>
-                              <span>{pet.medical_notes || "-"}</span>
-                            </div>
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Allergies</span>
-                              <span>{pet.allergies || "None"}</span>
-                            </div>
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Microchip Number</span>
-                              <span>{pet.microchip_number || "Not added"}</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="po-empty">No health records available.</div>
-                        )}
-                      </>
+                      <div className="pov-detail-list">
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Vaccination Status</span>
+                          <span>{pet.vaccination_status || "-"}</span>
+                        </div>
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Last Vet Visit</span>
+                          <span>{formatDate(pet.last_vet_visit)}</span>
+                        </div>
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Health Conditions</span>
+                          <span>{pet.health_conditions || "None recorded"}</span>
+                        </div>
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Medical Notes</span>
+                          <span>{pet.medical_notes || "-"}</span>
+                        </div>
+                      </div>
                     )}
 
                     {tab === "Diet" && (
-                      <>
-                        {pet.food_type || pet.diet || pet.feeding_schedule || pet.allergies ? (
-                          <div className="po-detail-list">
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Food Type</span>
-                              <span>{pet.food_type || pet.diet || "-"}</span>
-                            </div>
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Feeding Schedule</span>
-                              <span>{pet.feeding_schedule || "Not added"}</span>
-                            </div>
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Diet Notes</span>
-                              <span>{pet.diet || "Not added"}</span>
-                            </div>
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Allergies</span>
-                              <span>{pet.allergies || "None"}</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="po-empty">No diet information added.</div>
-                        )}
-                      </>
+                      <div className="pov-detail-list">
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Food Type</span>
+                          <span>{pet.food_type || pet.diet || "-"}</span>
+                        </div>
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Feeding Schedule</span>
+                          <span>{pet.feeding_schedule || "Not added"}</span>
+                        </div>
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Diet Notes</span>
+                          <span>{pet.diet || "Not added"}</span>
+                        </div>
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Allergies</span>
+                          <span>{pet.allergies || "None"}</span>
+                        </div>
+                      </div>
                     )}
 
                     {tab === "Behaviour" && (
-                      <>
-                        {pet.temperament ||
-                        pet.personality_traits ||
-                        pet.behaviour_notes ||
-                        pet.activity_level ? (
-                          <div className="po-detail-list">
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Temperament</span>
-                              <span>{pet.temperament || pet.personality_traits || "-"}</span>
-                            </div>
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Activity Level</span>
-                              <span>{pet.activity_level || "Not added"}</span>
-                            </div>
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Exercise Level</span>
-                              <span>{pet.exercise_level || "Not added"}</span>
-                            </div>
-                            <div className="po-detail-row">
-                              <span className="po-detail-label">Behaviour Notes</span>
-                              <span>{pet.behaviour_notes || pet.notes || "-"}</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="po-empty">No behaviour information added.</div>
-                        )}
-                      </>
+                      <div className="pov-detail-list">
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Temperament</span>
+                          <span>{pet.temperament || pet.personality_traits || "-"}</span>
+                        </div>
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Activity Level</span>
+                          <span>{pet.activity_level || "Not added"}</span>
+                        </div>
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Exercise Level</span>
+                          <span>{pet.exercise_level || "Not added"}</span>
+                        </div>
+                        <div className="pov-detail-row">
+                          <span className="pov-detail-label">Behaviour Notes</span>
+                          <span>{pet.behaviour_notes || pet.notes || "-"}</span>
+                        </div>
+                      </div>
                     )}
 
                     {tab === "Reminders" && (
                       <>
                         {upcomingReminders.length > 0 ? (
-                          <div className="po-reminder-list">
+                          <div className="pov-reminder-list">
                             {upcomingReminders.map((reminder) => (
-                              <div key={reminder.id} className="po-reminder-item">
-                                <div className="po-reminder-title">
+                              <div key={reminder.id} className="pov-reminder-item">
+                                <div className="pov-reminder-title">
                                   {reminder.title || "-"}
                                 </div>
-                                <div className="po-reminder-date">
+                                <div className="pov-reminder-date">
                                   Due: {formatDate(reminder.reminder_date)}
                                 </div>
-                                <div className="po-reminder-text">
+                                <div className="pov-reminder-text">
                                   {reminder.message || "Reminder"}
                                 </div>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <div className="po-empty">No upcoming reminders.</div>
+                          <div className="pov-empty">No upcoming reminders.</div>
                         )}
                       </>
                     )}
 
                     {tab === "Guidance" && (
-                      <div className="po-guidance-list">
+                      <div className="pov-guidance-list">
                         {guidanceTips.map((tip, index) => (
-                          <div key={index} className="po-guidance-item">
+                          <div key={index} className="pov-guidance-item">
                             {tip}
                           </div>
                         ))}
@@ -574,74 +566,77 @@ export default function PetOverview() {
                   </div>
                 </div>
 
-                <div className="po-side-panel">
-                  <div className="po-side-card">
-                    <div className="po-side-title">Care Score</div>
-                    <div className="po-score-ring">{careScore}%</div>
-                    <div className="po-side-text">
-                      Based on profile strength, reminders, and care information.
-                    </div>
-                  </div>
+                <div className="pov-sidecard">
+                  <div className="pov-cardtitle">Quick summary</div>
+                  <div className="pov-mini">Helpful information for this pet profile.</div>
 
-                  <div className="po-side-card">
-                    <div className="po-side-title">Upcoming Reminders</div>
-                    {upcomingReminders.length > 0 ? (
-                      <div className="po-side-list">
-                        {upcomingReminders.slice(0, 3).map((reminder) => (
-                          <div key={reminder.id} className="po-side-list-item">
-                            <strong>{reminder.title}</strong>
-                            <span>{formatDate(reminder.reminder_date)}</span>
-                          </div>
-                        ))}
+                  <div className="pov-side-list">
+                    <div className="pov-side-item">
+                      <div className="pov-side-label">Next reminder</div>
+                      <div className="pov-side-value">
+                        {nextReminder
+                          ? `${nextReminder.title} on ${formatDate(nextReminder.reminder_date)}`
+                          : "No upcoming reminders"}
                       </div>
-                    ) : (
-                      <div className="po-side-text">No upcoming reminders.</div>
+                    </div>
+
+                    <div className="pov-side-item">
+                      <div className="pov-side-label">Diet</div>
+                      <div className="pov-side-value">
+                        {pet.diet || pet.food_type || "Not added"}
+                      </div>
+                    </div>
+
+                    <div className="pov-side-item">
+                      <div className="pov-side-label">Vaccination</div>
+                      <div className="pov-side-value">
+                        {pet.vaccination_status || "Not set"}
+                      </div>
+                    </div>
+
+                    {isPremium && (
+                      <div className="pov-side-item">
+                        <div className="pov-side-label">Premium tools</div>
+                        <div className="pov-side-value">
+                          Smart care tools and premium features are active.
+                        </div>
+                      </div>
                     )}
                   </div>
 
-                  <div className="po-side-card">
-                    <div className="po-side-title">Quick Summary</div>
-                    <div className="po-side-text">
-                      {nextReminder
-                        ? `${pet.name}'s next care task is "${nextReminder.title}".`
-                        : `${pet.name} currently has no upcoming reminders.`}
-                    </div>
+                  <div className="pov-side-actions">
+                    <button
+                      className="pf2-btn pf2-btn-small pf2-btn-primary"
+                      onClick={() => navigate(editPetRoute)}
+                    >
+                      Edit Profile
+                    </button>
+                    <button
+                      className="pf2-btn pf2-btn-small"
+                      onClick={() => navigate(remindersRoute)}
+                    >
+                      View Reminders
+                    </button>
+                    <button
+                      className="pf2-btn pf2-btn-small"
+                      onClick={() => navigate(dashboardRoute)}
+                    >
+                      Dashboard
+                    </button>
+                    {isPremium && (
+                      <button
+                        className="pf2-btn pf2-btn-small"
+                        onClick={() => navigate("/vet-chat")}
+                      >
+                        Vet Chat
+                      </button>
+                    )}
                   </div>
-
-                  {isPremium && (
-                    <div className="po-side-card po-premium-panel">
-                      <div className="po-side-title">Premium Tools</div>
-                      <div className="po-side-text">
-                        Use smarter care features and premium support for {pet.name}.
-                      </div>
-
-                      <div className="po-side-actions">
-                        <button
-                          className="po-btn po-btn-primary"
-                          onClick={() => navigate("/vet-chat")}
-                        >
-                          Open Vet Chat
-                        </button>
-                        <button
-                          className="po-btn"
-                          onClick={() => navigate("/premium-dashboard")}
-                        >
-                          Premium Dashboard
-                        </button>
-                        <button
-                          className="po-btn"
-                          onClick={() => navigate("/premium/reminders")}
-                        >
-                          Manage Reminders
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </section>
             </>
           )}
-        </div>
+        </main>
       </div>
     </div>
   );

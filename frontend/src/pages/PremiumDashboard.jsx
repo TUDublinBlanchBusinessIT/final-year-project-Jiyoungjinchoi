@@ -259,11 +259,7 @@ export default function PremiumDashboard() {
   };
 
   const handleViewMyPet = () => {
-    if (pets.length > 0) {
-      navigate(`/premium/pets/${pets[0].id}`);
-    } else {
-      navigate("/premium-dashboard");
-    }
+    navigate("/premium-mypets");
   };
 
   const formatDate = (iso) => {
@@ -401,10 +397,7 @@ export default function PremiumDashboard() {
             Premium My Pet
           </Link>
 
-          <Link
-            className="pfd-topnav-item"
-            to={pets.length > 0 ? `/premium/pets/${pets[0].id}` : "/premium-dashboard"}
-          >
+          <Link className="pfd-topnav-item" to="/premium-mypets">
             View My Pet
           </Link>
 
@@ -685,13 +678,13 @@ export default function PremiumDashboard() {
                         <div className="pfd-pet-tile-actions">
                           <button
                             className="pfd-btn pfd-btn-small"
-                            onClick={() => navigate(`/premium/pets/${pet.id}`)}
+                            onClick={() => navigate(`/premium-pets/${pet.id}`)}
                           >
                             View
                           </button>
                           <button
                             className="pfd-btn pfd-btn-small"
-                            onClick={() => navigate(`/premium/pets/${pet.id}/edit`)}
+                            onClick={() => navigate(`/premium-pets/${pet.id}/edit`)}
                           >
                             Edit
                           </button>

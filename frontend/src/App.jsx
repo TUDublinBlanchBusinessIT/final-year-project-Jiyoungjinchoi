@@ -24,7 +24,10 @@ import ViewProfile from "./pages/ViewProfile";
 import UpgradePremium from "./pages/UpgradePremium";
 
 import LostFound from "./pages/LostFound";
+import PremiumLostFound from "./pages/PremiumLostFound";
+
 import ReportLostPet from "./pages/ReportLostPet";
+import PremiumReportLostPet from "./pages/PremiumReportLostPet";
 import SubmitSighting from "./pages/SubmitSighting";
 import LostReportDetails from "./pages/LostReportDetails";
 
@@ -46,6 +49,23 @@ function getStoredUser() {
   }
 }
 
+function getUserRole() {
+  const user = getStoredUser();
+  return String(
+    user?.role || localStorage.getItem("pawfection_role") || ""
+  ).toLowerCase();
+}
+
+function getAccountType() {
+  const user = getStoredUser();
+  return String(
+    user?.account_type ||
+      user?.plan ||
+      localStorage.getItem("pawfection_account_type") ||
+      "standard"
+  ).toLowerCase();
+}
+
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("pawfection_token");
   return token ? children : <Navigate to="/login" replace />;
@@ -53,24 +73,45 @@ function ProtectedRoute({ children }) {
 
 function PremiumPageRoute({ children }) {
   const token = localStorage.getItem("pawfection_token");
-  const user = getStoredUser();
-  const role = String(user?.role || localStorage.getItem("pawfection_role") || "").toLowerCase();
+  const role = getUserRole();
+  const accountType = getAccountType();
 
   if (!token) return <Navigate to="/login" replace />;
   if (role === "admin") return <Navigate to="/admin/dashboard" replace />;
+  if (accountType !== "premium") return <Navigate to="/dashboard" replace />;
 
   return children;
 }
 
 function AdminRoute({ children }) {
   const token = localStorage.getItem("pawfection_token");
-  const user = getStoredUser();
-  const role = String(user?.role || localStorage.getItem("pawfection_role") || "").toLowerCase();
+  const role = getUserRole();
 
   if (!token) return <Navigate to="/login" replace />;
   if (role !== "admin") return <Navigate to="/dashboard" replace />;
 
   return children;
+}
+
+function LostFoundRoute() {
+  const token = localStorage.getItem("pawfection_token");
+  const role = getUserRole();
+  const accountType = getAccountType();
+
+  if (!token) return <Navigate to="/login" replace />;
+  if (role === "admin") return <Navigate to="/admin/lost-found" replace />;
+
+  return accountType === "premium" ? <PremiumLostFound /> : <LostFound />;
+}
+
+function ReportLostPetRoute() {
+  const token = localStorage.getItem("pawfection_token");
+  const role = getUserRole();
+
+  if (!token) return <Navigate to="/login" replace />;
+  if (role === "admin") return <Navigate to="/admin/lost-found" replace />;
+
+  return <ReportLostPet />;
 }
 
 export default function App() {
@@ -83,13 +124,21 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
 
-        {/* Normal user routes */}
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/premium-dashboard"
+          element={
+            <PremiumPageRoute>
+              <PremiumDashboard />
+            </PremiumPageRoute>
           }
         />
 
@@ -101,6 +150,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/pets/:id/edit"
           element={
@@ -109,12 +159,31 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/pets/:id"
           element={
             <ProtectedRoute>
               <PetOverview />
             </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/premium-pets/:id"
+          element={
+            <PremiumPageRoute>
+              <PetOverview />
+            </PremiumPageRoute>
+          }
+        />
+
+        <Route
+          path="/premium-pets/:id/edit"
+          element={
+            <PremiumPageRoute>
+              <EditPet />
+            </PremiumPageRoute>
           }
         />
 
@@ -126,6 +195,16 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/premium-mypets"
+          element={
+            <PremiumPageRoute>
+              <MyPets />
+            </PremiumPageRoute>
+          }
+        />
+
         <Route
           path="/community"
           element={
@@ -134,6 +213,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/inventory"
           element={
@@ -142,6 +222,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/appointments"
           element={
@@ -150,6 +231,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/appointments/book"
           element={
@@ -158,6 +240,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/reminders"
           element={
@@ -166,6 +249,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/reminders/add"
           element={
@@ -174,22 +258,28 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="/lostfound" element={<LostFoundRoute />} />
+        <Route path="/lostfound/report" element={<ReportLostPetRoute />} />
+
         <Route
-          path="/lostfound"
+          path="/premium/lostfound"
           element={
-            <ProtectedRoute>
-              <LostFound />
-            </ProtectedRoute>
+            <PremiumPageRoute>
+              <PremiumLostFound />
+            </PremiumPageRoute>
           }
         />
+
         <Route
-          path="/lostfound/report"
+          path="/premium/lostfound/report"
           element={
-            <ProtectedRoute>
-              <ReportLostPet />
-            </ProtectedRoute>
+            <PremiumPageRoute>
+              <PremiumReportLostPet />
+            </PremiumPageRoute>
           }
         />
+
         <Route
           path="/lostfound/:id"
           element={
@@ -198,6 +288,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/lostfound/:id/sighting"
           element={
@@ -206,6 +297,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/profile"
           element={
@@ -215,31 +307,6 @@ export default function App() {
           }
         />
 
-        {/* Premium routes */}
-        <Route
-          path="/premium-dashboard"
-          element={
-            <PremiumPageRoute>
-              <PremiumDashboard />
-            </PremiumPageRoute>
-          }
-        />
-        <Route
-          path="/premium/pets/:id"
-          element={
-            <PremiumPageRoute>
-              <PetOverview />
-            </PremiumPageRoute>
-          }
-        />
-        <Route
-          path="/premium/pets/:id/edit"
-          element={
-            <PremiumPageRoute>
-              <EditPet />
-            </PremiumPageRoute>
-          }
-        />
         <Route
           path="/premium/appointments"
           element={
@@ -248,6 +315,7 @@ export default function App() {
             </PremiumPageRoute>
           }
         />
+
         <Route
           path="/premium/reminders"
           element={
@@ -256,6 +324,7 @@ export default function App() {
             </PremiumPageRoute>
           }
         />
+
         <Route
           path="/premium/community"
           element={
@@ -264,6 +333,7 @@ export default function App() {
             </PremiumPageRoute>
           }
         />
+
         <Route
           path="/premium/inventory"
           element={
@@ -272,6 +342,7 @@ export default function App() {
             </PremiumPageRoute>
           }
         />
+
         <Route
           path="/premium/profile"
           element={
@@ -281,7 +352,6 @@ export default function App() {
           }
         />
 
-        {/* Admin routes */}
         <Route
           path="/admin/dashboard"
           element={
@@ -290,6 +360,7 @@ export default function App() {
             </AdminRoute>
           }
         />
+
         <Route
           path="/admin/moderation"
           element={
@@ -298,6 +369,7 @@ export default function App() {
             </AdminRoute>
           }
         />
+
         <Route
           path="/admin/lost-found"
           element={
@@ -306,6 +378,7 @@ export default function App() {
             </AdminRoute>
           }
         />
+
         <Route
           path="/admin/users"
           element={
