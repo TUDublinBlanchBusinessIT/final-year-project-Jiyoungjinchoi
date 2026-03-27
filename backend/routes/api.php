@@ -23,6 +23,7 @@ use App\Http\Controllers\FoundReportCommentController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PremiumInsightsController;
 use App\Http\Controllers\PetHealthLogController;
+use App\Http\Controllers\Api\PremiumLostFoundController;
 
 // ✅ Health check
 Route::get('/health', function () {
@@ -71,6 +72,9 @@ Route::get('/lost-pets/{pet}/sightings', [SightingController::class, 'index']);
 Route::get('/found-reports', [FoundReportController::class, 'index']);
 Route::get('/found-reports/{foundReport}', [FoundReportController::class, 'show']);
 Route::get('/found-reports/{foundReport}/comments', [FoundReportCommentController::class, 'index']);
+
+// ✅ TEMPORARY: public for testing Premium Lost & Found data
+Route::get('/premium/lost-found', [PremiumLostFoundController::class, 'index']);
 
 /*
 |--------------------------------------------------------------------------

@@ -12,8 +12,6 @@ class Pet extends Model
 
     protected $fillable = [
         'user_id',
-
-        // Basic
         'name',
         'species',
         'breed',
@@ -23,14 +21,10 @@ class Pet extends Model
         'weight',
         'notes',
         'photo_path',
-
-        // Reminder fields
         'last_vaccination_date',
         'vaccine_interval_days',
         'last_grooming_date',
         'grooming_interval_days',
-
-        // Extra profile fields
         'eye_color',
         'fur_type',
         'markings',
@@ -42,8 +36,6 @@ class Pet extends Model
         'activity_level',
         'diet',
         'personality_traits',
-
-        // Legacy/compatibility fields still used in some places
         'vaccination_status',
         'last_vet_visit',
         'medical_notes',
@@ -51,12 +43,8 @@ class Pet extends Model
         'feeding_schedule',
         'temperament',
         'behaviour_notes',
-
-        // Memorial
         'status',
         'memorial_message',
-
-        // Lost & Found
         'is_lost',
         'is_priority',
         'lost_status',
