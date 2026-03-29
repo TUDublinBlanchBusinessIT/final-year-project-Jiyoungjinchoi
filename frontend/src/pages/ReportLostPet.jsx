@@ -1,31 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import PawfectionLogo from "../assets/PawfectionLogo.png";
-import "./Dashboard.css";
-import "./LostFoundBasic.css";
-import "./ReportLostPet.css";
+import { useNavigate } from "react-router-dom";
 
 export default function ReportLostPet() {
   const navigate = useNavigate();
-  const location = useLocation();
-
   const token = localStorage.getItem("pawfection_token");
   const apiBase = "http://127.0.0.1:8000/api";
 
-  const [userName, setUserName] = useState("User");
   const [pets, setPets] = useState([]);
-  const [loadingPets, setLoadingPets] = useState(false);
-  const [usingLocation, setUsingLocation] = useState(false);
-  const [status, setStatus] = useState({ type: "idle", message: "" });
+  const [selectedPetId, setSelectedPetId] = useState("");
+  const [selectedPet, setSelectedPet] = useState(null);
 
-  const [form, setForm] = useState({
-    pet_id: "",
-    description: "",
-    last_seen_location: "",
-    last_seen_lat: "",
-    last_seen_lng: "",
-    photo: null,
-  });
+  const [description, setDescription] = useState("");
+  const [lastSeenLocation, setLastSeenLocation] = useState("");
+  const [lastSeenLat, setLastSeenLat] = useState("");
+  const [lastSeenLng, setLastSeenLng] = useState("");
+  const [photo, setPhoto] = useState(null);
+
+  const [status, setStatus] = useState({ type: "idle", message: "" });
+  const [loadingPets, setLoadingPets] = useState(true);
 
   const authHeaders = useMemo(() => {
     return {
@@ -34,461 +26,430 @@ export default function ReportLostPet() {
     };
   }, [token]);
 
-  const loadUserName = () => {
-    try {
-      const savedUser = localStorage.getItem("pawfection_user");
-      if (savedUser) {
-        const userObj = JSON.parse(savedUser);
-        if (userObj?.name && typeof userObj.name === "string") {
-          setUserName(userObj.name);
-          return;
-        }
-      }
-
-      const fallbackName =
-        localStorage.getItem("pawfection_user_name") ||
-        localStorage.getItem("user_name") ||
-        localStorage.getItem("name");
-
-      if (fallbackName) setUserName(fallbackName);
-    } catch {
-      setUserName("User");
-    }
-  };
-
-  const fetchPets = async () => {
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
-    setLoadingPets(true);
-    setStatus({ type: "idle", message: "" });
-
-    try {
-      const res = await fetch(`${apiBase}/pets`, {
-        method: "GET",
-        headers: authHeaders,
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setPets([]);
-        setStatus({
-          type: "error",
-          message: data?.message || "Failed to load pets.",
-        });
-      } else {
-        const list = Array.isArray(data) ? data : data?.pets || data?.data || [];
-        setPets(Array.isArray(list) ? list : []);
-      }
-    } catch {
-      setPets([]);
-      setStatus({
-        type: "error",
-        message: "Server error. Is your backend running?",
-      });
-    } finally {
-      setLoadingPets(false);
-    }
-  };
-
-  const resetForm = () => {
-    setForm({
-      pet_id: "",
-      description: "",
-      last_seen_location: "",
-      last_seen_lat: "",
-      last_seen_lng: "",
-      photo: null,
-    });
-  };
-
-  const useMyLocation = () => {
-    if (!navigator.geolocation) {
-      setStatus({
-        type: "error",
-        message: "Geolocation is not supported in this browser.",
-      });
-      return;
-    }
-
-    setUsingLocation(true);
-    setStatus({ type: "idle", message: "" });
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = String(pos.coords.latitude);
-        const lng = String(pos.coords.longitude);
-        const visibleLocation = `Lat ${Number(lat).toFixed(5)}, Lng ${Number(lng).toFixed(5)}`;
-
-        setForm((prev) => ({
-          ...prev,
-          last_seen_lat: lat,
-          last_seen_lng: lng,
-          last_seen_location: visibleLocation,
-        }));
-
-        setUsingLocation(false);
-        setStatus({
-          type: "success",
-          message: "Location detected successfully.",
-        });
-      },
-      () => {
-        setUsingLocation(false);
-        setStatus({
-          type: "error",
-          message: "Location permission denied.",
-        });
-      }
-    );
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
-    setStatus({ type: "idle", message: "" });
-
-    if (!form.pet_id) {
-      setStatus({ type: "error", message: "Please select a pet." });
-      return;
-    }
-
-    if (!form.last_seen_location.trim()) {
-      setStatus({ type: "error", message: "Please enter the last seen location." });
-      return;
-    }
-
-    if (!form.description.trim()) {
-      setStatus({ type: "error", message: "Please enter a description." });
-      return;
-    }
-
-    setStatus({ type: "loading", message: "Submitting lost pet report..." });
-
-    try {
-      const body = new FormData();
-      body.append("pet_id", form.pet_id);
-      body.append("description", form.description.trim());
-      body.append("last_seen_location", form.last_seen_location.trim());
-
-      if (form.last_seen_lat) body.append("last_seen_lat", form.last_seen_lat);
-      if (form.last_seen_lng) body.append("last_seen_lng", form.last_seen_lng);
-      if (form.photo) body.append("photo", form.photo);
-
-      body.append("is_priority", "0");
-
-      const res = await fetch(`${apiBase}/lost-pets`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body,
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        const message =
-          data?.message ||
-          (data?.errors ? Object.values(data.errors).flat().join(" ") : "") ||
-          "Failed to submit lost report.";
-
-        setStatus({ type: "error", message });
-        return;
-      }
-
-      setStatus({
-        type: "success",
-        message: "Lost pet report submitted successfully.",
-      });
-
-      resetForm();
-
-      setTimeout(() => {
-        navigate("/lostfound");
-      }, 1000);
-    } catch {
-      setStatus({
-        type: "error",
-        message: "Failed to submit lost report. Is the backend running?",
-      });
-    }
-  };
-
   useEffect(() => {
     if (!token) {
       navigate("/login");
       return;
     }
 
-    loadUserName();
-    fetchPets();
+    loadPets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  async function loadPets() {
+    setLoadingPets(true);
+    setStatus({ type: "idle", message: "" });
+
+    try {
+      const res = await fetch(`${apiBase}/pets`, {
+        headers: authHeaders,
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem("pawfection_token");
+        navigate("/login");
+        return;
+      }
+
+      const data = await res.json().catch(() => ({}));
+      const list = Array.isArray(data) ? data : data?.data || [];
+      setPets(Array.isArray(list) ? list : []);
+    } catch {
+      setStatus({ type: "error", message: "Failed to load your pets." });
+    } finally {
+      setLoadingPets(false);
+    }
+  }
+
+  function handlePetChange(value) {
+    setSelectedPetId(value);
+    const pet = pets.find((p) => String(p.id) === String(value)) || null;
+    setSelectedPet(pet);
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+
+    if (!selectedPetId) {
+      setStatus({ type: "error", message: "Please choose a pet first." });
+      return;
+    }
+
+    if (!description.trim() || !lastSeenLocation.trim()) {
+      setStatus({
+        type: "error",
+        message: "Description and last seen location are required.",
+      });
+      return;
+    }
+
+    setStatus({ type: "loading", message: "Submitting lost report..." });
+
+    try {
+      const form = new FormData();
+      form.append("pet_id", selectedPetId);
+      form.append("description", description.trim());
+      form.append("last_seen_location", lastSeenLocation.trim());
+
+      if (lastSeenLat.trim()) form.append("last_seen_lat", lastSeenLat.trim());
+      if (lastSeenLng.trim()) form.append("last_seen_lng", lastSeenLng.trim());
+      if (photo) form.append("photo", photo);
+
+      const res = await fetch(`${apiBase}/premium/lost-found`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: form,
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const firstError =
+          data?.message ||
+          (data?.errors && Object.values(data.errors)?.[0]?.[0]) ||
+          "Failed to submit lost report.";
+        throw new Error(firstError);
+      }
+
+      setStatus({
+        type: "success",
+        message: "Lost report submitted successfully.",
+      });
+
+      setTimeout(() => navigate("/lostfound"), 800);
+    } catch (err) {
+      setStatus({
+        type: "error",
+        message: err.message || "Failed to submit lost report.",
+      });
+    }
+  }
+
+  const panelBg =
+    status.type === "success"
+      ? "#f0fdf4"
+      : status.type === "loading"
+      ? "#eff6ff"
+      : "#fff7ed";
+
+  const formatDate = (value) => {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString("en-IE", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
+  };
+
+  const petImageSrc =
+    selectedPet?.photo_url ||
+    (selectedPet?.photo_path
+      ? `http://127.0.0.1:8000/storage/${selectedPet.photo_path}`
+      : null);
+
   return (
-    <div className="pf2-shell">
-      <aside className="pf2-sidebar">
-        <div className="pf2-brand" onClick={() => navigate("/dashboard")} role="button">
-          <img className="pf2-brand-logo" src={PawfectionLogo} alt="Pawfection" />
-          <div className="pf2-brand-text">
-            <div className="pf2-brand-title">Pawfection</div>
-            <div className="pf2-brand-sub">Dashboard</div>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        padding: 24,
+        background:
+          "radial-gradient(circle at 10% 10%, rgba(255,228,230,.6), transparent 40%)," +
+          "radial-gradient(circle at 90% 20%, rgba(219,234,254,.6), transparent 45%)," +
+          "radial-gradient(circle at 50% 90%, rgba(220,252,231,.6), transparent 45%)",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 920,
+          background: "#fff",
+          borderRadius: 22,
+          padding: 28,
+          boxShadow: "0 12px 35px rgba(0,0,0,.07)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <h1 style={{ fontSize: 26, margin: 0 }}>Report Lost Pet</h1>
+            <p style={{ marginTop: 8, color: "#6b7280" }}>
+              Choose one of your pets and the saved pet information will be used automatically.
+            </p>
           </div>
-        </div>
 
-        <nav className="pf2-nav">
-          <Link className="pf2-nav-item" to="/dashboard">
-            Dashboard
-          </Link>
-          <Link className="pf2-nav-item" to="/mypets">
-            My Pets
-          </Link>
-          <Link className="pf2-nav-item" to="/appointments">
-            Appointments
-          </Link>
-          <Link className="pf2-nav-item" to="/reminders">
-            Reminders
-          </Link>
-          <Link
-            className={`pf2-nav-item ${location.pathname.includes("/lostfound") ? "active" : ""}`}
-            to="/lostfound"
+          <button
+            onClick={() => navigate("/lostfound")}
+            style={{
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              color: "#2563eb",
+              textDecoration: "underline",
+              fontWeight: 700,
+              padding: 0,
+            }}
           >
-            Lost &amp; Found
-          </Link>
-          <Link className="pf2-nav-item" to="/community">
-            Community
-          </Link>
-          <Link className="pf2-nav-item" to="/inventory">
-            Inventory
-          </Link>
-          <Link className="pf2-nav-item" to="/upgrade-premium">
-            Premium My Pet
-          </Link>
-        </nav>
-
-        <div className="pf2-sidebar-footer">
-          <button className="pf2-btn pf2-btn-ghost" onClick={() => navigate("/profile")}>
-            View Profile
+            Back to Lost &amp; Found
           </button>
         </div>
-      </aside>
 
-      <div className="pf2-main">
-        <header className="pf2-topbar">
-          <div className="pf2-search">
-            <input placeholder="Create a lost pet alert..." disabled />
+        {status.type !== "idle" && (
+          <div
+            style={{
+              marginTop: 16,
+              padding: "10px 12px",
+              borderRadius: 14,
+              background: panelBg,
+            }}
+          >
+            <strong>
+              {status.type === "success"
+                ? "Success"
+                : status.type === "loading"
+                ? "Please wait"
+                : "Attention"}
+            </strong>
+            <div style={{ marginTop: 4 }}>{status.message}</div>
           </div>
+        )}
 
-          <div className="pf2-topbar-right">
-            <div className="pf2-userchip" title={userName}>
-              <div className="pf2-avatar">{(userName?.[0] || "U").toUpperCase()}</div>
-              <div className="pf2-userchip-text">
-                <div className="pf2-userchip-name">{userName}</div>
-                <div className="pf2-userchip-sub">Basic User</div>
-              </div>
-            </div>
-          </div>
-        </header>
+        <form onSubmit={handleSubmit} style={{ marginTop: 20 }}>
+          <label style={{ fontWeight: 700, display: "block", marginBottom: 8 }}>
+            Choose Pet
+          </label>
 
-        <main className="pf2-content">
-          <div className="lf2-head">
-            <div>
-              <h1 className="lf2-title">Report Lost Pet</h1>
-              <p className="lf2-subtitle">
-                Create a community alert with your pet details, last seen location, description, and photo.
-              </p>
-            </div>
-          </div>
+          <select
+            value={selectedPetId}
+            onChange={(e) => handlePetChange(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "12px 14px",
+              borderRadius: 12,
+              border: "1px solid #e5e7eb",
+              marginBottom: 18,
+            }}
+          >
+            <option value="">
+              {loadingPets ? "Loading pets..." : "Select one of your pets"}
+            </option>
+            {pets.map((pet) => (
+              <option key={pet.id} value={pet.id}>
+                {pet.name} {pet.species ? `• ${pet.species}` : ""} {pet.breed ? `• ${pet.breed}` : ""}
+              </option>
+            ))}
+          </select>
 
-          {status.message && status.type === "error" && (
-            <div className="prl-alert">{status.message}</div>
-          )}
-
-          {status.message && status.type === "success" && (
-            <div className="prl-success">{status.message}</div>
-          )}
-
-          {status.message && status.type === "loading" && (
-            <div className="prl-empty">{status.message}</div>
-          )}
-
-          <section className="lf2-grid-top">
-            <div className="lf2-card">
-              <div className="lf2-cardtop">
-                <div>
-                  <div className="lf2-cardtitle">Lost pet report form</div>
-                  <div className="lf2-mini">
-                    Fill in the details below so the community can help identify and locate your pet faster.
-                  </div>
-                </div>
-
-                <div className="lf2-actions-right">
-                  <button
-                    className="pf2-btn pf2-btn-primary"
-                    type="button"
-                    onClick={useMyLocation}
-                    disabled={usingLocation}
-                  >
-                    {usingLocation ? "Locating..." : "Use My Location"}
-                  </button>
-
-                  <button className="pf2-btn" type="button" onClick={() => navigate("/lostfound")}>
-                    Back
-                  </button>
-                </div>
+          {selectedPet && (
+            <div
+              style={{
+                border: "1px solid #eef0f4",
+                borderRadius: 18,
+                padding: 18,
+                background: "#f9fafb",
+                marginBottom: 20,
+              }}
+            >
+              <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 14 }}>
+                Selected Pet Information
               </div>
 
-              <form className="prl-form" onSubmit={handleSubmit}>
-                <div className="prl-formgrid">
-                  <div className="prl-field">
-                    <label>Select pet *</label>
-                    <select
-                      value={form.pet_id}
-                      onChange={(e) => setForm((prev) => ({ ...prev, pet_id: e.target.value }))}
-                      disabled={loadingPets}
-                    >
-                      <option value="">
-                        {loadingPets ? "Loading pets..." : "-- Choose --"}
-                      </option>
-                      {pets.map((pet) => (
-                        <option key={pet.id} value={pet.id}>
-                          {pet.name} {pet.breed ? `• ${pet.breed}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                    {!loadingPets && pets.length === 0 && (
-                      <div className="prl-help">No pets found. Add a pet first.</div>
-                    )}
-                  </div>
-
-                  <div className="prl-field">
-                    <label>Last seen location *</label>
-                    <input
-                      value={form.last_seen_location}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          last_seen_location: e.target.value,
-                        }))
-                      }
-                      placeholder="e.g. Blanchardstown Shopping Centre, Dublin 15"
-                    />
-                    <div className="prl-inline-actions">
-                      {form.last_seen_lat && form.last_seen_lng && (
-                        <span className="prl-badge">Coordinates added</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="prl-field prl-span2">
-                    <label>Description *</label>
-                    <textarea
-                      rows="5"
-                      value={form.description}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      placeholder="Describe where and when your pet went missing, collar details, colour, markings, behaviour, and any helpful information."
-                    />
-                  </div>
-
-                  <div className="prl-field">
-                    <label>Upload photo</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          photo: e.target.files?.[0] || null,
-                        }))
-                      }
-                    />
-                    <div className="prl-help">A recent, clear photo improves recognition.</div>
-                  </div>
-                </div>
-
-                <div className="prl-formactions">
-                  <button
-                    className="pf2-btn pf2-btn-primary"
-                    type="submit"
-                    disabled={status.type === "loading"}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "160px 1fr",
+                  gap: 20,
+                  alignItems: "start",
+                }}
+              >
+                {petImageSrc ? (
+                  <img
+                    src={petImageSrc}
+                    alt={selectedPet.name || "Pet"}
+                    style={{
+                      width: 160,
+                      height: 160,
+                      objectFit: "cover",
+                      borderRadius: 18,
+                      border: "1px solid #e5e7eb",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 160,
+                      height: 160,
+                      borderRadius: 18,
+                      background: "#e5e7eb",
+                      display: "grid",
+                      placeItems: "center",
+                      fontWeight: 700,
+                      color: "#6b7280",
+                      border: "1px solid #d1d5db",
+                    }}
                   >
-                    {status.type === "loading" ? "Submitting..." : "Submit Lost Report"}
-                  </button>
-
-                  <button
-                    className="pf2-btn"
-                    type="button"
-                    onClick={() => navigate("/lostfound")}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            <div className="lf2-card">
-              <div className="lf2-cardtitle">Quick guide</div>
-              <div className="lf2-mini">Tips to improve the quality of your report.</div>
-
-              <div className="lf2-guide-list">
-                <div className="lf2-guide-item">
-                  <div className="lf2-guide-label">Best location</div>
-                  <div className="lf2-guide-text">
-                    Add the most accurate last seen place possible.
+                    No Photo
                   </div>
-                </div>
+                )}
 
-                <div className="lf2-guide-item">
-                  <div className="lf2-guide-label">Best photo</div>
-                  <div className="lf2-guide-text">
-                    Use a clear and recent image of your pet.
-                  </div>
-                </div>
-
-                <div className="lf2-guide-item">
-                  <div className="lf2-guide-label">Description</div>
-                  <div className="lf2-guide-text">
-                    Mention colour, collar, markings, and behaviour.
-                  </div>
-                </div>
-
-                <div className="lf2-guide-item">
-                  <div className="lf2-guide-label">Basic account</div>
-                  <div className="lf2-guide-text">
-                    Basic users can submit normal community lost pet alerts.
-                  </div>
-                </div>
-              </div>
-
-              <div className="prl-side-actions">
-                <button className="pf2-btn pf2-btn-small" onClick={fetchPets}>
-                  {loadingPets ? "Refreshing..." : "Refresh Pets"}
-                </button>
-
-                <button
-                  className="pf2-btn pf2-btn-small"
-                  onClick={() => navigate("/mypets")}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 12,
+                  }}
                 >
-                  Open My Pets
-                </button>
+                  <div><strong>Name:</strong> {selectedPet.name || "—"}</div>
+                  <div><strong>Species:</strong> {selectedPet.species || "—"}</div>
+                  <div><strong>Breed:</strong> {selectedPet.breed || "—"}</div>
+                  <div><strong>Date of Birth:</strong> {formatDate(selectedPet.dob)}</div>
+                  <div><strong>Age:</strong> {selectedPet.age || "—"}</div>
+                  <div><strong>Gender:</strong> {selectedPet.gender || "—"}</div>
+                  <div><strong>Weight:</strong> {selectedPet.weight || "—"}</div>
+                  <div><strong>Vaccination Status:</strong> {selectedPet.vaccination_status || "—"}</div>
+                  <div><strong>Last Vet Visit:</strong> {formatDate(selectedPet.last_vet_visit)}</div>
+                  <div><strong>Last Vaccination Date:</strong> {formatDate(selectedPet.last_vaccination_date)}</div>
+                  <div><strong>Vaccine Interval:</strong> {selectedPet.vaccine_interval_days || "—"} days</div>
+                  <div><strong>Last Grooming Date:</strong> {formatDate(selectedPet.last_grooming_date)}</div>
+                  <div><strong>Grooming Interval:</strong> {selectedPet.grooming_interval_days || "—"} days</div>
+                  <div><strong>Eye Colour:</strong> {selectedPet.eye_color || "—"}</div>
+                  <div><strong>Fur Type:</strong> {selectedPet.fur_type || "—"}</div>
+                  <div><strong>Markings:</strong> {selectedPet.markings || "—"}</div>
+                  <div><strong>Health Conditions:</strong> {selectedPet.health_conditions || "—"}</div>
+                  <div><strong>Allergies:</strong> {selectedPet.allergies || "—"}</div>
+                  <div><strong>Vaccination History:</strong> {selectedPet.vaccination_history || "—"}</div>
+                  <div><strong>Microchip Number:</strong> {selectedPet.microchip_number || "—"}</div>
+                  <div><strong>Exercise Level:</strong> {selectedPet.exercise_level || "—"}</div>
+                  <div><strong>Activity Level:</strong> {selectedPet.activity_level || "—"}</div>
+                  <div><strong>Diet:</strong> {selectedPet.diet || selectedPet.food_type || "—"}</div>
+                  <div><strong>Personality Traits:</strong> {selectedPet.personality_traits || selectedPet.temperament || "—"}</div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <strong>Medical Notes:</strong> {selectedPet.medical_notes || "—"}
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <strong>Notes:</strong> {selectedPet.notes || selectedPet.behaviour_notes || "—"}
+                  </div>
+                </div>
               </div>
             </div>
-          </section>
-        </main>
+          )}
+
+          <label style={{ fontWeight: 700, display: "block", marginBottom: 8 }}>
+            Description
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={4}
+            placeholder="Describe what happened, what the pet was wearing, behaviour, anything useful..."
+            style={{
+              width: "100%",
+              padding: "12px 14px",
+              borderRadius: 12,
+              border: "1px solid #e5e7eb",
+              resize: "vertical",
+              marginBottom: 16,
+              boxSizing: "border-box",
+            }}
+          />
+
+          <label style={{ fontWeight: 700, display: "block", marginBottom: 8 }}>
+            Last Seen Location
+          </label>
+          <input
+            value={lastSeenLocation}
+            onChange={(e) => setLastSeenLocation(e.target.value)}
+            placeholder="e.g., Tallaght, Dublin"
+            style={{
+              width: "100%",
+              padding: "12px 14px",
+              borderRadius: 12,
+              border: "1px solid #e5e7eb",
+              marginBottom: 16,
+              boxSizing: "border-box",
+            }}
+          />
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={{ fontWeight: 700, display: "block", marginBottom: 8 }}>
+                Last Seen Latitude (optional)
+              </label>
+              <input
+                value={lastSeenLat}
+                onChange={(e) => setLastSeenLat(e.target.value)}
+                placeholder="e.g., 53.288"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: "1px solid #e5e7eb",
+                  marginBottom: 16,
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontWeight: 700, display: "block", marginBottom: 8 }}>
+                Last Seen Longitude (optional)
+              </label>
+              <input
+                value={lastSeenLng}
+                onChange={(e) => setLastSeenLng(e.target.value)}
+                placeholder="e.g., -6.373"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: "1px solid #e5e7eb",
+                  marginBottom: 16,
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+          </div>
+
+          <label style={{ fontWeight: 700, display: "block", marginBottom: 8 }}>
+            Lost Report Photo (optional)
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setPhoto(e.target.files?.[0] || null)}
+            style={{ marginBottom: 22 }}
+          />
+
+          <button
+            type="submit"
+            disabled={status.type === "loading"}
+            style={{
+              width: "100%",
+              padding: "13px 18px",
+              borderRadius: 12,
+              border: "none",
+              fontWeight: 800,
+              color: "#fff",
+              cursor: "pointer",
+              background: "linear-gradient(90deg,#fb7185,#60a5fa)",
+              opacity: status.type === "loading" ? 0.6 : 1,
+            }}
+          >
+            Submit Lost Report
+          </button>
+        </form>
       </div>
     </div>
   );

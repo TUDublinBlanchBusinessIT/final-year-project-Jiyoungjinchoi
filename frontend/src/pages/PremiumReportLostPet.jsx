@@ -1,44 +1,74 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
 import "./PremiumReportLostPet.css";
 
-export default function PremiumReportLostPet() {
+export default function ReportLostPet() {
   const navigate = useNavigate();
-  const token = localStorage.getItem("pawfection_token");
   const apiBase = "http://127.0.0.1:8000/api";
 
+  const [token, setToken] = useState("");
   const [userName, setUserName] = useState("Premium User");
-
   const [pets, setPets] = useState([]);
-  const [petsLoading, setPetsLoading] = useState(true);
-  const [petsError, setPetsError] = useState("");
+  const [loadingPets, setLoadingPets] = useState(true);
 
   const [selectedPetId, setSelectedPetId] = useState("");
-  const [selectedPet, setSelectedPet] = useState(null);
-
   const [form, setForm] = useState({
     name: "",
     species: "",
     breed: "",
-    lost_description: "",
-    last_seen_location: "",
-    last_seen_lat: "",
-    last_seen_lng: "",
-    reported_lost_at: "",
-    is_priority: false,
+    location: "",
+    lost_at: "",
+    description: "",
+    priority: false,
   });
 
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
   useEffect(() => {
+    const savedToken = localStorage.getItem("pawfection_token") || "";
+    setToken(savedToken);
+
+    if (!savedToken) {
+      setError("You need to log in first.");
+      setTimeout(() => {
+        navigate("/login");
+      }, 1200);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem("pawfection_user");
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        if (parsedUser?.name) {
+          setUserName(parsedUser.name);
+          return;
+        }
+      } catch (err) {
+        console.error("Failed to parse pawfection_user:", err);
+      }
+    }
+
     const savedName = localStorage.getItem("pawfection_user_name");
-    if (savedName) setUserName(savedName);
+    if (savedName) {
+      setUserName(savedName);
+    }
   }, []);
 
   useEffect(() => {
+    if (!token) {
+      setLoadingPets(false);
+      return;
+    }
+
     const fetchPets = async () => {
       try {
-        setPetsLoading(true);
-        setPetsError("");
+        setLoadingPets(true);
+        setError("");
 
         const res = await fetch(`${apiBase}/pets`, {
           headers: {
@@ -47,58 +77,61 @@ export default function PremiumReportLostPet() {
           },
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
-        if (!res.ok) {
-          throw new Error(data.message || "Failed to load pets");
+        if (res.status === 401) {
+          throw new Error("Session expired. Please log in again.");
         }
 
-        setPets(Array.isArray(data) ? data : data.pets || []);
-      } catch (error) {
-        console.error("Failed to load pets:", error);
-        setPetsError("Unable to load your pet profiles.");
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to load pets.");
+        }
+
+        const petList = Array.isArray(data) ? data : data.pets || data.data || [];
+        setPets(petList);
+      } catch (err) {
+        setError(err.message || "Unable to load pets.");
       } finally {
-        setPetsLoading(false);
+        setLoadingPets(false);
       }
     };
 
-    if (token) {
-      fetchPets();
-    }
+    fetchPets();
   }, [apiBase, token]);
 
-  useEffect(() => {
-    const pet =
-      pets.find((item) => String(item.id) === String(selectedPetId)) || null;
+  const handlePetChange = (petId) => {
+    setSelectedPetId(petId);
 
-    setSelectedPet(pet);
+    const pet = pets.find((item) => String(item.id) === String(petId));
 
-    if (pet) {
+    if (!pet) {
       setForm((prev) => ({
         ...prev,
-        name: pet.name || "",
-        species: pet.species || "",
-        breed: pet.breed || "",
+        name: "",
+        species: "",
+        breed: "",
       }));
+      return;
     }
-  }, [selectedPetId, pets]);
 
-  const petOptions = useMemo(() => {
-    return pets.map((pet) => ({
-      id: pet.id,
-      label: `${pet.name || "Unnamed Pet"}${pet.breed ? ` • ${pet.breed}` : ""}`,
+    setForm((prev) => ({
+      ...prev,
+      name: pet.name || "",
+      species: pet.species || "",
+      breed: pet.breed || "",
     }));
-  }, [pets]);
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleUseMyLocation = () => {
+  const handleUseLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported on this device.");
       return;
@@ -106,14 +139,16 @@ export default function PremiumReportLostPet() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        const lat = position.coords.latitude.toFixed(5);
+        const lng = position.coords.longitude.toFixed(5);
+
         setForm((prev) => ({
           ...prev,
-          last_seen_lat: position.coords.latitude,
-          last_seen_lng: position.coords.longitude,
+          location: `Lat ${lat}, Lng ${lng}`,
         }));
       },
       () => {
-        alert("Unable to get your location.");
+        alert("Unable to get your location. Please allow location access.");
       }
     );
   };
@@ -121,26 +156,39 @@ export default function PremiumReportLostPet() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!token) {
+      setError("You need to log in first.");
+      return;
+    }
+
     if (!selectedPetId) {
-      alert("Please select one of your pets first.");
+      setError("Please select a pet first.");
+      return;
+    }
+
+    if (!form.location.trim()) {
+      setError("Please enter where your pet was last seen.");
+      return;
+    }
+
+    if (!form.description.trim()) {
+      setError("Please enter a description.");
       return;
     }
 
     try {
+      setSubmitting(true);
+      setMessage("");
+      setError("");
+
       const payload = {
-        is_lost: true,
-        is_priority: form.is_priority,
-        lost_description: form.lost_description,
-        last_seen_location: form.last_seen_location,
-        last_seen_lat: form.last_seen_lat || null,
-        last_seen_lng: form.last_seen_lng || null,
-        reported_lost_at: form.reported_lost_at || null,
+        pet_id: Number(selectedPetId),
+        last_seen_location: form.location,
+        description: form.description,
       };
 
-      console.log("Submitting payload:", payload);
-
-      const res = await fetch(`${apiBase}/pets/${selectedPetId}`, {
-        method: "PATCH",
+      const res = await fetch(`${apiBase}/premium/lost-found`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
@@ -149,224 +197,230 @@ export default function PremiumReportLostPet() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
-      console.log("Submit response:", data);
+      const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        throw new Error(
-          data.message ||
-            JSON.stringify(data.errors) ||
-            "Failed to report pet as lost."
-        );
+      if (res.status === 401) {
+        throw new Error("Session expired. Please log in again.");
       }
 
-      alert("Lost pet report submitted successfully.");
-      navigate("/premium/lostfound");
-    } catch (error) {
-      console.error("Failed to submit lost pet report:", error);
-      alert(error.message || "Unable to submit lost pet report.");
+      if (!res.ok) {
+        if (data.errors) {
+          const firstError = Object.values(data.errors)?.[0];
+          const errorText = Array.isArray(firstError) ? firstError[0] : null;
+          throw new Error(errorText || data.message || "Failed to submit lost report.");
+        }
+
+        throw new Error(data.message || "Failed to submit lost report.");
+      }
+
+      setMessage("Lost pet report submitted successfully.");
+
+      setTimeout(() => {
+        navigate("/premium/lostfound");
+      }, 1000);
+    } catch (err) {
+      setError(err.message || "Something went wrong while submitting.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <div className="premium-report-page">
-      <header className="premium-report-topbar">
-        <div className="premium-report-brand">
+      <div className="premium-lf-topbar">
+        <div className="premium-lf-brand">
           <img
             src={PawfectionLogo}
             alt="Pawfection Logo"
-            className="premium-report-logo"
+            className="premium-lf-logo"
           />
-          <div>
+          <div className="premium-lf-brand-text">
             <h1>Pawfection</h1>
-            <p>Premium Lost Report</p>
+            <p>PREMIUM LOST &amp; FOUND</p>
           </div>
         </div>
 
-        <nav className="premium-report-nav">
-          <Link to="/premium-dashboard">Dashboard</Link>
+        <nav className="premium-lf-nav">
+          <Link to="/premium-dashboard">Premium Dashboard</Link>
           <Link to="/premium-mypets">My Pets</Link>
+          <Link to="/premium-appointments">Appointments</Link>
+          <Link to="/premium-reminders">Reminders</Link>
           <Link to="/premium/lostfound" className="active">
             Lost &amp; Found
           </Link>
+          <Link to="/premium-community">Community</Link>
+          <Link to="/premium-inventory">Inventory</Link>
           <Link to="/premium/profile">Profile</Link>
         </nav>
 
-        <div className="premium-report-userchip">
-          <div className="premium-report-avatar">{userName?.charAt(0) || "P"}</div>
-          <div>
-            <strong>{userName}</strong>
-            <span>Premium User</span>
+        <div className="premium-lf-userbar">
+          <div className="premium-lf-date">
+            {new Date().toLocaleDateString("en-GB", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </div>
+
+          <div className="premium-lf-userchip">
+            <div className="premium-lf-avatar">
+              {userName?.charAt(0)?.toUpperCase() || "P"}
+            </div>
+            <div>
+              <strong>{userName}</strong>
+              <span>Premium User</span>
+            </div>
           </div>
         </div>
-      </header>
+      </div>
 
       <section className="premium-report-hero">
-        <div>
-          <div className="premium-report-badge">PREMIUM FEATURE</div>
-          <h2>Report Lost Pet from My Pets</h2>
-          <p>
-            Select an existing pet profile, auto-fill the key details, and add the
-            lost report information for faster reporting.
-          </p>
-        </div>
+        <span className="premium-report-badge">PREMIUM FEATURE</span>
+        <h2>Report Lost Pet</h2>
+        <p>
+          Select an existing pet profile, auto-fill the key details, and add the
+          lost report information for faster reporting.
+        </p>
       </section>
 
-      {petsLoading && <div className="premium-report-info">Loading your pets...</div>}
-      {petsError && <div className="premium-report-info error">{petsError}</div>}
+      {message && <div className="premium-lf-info-box">{message}</div>}
+      {error && <div className="premium-lf-info-box error">{error}</div>}
 
       <div className="premium-report-grid">
-        <section className="premium-report-card">
+        <section className="premium-report-panel">
           <h3>Select a Pet</h3>
-          <label className="premium-report-label">Choose from My Pets</label>
-          <select
-            className="premium-report-input"
-            value={selectedPetId}
-            onChange={(e) => setSelectedPetId(e.target.value)}
-          >
-            <option value="">Select a pet</option>
-            {petOptions.map((pet) => (
-              <option key={pet.id} value={pet.id}>
-                {pet.label}
-              </option>
-            ))}
-          </select>
+          <p className="premium-report-sub">Choose from My Pets</p>
 
-          {selectedPet && (
-            <div className="premium-report-pet-preview">
-              <img
-                src={
-                  selectedPet.photo_path
-                    ? `http://127.0.0.1:8000/storage/${selectedPet.photo_path}`
-                    : "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=1200&q=80"
-                }
-                alt={selectedPet.name}
-              />
-              <div>
-                <h4>{selectedPet.name}</h4>
-                <p>
-                  {selectedPet.species} • {selectedPet.breed || "Unknown breed"}
-                </p>
-                <span>{selectedPet.gender || "Unknown gender"}</span>
-              </div>
-            </div>
-          )}
+          <div className="premium-report-field">
+            <select
+              value={selectedPetId}
+              onChange={(e) => handlePetChange(e.target.value)}
+              disabled={loadingPets || !token}
+            >
+              <option value="">Select a pet</option>
+              {loadingPets ? (
+                <option disabled>Loading pets...</option>
+              ) : (
+                pets.map((pet) => (
+                  <option key={pet.id} value={pet.id}>
+                    {pet.name} {pet.breed ? `• ${pet.breed}` : ""}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
         </section>
 
-        <section className="premium-report-card">
+        <form className="premium-report-form" onSubmit={handleSubmit}>
           <h3>Lost Report Details</h3>
 
-          <form onSubmit={handleSubmit} className="premium-report-form">
-            <div className="premium-report-row">
-              <div>
-                <label className="premium-report-label">Pet Name</label>
-                <input className="premium-report-input" value={form.name} disabled />
-              </div>
-              <div>
-                <label className="premium-report-label">Species</label>
-                <input className="premium-report-input" value={form.species} disabled />
-              </div>
-            </div>
-
-            <div>
-              <label className="premium-report-label">Breed</label>
-              <input className="premium-report-input" value={form.breed} disabled />
-            </div>
-
-            <div>
-              <label className="premium-report-label">Last Seen Location</label>
+          <div className="premium-report-row">
+            <div className="premium-report-field">
+              <label>Pet Name</label>
               <input
                 type="text"
-                name="last_seen_location"
-                className="premium-report-input"
-                value={form.last_seen_location}
+                name="name"
+                value={form.name}
                 onChange={handleChange}
-                placeholder="Enter last seen location"
-                required
+                placeholder="Pet name"
+                readOnly
               />
             </div>
 
-            <div className="premium-report-row">
-              <div>
-                <label className="premium-report-label">Latitude</label>
-                <input
-                  type="text"
-                  name="last_seen_lat"
-                  className="premium-report-input"
-                  value={form.last_seen_lat}
-                  onChange={handleChange}
-                  placeholder="Latitude"
-                />
-              </div>
-              <div>
-                <label className="premium-report-label">Longitude</label>
-                <input
-                  type="text"
-                  name="last_seen_lng"
-                  className="premium-report-input"
-                  value={form.last_seen_lng}
-                  onChange={handleChange}
-                  placeholder="Longitude"
-                />
-              </div>
+            <div className="premium-report-field">
+              <label>Species</label>
+              <input
+                type="text"
+                name="species"
+                value={form.species}
+                onChange={handleChange}
+                placeholder="Species"
+                readOnly
+              />
             </div>
+          </div>
 
+          <div className="premium-report-field">
+            <label>Breed</label>
+            <input
+              type="text"
+              name="breed"
+              value={form.breed}
+              onChange={handleChange}
+              placeholder="Breed"
+              readOnly
+            />
+          </div>
+
+          <div className="premium-report-field">
+            <label>Where was your pet last seen?</label>
+            <input
+              type="text"
+              name="location"
+              value={form.location}
+              onChange={handleChange}
+              placeholder="e.g. Cabra, Dublin or O'Connell Street"
+            />
+          </div>
+
+          <button
+            type="button"
+            className="premium-report-location-btn"
+            onClick={handleUseLocation}
+          >
+            Use My Current Location
+          </button>
+
+          <div className="premium-report-field">
+            <label>Date &amp; Time Reported Lost</label>
+            <input
+              type="datetime-local"
+              name="lost_at"
+              value={form.lost_at}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="premium-report-field">
+            <label>Description</label>
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              placeholder="Add behaviour, collar, markings, and last seen details"
+              rows="5"
+            />
+          </div>
+
+          <label className="premium-report-checkbox">
+            <input
+              type="checkbox"
+              name="priority"
+              checked={form.priority}
+              onChange={handleChange}
+            />
+            Mark as priority premium report
+          </label>
+
+          <div className="premium-report-actions">
             <button
               type="button"
-              className="premium-report-secondary-btn"
-              onClick={handleUseMyLocation}
+              className="premium-report-cancel"
+              onClick={() => navigate("/premium/lostfound")}
             >
-              Use My Current Location
+              Cancel
             </button>
 
-            <div>
-              <label className="premium-report-label">Date &amp; Time Reported Lost</label>
-              <input
-                type="datetime-local"
-                name="reported_lost_at"
-                className="premium-report-input"
-                value={form.reported_lost_at}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label className="premium-report-label">Description</label>
-              <textarea
-                name="lost_description"
-                className="premium-report-textarea"
-                value={form.lost_description}
-                onChange={handleChange}
-                placeholder="Add behaviour, collar, markings, and last seen details"
-                rows="5"
-                required
-              />
-            </div>
-
-            <label className="premium-report-checkbox">
-              <input
-                type="checkbox"
-                name="is_priority"
-                checked={form.is_priority}
-                onChange={handleChange}
-              />
-              Mark as priority premium report
-            </label>
-
-            <div className="premium-report-actions">
-              <button
-                type="button"
-                className="premium-report-secondary-btn"
-                onClick={() => navigate("/premium/lostfound")}
-              >
-                Cancel
-              </button>
-              <button type="submit" className="premium-report-primary-btn">
-                Submit Lost Report
-              </button>
-            </div>
-          </form>
-        </section>
+            <button
+              type="submit"
+              className="premium-report-submit"
+              disabled={submitting || !token}
+            >
+              {submitting ? "Submitting..." : "Submit Lost Report"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

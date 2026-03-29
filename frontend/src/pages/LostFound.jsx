@@ -72,7 +72,10 @@ export default function LostFound() {
   };
 
   const fetchLostPets = async () => {
-    if (!token) return navigate("/login");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
 
     setLoadingLost(true);
     setError("");
@@ -93,8 +96,8 @@ export default function LostFound() {
       }
 
       const url = params.toString()
-        ? `${apiBase}/lost-pets?${params.toString()}`
-        : `${apiBase}/lost-pets`;
+        ? `${apiBase}/premium/lost-found?${params.toString()}`
+        : `${apiBase}/premium/lost-found`;
 
       const res = await fetch(url, {
         method: "GET",
@@ -106,25 +109,31 @@ export default function LostFound() {
       if (!res.ok) {
         setError(data?.message || "Failed to load lost reports.");
         setLostItems([]);
+        setFoundItems([]);
       } else {
-        const list = Array.isArray(data) ? data : data?.data || [];
-        setLostItems(Array.isArray(list) ? list : []);
+        const reports = Array.isArray(data?.reports) ? data.reports : [];
+        setLostItems(reports.filter((item) => item.type === "lost"));
+        setFoundItems(reports.filter((item) => item.type === "found"));
       }
     } catch {
       setError("Server error. Is your backend running?");
       setLostItems([]);
+      setFoundItems([]);
     } finally {
       setLoadingLost(false);
     }
   };
 
   const fetchFoundReports = async () => {
-    if (!token) return navigate("/login");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
 
     setLoadingFound(true);
 
     try {
-      const res = await fetch(`${apiBase}/found-reports`, {
+      const res = await fetch(`${apiBase}/premium/lost-found`, {
         method: "GET",
         headers: authHeaders,
       });
@@ -134,8 +143,8 @@ export default function LostFound() {
       if (!res.ok) {
         setFoundItems([]);
       } else {
-        const list = Array.isArray(data) ? data : data?.data || [];
-        setFoundItems(Array.isArray(list) ? list : []);
+        const reports = Array.isArray(data?.reports) ? data.reports : [];
+        setFoundItems(reports.filter((item) => item.type === "found"));
       }
     } catch {
       setFoundItems([]);
@@ -163,7 +172,10 @@ export default function LostFound() {
   };
 
   const markResolved = async (reportId) => {
-    if (!token) return navigate("/login");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
 
     const ok = window.confirm("Mark this lost pet report as resolved?");
     if (!ok) return;
@@ -173,7 +185,7 @@ export default function LostFound() {
     setSuccess("");
 
     try {
-      const res = await fetch(`${apiBase}/lost-pets/${reportId}/resolve`, {
+      const res = await fetch(`${apiBase}/premium/lost-found/${reportId}/resolve`, {
         method: "PATCH",
         headers: authHeaders,
       });
@@ -216,8 +228,10 @@ export default function LostFound() {
     return (lostItems || []).filter((item) =>
       [
         item.pet_name,
+        item.name,
         item.description,
         item.last_seen_location,
+        item.area,
         item.breed,
         item.species,
         item.owner_name,
@@ -233,12 +247,17 @@ export default function LostFound() {
 
     return (foundItems || []).filter((item) =>
       [
+        item.pet_name,
+        item.name,
         item.species,
         item.breed,
         item.colour,
         item.description,
         item.location_found,
+        item.last_seen_location,
+        item.area,
         item.reporter_name,
+        item.owner_name,
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q))
@@ -475,8 +494,8 @@ export default function LostFound() {
                   <div className="lf2-list">
                     {filteredLost.map((item) => (
                       <div key={item.id} className="lf2-row">
-                        <div className="lf2-left" onClick={() => navigate(`/lostfound/${item.id}`)}>
-                          <div className="lf2-name">{item.pet_name || "Unnamed Pet"}</div>
+                        <div className="lf2-left" onClick={() => navigate(`/lostfound/view/${item.id}`)}>
+                          <div className="lf2-name">{item.pet_name || item.name || "Unnamed Pet"}</div>
 
                           <div className="lf2-badgerow">
                             <span className="lf2-chip">{item.status || "Active"}</span>
@@ -486,7 +505,9 @@ export default function LostFound() {
                             {[item.species, item.breed].filter(Boolean).join(" • ") || "No extra details"}
                           </div>
 
-                          <div className="lf2-sub">Last seen: {item.last_seen_location || "—"}</div>
+                          <div className="lf2-sub">
+                            Last seen: {item.last_seen_location || item.area || "—"}
+                          </div>
                           <div className="lf2-sub">Reported by: {item.owner_name || "Unknown owner"}</div>
 
                           {item.distance_km !== null && item.distance_km !== undefined && (
@@ -501,7 +522,7 @@ export default function LostFound() {
                         <div className="lf2-right">
                           <button
                             className="pf2-btn pf2-btn-small"
-                            onClick={() => navigate(`/lostfound/${item.id}/sighting`)}
+                            onClick={() => navigate(`/lostfound/view/${item.id}/sighting`)}
                           >
                             Submit Sighting
                           </button>
@@ -542,16 +563,20 @@ export default function LostFound() {
                     {filteredFound.map((item) => (
                       <div key={item.id} className="lf2-row">
                         <div className="lf2-left">
-                          <div className="lf2-name">Found Report #{item.id}</div>
+                          <div className="lf2-name">
+                            {item.pet_name || item.name || `Found Report #${item.id}`}
+                          </div>
 
                           <div className="lf2-sub">
                             {[item.species, item.breed, item.colour].filter(Boolean).join(" • ") ||
                               "Pet details not specified"}
                           </div>
 
-                          <div className="lf2-sub">Location: {item.location_found || "—"}</div>
                           <div className="lf2-sub">
-                            Reported by: {item.reporter_name || "Community Member"}
+                            Location: {item.location_found || item.last_seen_location || item.area || "—"}
+                          </div>
+                          <div className="lf2-sub">
+                            Reported by: {item.reporter_name || item.owner_name || "Community Member"}
                           </div>
 
                           <div className="lf2-sub2">

@@ -1,320 +1,332 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
-import "./Dashboard.css";
-import "./LostReportDetails.css";
+import "./LostFoundPremium.css";
 
-export default function LostReportDetails() {
+export default function PremiumLostReportDetails() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { id } = useParams();
-
-  const token = localStorage.getItem("pawfection_token");
   const apiBase = "http://127.0.0.1:8000/api";
+  const storageBase = "http://127.0.0.1:8000/storage";
 
-  const [userName, setUserName] = useState("User");
+  const [userName, setUserName] = useState("Premium User");
   const [report, setReport] = useState(null);
-  const [sightings, setSightings] = useState([]);
-  const [loadingReport, setLoadingReport] = useState(true);
-  const [loadingSightings, setLoadingSightings] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [markingResolved, setMarkingResolved] = useState(false);
 
-  const authHeaders = useMemo(() => {
-    return {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    };
-  }, [token]);
-
-  const loadUserName = () => {
-    try {
-      const savedUser = localStorage.getItem("pawfection_user");
-      if (savedUser) {
-        const userObj = JSON.parse(savedUser);
-        if (userObj?.name && typeof userObj.name === "string") {
-          setUserName(userObj.name);
-          return;
-        }
-      }
-
-      const fallbackName =
-        localStorage.getItem("pawfection_user_name") ||
-        localStorage.getItem("user_name") ||
-        localStorage.getItem("name");
-
-      if (fallbackName) setUserName(fallbackName);
-    } catch {
-      setUserName("User");
-    }
-  };
-
-  const fetchReport = async () => {
-    setLoadingReport(true);
-    setError("");
-
-    try {
-      const res = await fetch(`${apiBase}/lost-pets/${id}`, {
-        method: "GET",
-        headers: authHeaders,
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data?.message || "Failed to load report details.");
-        setReport(null);
-      } else {
-        setReport(data || null);
-      }
-    } catch {
-      setError("Failed to load report details. Is the backend running?");
-      setReport(null);
-    } finally {
-      setLoadingReport(false);
-    }
-  };
-
-  const fetchSightings = async () => {
-    setLoadingSightings(true);
-
-    try {
-      const res = await fetch(`${apiBase}/lost-pets/${id}/sightings`, {
-        method: "GET",
-        headers: authHeaders,
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setSightings([]);
-      } else {
-        const list = Array.isArray(data) ? data : data?.data || [];
-        setSightings(Array.isArray(list) ? list : []);
-      }
-    } catch {
-      setSightings([]);
-    } finally {
-      setLoadingSightings(false);
-    }
-  };
-
-  const markResolved = async () => {
-    if (!token) return navigate("/login");
-
-    const ok = window.confirm("Mark this lost pet report as resolved?");
-    if (!ok) return;
-
-    setBusy(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      const res = await fetch(`${apiBase}/lost-pets/${id}/resolve`, {
-        method: "PATCH",
-        headers: authHeaders,
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data?.message || "Failed to mark report as resolved.");
-        return;
-      }
-
-      setSuccess(data?.message || "Report marked as resolved.");
-      setTimeout(() => navigate("/lostfound"), 900);
-    } catch {
-      setError("Failed to update report. Is the backend running?");
-    } finally {
-      setBusy(false);
-    }
-  };
+  const fallbackImage =
+    "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=1200&q=80";
 
   useEffect(() => {
-    if (!token) {
-      navigate("/login");
-      return;
+    const savedName = localStorage.getItem("pawfection_user_name");
+    if (savedName) setUserName(savedName);
+  }, []);
+
+  const getImageUrl = (pathOrUrl) => {
+    if (!pathOrUrl) return null;
+
+    if (
+      String(pathOrUrl).startsWith("http://") ||
+      String(pathOrUrl).startsWith("https://")
+    ) {
+      return pathOrUrl;
     }
 
-    loadUserName();
-    fetchReport();
-    fetchSightings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    return `${storageBase}/${String(pathOrUrl).replace(/^\/+/, "")}`;
+  };
 
-  return (
-    <div className="pf2-shell">
-      <aside className="pf2-sidebar">
-        <div className="pf2-brand" onClick={() => navigate("/dashboard")} role="button">
-          <img className="pf2-brand-logo" src={PawfectionLogo} alt="Pawfection" />
-          <div className="pf2-brand-text">
-            <div className="pf2-brand-title">Pawfection</div>
-            <div className="pf2-brand-sub">Lost Report Details</div>
-          </div>
-        </div>
+  const resolvedImage = useMemo(() => {
+    if (!report) return fallbackImage;
 
-        <nav className="pf2-nav">
-          <Link className="pf2-nav-item" to="/dashboard">Dashboard</Link>
-          <Link className="pf2-nav-item" to="/mypets">My Pets</Link>
-          <Link className="pf2-nav-item" to="/appointments">Appointments</Link>
-          <Link className="pf2-nav-item" to="/reminders">Reminders</Link>
-          <Link
-            className={`pf2-nav-item ${location.pathname.includes("/lostfound") ? "active" : ""}`}
-            to="/lostfound"
-          >
-            Lost &amp; Found
-          </Link>
-          <Link className="pf2-nav-item" to="/community">Community</Link>
-          <Link className="pf2-nav-item" to="/inventory">Inventory</Link>
-          <Link className="pf2-nav-item" to="/upgrade-premium">Premium My Pet</Link>
-        </nav>
+    return (
+      report.display_photo_url ||
+      report.lost_photo_url ||
+      report.photo_url ||
+      getImageUrl(report.lost_photo_path) ||
+      getImageUrl(report.photo_path) ||
+      report.image ||
+      fallbackImage
+    );
+  }, [report]);
 
-        <div className="pf2-sidebar-footer">
-          <button className="pf2-btn pf2-btn-ghost" onClick={() => navigate("/profile")}>
-            View Profile
-          </button>
-        </div>
-      </aside>
+  useEffect(() => {
+    const fetchReport = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-      <div className="pf2-main">
-        <header className="pf2-topbar">
-          <div className="pf2-search">
-            <input placeholder="Viewing lost report..." disabled />
-          </div>
+        const res = await fetch(`${apiBase}/premium/lost-found/${id}`, {
+          headers: {
+            Accept: "application/json",
+          },
+        });
 
-          <div className="pf2-topbar-right">
-            <div className="pf2-userchip" title={userName}>
-              <div className="pf2-avatar">{(userName?.[0] || "U").toUpperCase()}</div>
-              <div className="pf2-userchip-text">
-                <div className="pf2-userchip-name">{userName}</div>
-                <div className="pf2-userchip-sub">Basic User</div>
-              </div>
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to load lost report details.");
+        }
+
+        setReport(data.report || data.pet || data);
+      } catch (err) {
+        console.error("Failed to load premium lost report details:", err);
+        setError("Unable to load this lost report.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchReport();
+    }
+  }, [apiBase, id]);
+
+  const handleMarkResolved = async () => {
+    try {
+      setMarkingResolved(true);
+
+      const token = localStorage.getItem("pawfection_token");
+
+      const res = await fetch(`${apiBase}/pets/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          is_lost: false,
+          lost_status: "Resolved",
+          resolved_at: new Date().toISOString(),
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to mark report as resolved.");
+      }
+
+      alert("Lost report marked as resolved.");
+      navigate("/premium/lostfound");
+    } catch (err) {
+      console.error("Failed to mark resolved:", err);
+      alert(err.message || "Unable to mark this report as resolved.");
+    } finally {
+      setMarkingResolved(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="premium-lf-page">
+        <header className="premium-lf-topbar">
+          <div className="premium-lf-brand">
+            <img
+              src={PawfectionLogo}
+              alt="Pawfection Logo"
+              className="premium-lf-logo"
+            />
+            <div>
+              <h1>Pawfection</h1>
+              <p>Premium Lost Report Details</p>
             </div>
           </div>
         </header>
 
-        <main className="pf2-content">
-          <div className="lrd-head">
+        <div className="premium-lf-info-box">Loading lost report details...</div>
+      </div>
+    );
+  }
+
+  if (error || !report) {
+    return (
+      <div className="premium-lf-page">
+        <header className="premium-lf-topbar">
+          <div className="premium-lf-brand">
+            <img
+              src={PawfectionLogo}
+              alt="Pawfection Logo"
+              className="premium-lf-logo"
+            />
             <div>
-              <h1 className="lrd-title">Lost Report Details</h1>
-              <p className="lrd-subtitle">
-                View the full report, see sightings, and help reunite the pet with its owner.
-              </p>
+              <h1>Pawfection</h1>
+              <p>Premium Lost Report Details</p>
+            </div>
+          </div>
+        </header>
+
+        <div className="premium-lf-info-box error">
+          {error || "Report not found."}
+        </div>
+
+        <div style={{ padding: "0 24px 24px" }}>
+          <button
+            className="premium-lf-secondary-btn"
+            onClick={() => navigate("/premium/lostfound")}
+          >
+            Back to Lost &amp; Found
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="premium-lf-page">
+      <header className="premium-lf-topbar">
+        <div className="premium-lf-brand">
+          <img
+            src={PawfectionLogo}
+            alt="Pawfection Logo"
+            className="premium-lf-logo"
+          />
+          <div>
+            <h1>Pawfection</h1>
+            <p>Premium Lost Report Details</p>
+          </div>
+        </div>
+
+        <nav className="premium-lf-nav">
+          <Link to="/premium-dashboard">Premium Dashboard</Link>
+          <Link to="/premium-mypets">My Pets</Link>
+          <Link to="/premium/appointments">Appointments</Link>
+          <Link to="/premium/reminders">Reminders</Link>
+          <Link to="/premium/lostfound" className="active">
+            Lost &amp; Found
+          </Link>
+          <Link to="/premium/community">Community</Link>
+          <Link to="/premium/inventory">Inventory</Link>
+          <Link to="/premium/profile">Profile</Link>
+        </nav>
+
+        <div className="premium-lf-userbar">
+          <div className="premium-lf-userchip">
+            <div className="premium-lf-avatar">
+              {userName?.charAt(0)?.toUpperCase() || "P"}
+            </div>
+            <div>
+              <strong>{userName}</strong>
+              <span>Premium User</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section className="premium-lf-main-hero">
+        <div className="premium-lf-hero-left">
+          <div className="premium-lf-badge">PREMIUM REPORT VIEW</div>
+          <h2>Lost Report Details</h2>
+          <p>
+            View the full report, submit sightings, and help reunite the pet with
+            its owner.
+          </p>
+        </div>
+      </section>
+
+      <section className="premium-lf-feature-grid">
+        <div className="premium-lf-map-card">
+          <div className="premium-lf-card-head">
+            <div>
+              <h3>Pet Details</h3>
+              <p>Report information and last known details.</p>
             </div>
 
-            <div className="lrd-head-actions">
-              <button className="pf2-btn" onClick={() => navigate("/lostfound")}>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                className="premium-lf-secondary-btn"
+                onClick={() => navigate("/premium/lostfound")}
+              >
                 Back
               </button>
 
               <button
-                className="pf2-btn pf2-btn-primary"
-                onClick={() => navigate(`/lostfound/${id}/sighting`)}
+                className="premium-lf-primary-btn"
+                onClick={() =>
+                  navigate(`/premium/lostfound/view/${report.id}/sighting`)
+                }
               >
                 Submit Sighting
               </button>
 
               <button
-                className="pf2-btn lrd-resolve-btn"
-                onClick={markResolved}
-                disabled={busy || !report}
+                className="premium-lf-secondary-btn"
+                onClick={handleMarkResolved}
+                disabled={markingResolved}
               >
-                {busy ? "Updating..." : "Mark Resolved"}
+                {markingResolved ? "Marking..." : "Mark Resolved"}
               </button>
             </div>
           </div>
 
-          {error && <div className="lrd-alert">{error}</div>}
-          {success && <div className="lrd-success">{success}</div>}
+          <div style={{ padding: "20px" }}>
+            <h3 style={{ marginBottom: "10px" }}>{report.name || "Unnamed Pet"}</h3>
 
-          {loadingReport && <div className="lrd-empty">Loading report details...</div>}
+            <div className="premium-lf-stat-row" style={{ marginBottom: "16px" }}>
+              <div className="premium-lf-stat-pill">
+                {report.is_lost ? "Active" : "Resolved"}
+              </div>
+              <div className="premium-lf-stat-pill">
+                {report.species || "Unknown species"}
+              </div>
+              <div className="premium-lf-stat-pill">
+                {report.breed || "Unknown breed"}
+              </div>
+              {report.is_priority ? (
+                <div className="premium-lf-stat-pill">Priority</div>
+              ) : null}
+            </div>
 
-          {!loadingReport && !report && (
-            <div className="lrd-empty">Report not found.</div>
-          )}
+            <p>
+              <strong>Owner:</strong> {report.owner_name || report.user_name || "N/A"}
+            </p>
+            <p>
+              <strong>Last seen:</strong>{" "}
+              {report.area || report.last_seen_location || "Unknown location"}
+            </p>
+            <p>
+              <strong>Reported at:</strong>{" "}
+              {report.reported_lost_at
+                ? new Date(report.reported_lost_at).toLocaleString()
+                : "N/A"}
+            </p>
+            <p>
+              <strong>Status:</strong> {report.lost_status || (report.is_lost ? "Active" : "Resolved")}
+            </p>
 
-          {!loadingReport && report && (
-            <>
-              <section className="lrd-grid">
-                <div className="lrd-card">
-                  <div className="lrd-cardtitle">Pet details</div>
+            <div style={{ marginTop: "18px" }}>
+              <strong>Description</strong>
+              <p style={{ marginTop: "8px" }}>
+                {report.lost_description || report.notes || "No description provided."}
+              </p>
+            </div>
+          </div>
+        </div>
 
-                  <div className="lrd-name">{report.pet_name || "Unnamed Pet"}</div>
+        <div className="premium-lf-spotlight-card">
+          <div className="premium-lf-spotlight-image-wrap" style={{ minHeight: "100%" }}>
+            <img
+              src={resolvedImage}
+              alt={report.name || "Pet"}
+              className="premium-lf-spotlight-image"
+            />
 
-                  <div className="lrd-badgerow">
-                    <span className="lrd-chip">{report.status || "Active"}</span>
-                  </div>
+            <div className="premium-lf-spotlight-overlay">
+              <div className="premium-lf-spotlight-tag">
+                {report.is_priority ? "PRIORITY REPORT" : "MISSING PET"}
+              </div>
 
-                  <div className="lrd-sub">
-                    {[report.species, report.breed].filter(Boolean).join(" • ") || "No extra details"}
-                  </div>
-
-                  <div className="lrd-sub">Owner: {report.owner_name || "Unknown owner"}</div>
-                  <div className="lrd-sub">Last seen: {report.last_seen_location || "—"}</div>
-
-                  {report.distance_km !== null && report.distance_km !== undefined && (
-                    <div className="lrd-sub">Distance: {report.distance_km} km</div>
-                  )}
-
-                  <div className="lrd-description">
-                    {report.description || "No description provided."}
-                  </div>
-                </div>
-
-                <div className="lrd-card">
-                  <div className="lrd-cardtitle">Photo</div>
-
-                  {report.photo_url ? (
-                    <img
-                      src={report.photo_url}
-                      alt={report.pet_name || "Lost pet"}
-                      className="lrd-photo"
-                    />
-                  ) : (
-                    <div className="lrd-empty">No photo available.</div>
-                  )}
-                </div>
-              </section>
-
-              <section className="lrd-card">
-                <div className="lrd-cardtop">
-                  <div>
-                    <div className="lrd-cardtitle">Sightings</div>
-                    <div className="lrd-mini">Community updates related to this report.</div>
-                  </div>
-                  <div className="lrd-count">{sightings.length} updates</div>
-                </div>
-
-                {loadingSightings && <div className="lrd-empty">Loading sightings...</div>}
-
-                {!loadingSightings && sightings.length === 0 && (
-                  <div className="lrd-empty">No sightings submitted yet.</div>
-                )}
-
-                {!loadingSightings && sightings.length > 0 && (
-                  <div className="lrd-list">
-                    {sightings.map((item) => (
-                      <div key={item.id} className="lrd-row">
-                        <div className="lrd-row-title">{item.location || "Unknown location"}</div>
-                        <div className="lrd-row-sub">
-                          {item.created_at ? new Date(item.created_at).toLocaleString() : "Time unavailable"}
-                        </div>
-                        <div className="lrd-row-text">{item.notes || "No extra notes provided."}</div>
-
-                        {item.photo_url && (
-                          <img src={item.photo_url} alt="Sighting" className="lrd-sighting-photo" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            </>
-          )}
-        </main>
-      </div>
+              <h3>{report.name || "Unnamed Pet"}</h3>
+              <p>
+                {report.species || "Unknown species"} •{" "}
+                {report.breed || "Unknown breed"} •{" "}
+                {report.area || report.last_seen_location || "Unknown area"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

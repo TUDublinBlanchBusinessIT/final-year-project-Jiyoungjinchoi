@@ -25,385 +25,61 @@ import UpgradePremium from "./pages/UpgradePremium";
 
 import LostFound from "./pages/LostFound";
 import PremiumLostFound from "./pages/PremiumLostFound";
-
 import ReportLostPet from "./pages/ReportLostPet";
 import PremiumReportLostPet from "./pages/PremiumReportLostPet";
 import SubmitSighting from "./pages/SubmitSighting";
+import PremiumSubmitSighting from "./pages/PremiumSubmitSighting";
 import LostReportDetails from "./pages/LostReportDetails";
+import PremiumLostReportDetails from "./pages/PremiumLostReportDetails";
 
-function Placeholder({ title }) {
-  return (
-    <div style={{ padding: 40 }}>
-      <h1>{title}</h1>
-      <p>This page is coming soon.</p>
-    </div>
-  );
-}
-
-function getStoredUser() {
-  try {
-    const raw = localStorage.getItem("pawfection_user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function getUserRole() {
-  const user = getStoredUser();
-  return String(
-    user?.role || localStorage.getItem("pawfection_role") || ""
-  ).toLowerCase();
-}
-
-function getAccountType() {
-  const user = getStoredUser();
-  return String(
-    user?.account_type ||
-      user?.plan ||
-      localStorage.getItem("pawfection_account_type") ||
-      "standard"
-  ).toLowerCase();
-}
-
-function ProtectedRoute({ children }) {
-  const token = localStorage.getItem("pawfection_token");
-  return token ? children : <Navigate to="/login" replace />;
-}
-
-function PremiumPageRoute({ children }) {
-  const token = localStorage.getItem("pawfection_token");
-  const role = getUserRole();
-  const accountType = getAccountType();
-
-  if (!token) return <Navigate to="/login" replace />;
-  if (role === "admin") return <Navigate to="/admin/dashboard" replace />;
-  if (accountType !== "premium") return <Navigate to="/dashboard" replace />;
-
-  return children;
-}
-
-function AdminRoute({ children }) {
-  const token = localStorage.getItem("pawfection_token");
-  const role = getUserRole();
-
-  if (!token) return <Navigate to="/login" replace />;
-  if (role !== "admin") return <Navigate to="/dashboard" replace />;
-
-  return children;
-}
-
-function LostFoundRoute() {
-  const token = localStorage.getItem("pawfection_token");
-  const role = getUserRole();
-  const accountType = getAccountType();
-
-  if (!token) return <Navigate to="/login" replace />;
-  if (role === "admin") return <Navigate to="/admin/lost-found" replace />;
-
-  return accountType === "premium" ? <PremiumLostFound /> : <LostFound />;
-}
-
-function ReportLostPetRoute() {
-  const token = localStorage.getItem("pawfection_token");
-  const role = getUserRole();
-
-  if (!token) return <Navigate to="/login" replace />;
-  if (role === "admin") return <Navigate to="/admin/lost-found" replace />;
-
-  return <ReportLostPet />;
-}
-
-export default function App() {
+function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
 
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/premium-dashboard" element={<PremiumDashboard />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/moderation" element={<AdminModeration />} />
+        <Route path="/admin/lostfound" element={<AdminLostFound />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
+
+        <Route path="/pets/create" element={<CreatePet />} />
+        <Route path="/pets/:id/edit" element={<EditPet />} />
+        <Route path="/mypets" element={<MyPets />} />
+        <Route path="/pets/:id" element={<PetOverview />} />
+
+        <Route path="/community" element={<Community />} />
+        <Route path="/inventory" element={<Inventory />} />
+        <Route path="/appointments" element={<Appointments />} />
+        <Route path="/reminders" element={<Reminders />} />
+        <Route path="/profile" element={<ViewProfile />} />
+        <Route path="/upgrade-premium" element={<UpgradePremium />} />
+
+        <Route path="/lostfound" element={<LostFound />} />
+        <Route path="/lostfound/report" element={<ReportLostPet />} />
+        <Route path="/lostfound/view/:id" element={<LostReportDetails />} />
         <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
+          path="/lostfound/view/:id/sighting"
+          element={<SubmitSighting />}
         />
 
-        <Route
-          path="/premium-dashboard"
-          element={
-            <PremiumPageRoute>
-              <PremiumDashboard />
-            </PremiumPageRoute>
-          }
-        />
-
-        <Route
-          path="/pets/create"
-          element={
-            <ProtectedRoute>
-              <CreatePet />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/pets/:id/edit"
-          element={
-            <ProtectedRoute>
-              <EditPet />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/pets/:id"
-          element={
-            <ProtectedRoute>
-              <PetOverview />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/premium-pets/:id"
-          element={
-            <PremiumPageRoute>
-              <PetOverview />
-            </PremiumPageRoute>
-          }
-        />
-
-        <Route
-          path="/premium-pets/:id/edit"
-          element={
-            <PremiumPageRoute>
-              <EditPet />
-            </PremiumPageRoute>
-          }
-        />
-
-        <Route
-          path="/mypets"
-          element={
-            <ProtectedRoute>
-              <MyPets />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/premium-mypets"
-          element={
-            <PremiumPageRoute>
-              <MyPets />
-            </PremiumPageRoute>
-          }
-        />
-
-        <Route
-          path="/community"
-          element={
-            <ProtectedRoute>
-              <Community />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/inventory"
-          element={
-            <ProtectedRoute>
-              <Inventory />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/appointments"
-          element={
-            <ProtectedRoute>
-              <Appointments />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/appointments/book"
-          element={
-            <ProtectedRoute>
-              <Appointments />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/reminders"
-          element={
-            <ProtectedRoute>
-              <Reminders />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/reminders/add"
-          element={
-            <ProtectedRoute>
-              <Placeholder title="Add Reminder" />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route path="/lostfound" element={<LostFoundRoute />} />
-        <Route path="/lostfound/report" element={<ReportLostPetRoute />} />
-
-        <Route
-          path="/premium/lostfound"
-          element={
-            <PremiumPageRoute>
-              <PremiumLostFound />
-            </PremiumPageRoute>
-          }
-        />
-
+        <Route path="/premium/lostfound" element={<PremiumLostFound />} />
         <Route
           path="/premium/lostfound/report"
-          element={
-            <PremiumPageRoute>
-              <PremiumReportLostPet />
-            </PremiumPageRoute>
-          }
+          element={<PremiumReportLostPet />}
         />
-
         <Route
-          path="/lostfound/:id"
-          element={
-            <ProtectedRoute>
-              <LostReportDetails />
-            </ProtectedRoute>
-          }
+          path="/premium/lostfound/view/:id"
+          element={<PremiumLostReportDetails />}
         />
-
         <Route
-          path="/lostfound/:id/sighting"
-          element={
-            <ProtectedRoute>
-              <SubmitSighting />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <ViewProfile />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/premium/appointments"
-          element={
-            <PremiumPageRoute>
-              <Appointments />
-            </PremiumPageRoute>
-          }
-        />
-
-        <Route
-          path="/premium/reminders"
-          element={
-            <PremiumPageRoute>
-              <Reminders />
-            </PremiumPageRoute>
-          }
-        />
-
-        <Route
-          path="/premium/community"
-          element={
-            <PremiumPageRoute>
-              <Community />
-            </PremiumPageRoute>
-          }
-        />
-
-        <Route
-          path="/premium/inventory"
-          element={
-            <PremiumPageRoute>
-              <Inventory />
-            </PremiumPageRoute>
-          }
-        />
-
-        <Route
-          path="/premium/profile"
-          element={
-            <PremiumPageRoute>
-              <ViewProfile />
-            </PremiumPageRoute>
-          }
-        />
-
-        <Route
-          path="/admin/dashboard"
-          element={
-            <AdminRoute>
-              <AdminDashboard />
-            </AdminRoute>
-          }
-        />
-
-        <Route
-          path="/admin/moderation"
-          element={
-            <AdminRoute>
-              <AdminModeration />
-            </AdminRoute>
-          }
-        />
-
-        <Route
-          path="/admin/lost-found"
-          element={
-            <AdminRoute>
-              <AdminLostFound />
-            </AdminRoute>
-          }
-        />
-
-        <Route
-          path="/admin/users"
-          element={
-            <AdminRoute>
-              <AdminUsers />
-            </AdminRoute>
-          }
-        />
-
-        <Route
-          path="/upgrade-premium"
-          element={
-            <ProtectedRoute>
-              <UpgradePremium />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/vet-chat"
-          element={
-            <ProtectedRoute>
-              <Placeholder title="Vet Chat" />
-            </ProtectedRoute>
-          }
+          path="/premium/lostfound/view/:id/sighting"
+          element={<PremiumSubmitSighting />}
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -411,3 +87,5 @@ export default function App() {
     </Router>
   );
 }
+
+export default App;

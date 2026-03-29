@@ -1,4 +1,4 @@
-.premium-report-page {
+.premium-sighting-page {
   min-height: 100vh;
   background:
     radial-gradient(circle at top left, rgba(163, 191, 255, 0.18), transparent 24%),
@@ -170,11 +170,11 @@
 }
 
 /* hero */
-.premium-report-hero {
+.premium-sighting-hero {
   margin-bottom: 22px;
 }
 
-.premium-report-badge {
+.premium-sighting-badge {
   display: inline-flex;
   align-items: center;
   width: fit-content;
@@ -189,7 +189,7 @@
   margin-bottom: 16px;
 }
 
-.premium-report-hero h2 {
+.premium-sighting-hero h2 {
   font-size: 3.1rem;
   line-height: 1.02;
   margin: 0 0 14px;
@@ -198,8 +198,8 @@
   font-family: Georgia, "Times New Roman", serif;
 }
 
-.premium-report-hero p {
-  max-width: 720px;
+.premium-sighting-hero p {
+  max-width: 760px;
   font-size: 1.02rem;
   line-height: 1.7;
   color: #665d82;
@@ -207,30 +207,16 @@
   font-weight: 500;
 }
 
-/* messages */
-.premium-lf-info-box {
-  margin-bottom: 18px;
-  padding: 14px 18px;
-  border-radius: 16px;
-  color: #433a60;
-  background: rgba(255, 255, 255, 0.62);
-  border: 1px solid rgba(255, 255, 255, 0.72);
-}
-
-.premium-lf-info-box.error {
-  color: #b04747;
-}
-
 /* layout */
-.premium-report-grid {
+.premium-sighting-grid {
   display: grid;
-  grid-template-columns: 0.95fr 1.05fr;
+  grid-template-columns: 2fr 1fr;
   gap: 18px;
   align-items: start;
 }
 
-.premium-report-panel,
-.premium-report-form {
+.premium-sighting-panel,
+.premium-sighting-side {
   background: rgba(255, 255, 255, 0.62);
   border: 1px solid rgba(255, 255, 255, 0.72);
   box-shadow: 0 10px 24px rgba(58, 69, 112, 0.08);
@@ -240,12 +226,8 @@
   padding: 20px 16px 18px;
 }
 
-.premium-report-panel {
-  min-height: 360px;
-}
-
-.premium-report-panel h3,
-.premium-report-form h3 {
+.premium-sighting-panel h3,
+.premium-sighting-side h3 {
   margin: 0 0 10px;
   color: #433a60;
   font-size: 1.85rem;
@@ -253,7 +235,7 @@
   font-family: Georgia, "Times New Roman", serif;
 }
 
-.premium-report-sub {
+.premium-sighting-sub {
   margin: 0 0 16px;
   color: #786f95;
   font-size: 13px;
@@ -261,23 +243,26 @@
   font-weight: 600;
 }
 
-.premium-report-field {
+.premium-sighting-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.premium-sighting-field {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 14px;
 }
 
-.premium-report-field label {
+.premium-sighting-field label {
   font-size: 13px;
   font-weight: 700;
   color: #5b5177;
 }
 
-.premium-report-field input,
-.premium-report-field select,
-.premium-report-field textarea,
-.premium-report-panel select {
+.premium-sighting-field input,
+.premium-sighting-field textarea {
   width: 100%;
   border: 1px solid rgba(223, 228, 243, 0.98);
   border-radius: 14px;
@@ -290,26 +275,23 @@
   transition: all 0.2s ease;
 }
 
-.premium-report-field input:focus,
-.premium-report-field select:focus,
-.premium-report-field textarea:focus,
-.premium-report-panel select:focus {
+.premium-sighting-field input:focus,
+.premium-sighting-field textarea:focus {
   border-color: #8a7dff;
   box-shadow: 0 0 0 4px rgba(138, 125, 255, 0.12);
 }
 
-.premium-report-field textarea {
+.premium-sighting-field textarea {
   resize: vertical;
-  min-height: 110px;
+  min-height: 140px;
 }
 
-.premium-report-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+.premium-sighting-help {
+  font-size: 12px;
+  color: #8e84aa;
 }
 
-.premium-report-location-btn {
+.premium-sighting-location-btn {
   width: 100%;
   background: rgba(255, 255, 255, 0.78);
   color: #4d4468;
@@ -319,32 +301,23 @@
   border: 1px solid rgba(223, 228, 243, 0.98);
   font-weight: 800;
   transition: all 0.2s ease;
-  margin-bottom: 14px;
 }
 
-.premium-report-location-btn:hover {
+.premium-sighting-location-btn:hover {
   transform: translateY(-1px);
   background: rgba(245, 242, 255, 0.95);
 }
 
-.premium-report-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #5b5177;
-  font-weight: 600;
-  margin: 10px 0 14px;
-}
-
-.premium-report-actions {
+.premium-sighting-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
   flex-wrap: wrap;
+  margin-top: 6px;
 }
 
-.premium-report-cancel,
-.premium-report-submit {
+.premium-sighting-cancel-btn,
+.premium-sighting-submit-btn {
   border-radius: 16px;
   padding: 13px 18px;
   font-size: 1rem;
@@ -352,25 +325,53 @@
   transition: all 0.2s ease;
 }
 
-.premium-report-cancel {
+.premium-sighting-cancel-btn {
   background: rgba(255, 255, 255, 0.78);
   color: #4d4468;
   border: 1px solid rgba(223, 228, 243, 0.98);
 }
 
-.premium-report-cancel:hover {
+.premium-sighting-cancel-btn:hover {
   background: rgba(245, 242, 255, 0.95);
 }
 
-.premium-report-submit {
+.premium-sighting-submit-btn {
   background: linear-gradient(135deg, #8a7dff, #6f63ff);
   color: white;
   border: none;
   box-shadow: 0 12px 24px rgba(95, 81, 222, 0.22);
 }
 
-.premium-report-submit:hover {
+.premium-sighting-submit-btn:hover {
   transform: translateY(-1px);
+}
+
+.premium-sighting-guide-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.premium-sighting-guide-item {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(223, 228, 243, 0.95);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.premium-sighting-guide-label {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #7b7397;
+  margin-bottom: 4px;
+}
+
+.premium-sighting-guide-text {
+  font-size: 13px;
+  color: #675d84;
+  line-height: 1.5;
 }
 
 @media (max-width: 1350px) {
@@ -388,18 +389,18 @@
   }
 }
 
-@media (max-width: 1100px) {
-  .premium-report-grid {
+@media (max-width: 1200px) {
+  .premium-sighting-grid {
     grid-template-columns: 1fr;
   }
 
-  .premium-report-hero h2 {
+  .premium-sighting-hero h2 {
     font-size: 2.7rem;
   }
 }
 
 @media (max-width: 768px) {
-  .premium-report-page {
+  .premium-sighting-page {
     padding: 18px 16px 28px;
   }
 
@@ -429,20 +430,16 @@
     font-size: 0.8rem;
   }
 
-  .premium-report-row {
-    grid-template-columns: 1fr;
-  }
-
-  .premium-report-hero h2 {
+  .premium-sighting-hero h2 {
     font-size: 2.2rem;
   }
 
-  .premium-report-actions {
+  .premium-sighting-actions {
     flex-direction: column;
   }
 
-  .premium-report-cancel,
-  .premium-report-submit {
+  .premium-sighting-cancel-btn,
+  .premium-sighting-submit-btn {
     width: 100%;
   }
 }
