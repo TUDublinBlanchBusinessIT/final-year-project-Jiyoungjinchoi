@@ -148,12 +148,12 @@ class PetController extends Controller
 
         $validated = $request->validate([
             // Basic
-            'name' => 'required|string|max:255',
-            'species' => 'required|string|max:255',
+            'name' => 'sometimes|required|string|max:255',
+            'species' => 'sometimes|required|string|max:255',
             'breed' => 'nullable|string|max:255',
             'dob' => 'nullable|date',
             'date_of_birth' => 'nullable|date',
-            'age' => 'required|integer|min:0',
+            'age' => 'sometimes|required|integer|min:0',
             'gender' => 'nullable|string|max:50',
             'weight' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
@@ -186,6 +186,19 @@ class PetController extends Controller
             'feeding_schedule' => 'nullable|string|max:255',
             'temperament' => 'nullable|string|max:255',
             'behaviour_notes' => 'nullable|string',
+
+            // Lost & Found fields
+            'is_lost' => 'sometimes|boolean',
+            'is_priority' => 'sometimes|boolean',
+            'lost_status' => 'nullable|string|max:100',
+            'lost_description' => 'nullable|string',
+            'last_seen_location' => 'nullable|string|max:255',
+            'last_seen_lat' => 'nullable|numeric',
+            'last_seen_lng' => 'nullable|numeric',
+            'lost_photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'reported_lost_at' => 'nullable|date',
+            'resolved_at' => 'nullable|date',
+            'archived_at' => 'nullable|date',
         ]);
 
         if ($request->hasFile('photo')) {
@@ -196,43 +209,176 @@ class PetController extends Controller
             $pet->photo_path = $request->file('photo')->store('pets', 'public');
         }
 
-        $dietValue = $validated['diet'] ?? ($validated['food_type'] ?? null);
-        $personalityValue = $validated['personality_traits'] ?? ($validated['temperament'] ?? null);
-        $notesValue = $validated['notes'] ?? ($validated['behaviour_notes'] ?? null);
+        if ($request->hasFile('lost_photo')) {
+            if ($pet->lost_photo_path && Storage::disk('public')->exists($pet->lost_photo_path)) {
+                Storage::disk('public')->delete($pet->lost_photo_path);
+            }
 
-        $pet->name = $validated['name'];
-        $pet->species = $validated['species'];
-        $pet->breed = $validated['breed'] ?? null;
-        $pet->dob = $validated['dob'] ?? ($validated['date_of_birth'] ?? null);
-        $pet->age = $validated['age'];
-        $pet->gender = $validated['gender'] ?? null;
-        $pet->weight = $validated['weight'] ?? null;
-        $pet->notes = $notesValue;
+            $pet->lost_photo_path = $request->file('lost_photo')->store('lost-pets', 'public');
+        }
 
-        $pet->last_vaccination_date = $validated['last_vaccination_date'] ?? null;
-        $pet->vaccine_interval_days = $validated['vaccine_interval_days'] ?? null;
-        $pet->last_grooming_date = $validated['last_grooming_date'] ?? null;
-        $pet->grooming_interval_days = $validated['grooming_interval_days'] ?? null;
+        $dietValue = array_key_exists('diet', $validated)
+            ? $validated['diet']
+            : ($validated['food_type'] ?? $pet->diet);
 
-        $pet->eye_color = $validated['eye_color'] ?? null;
-        $pet->fur_type = $validated['fur_type'] ?? null;
-        $pet->markings = $validated['markings'] ?? null;
-        $pet->health_conditions = $validated['health_conditions'] ?? null;
-        $pet->allergies = $validated['allergies'] ?? null;
-        $pet->vaccination_history = $validated['vaccination_history'] ?? null;
-        $pet->microchip_number = $validated['microchip_number'] ?? null;
-        $pet->exercise_level = $validated['exercise_level'] ?? null;
-        $pet->activity_level = $validated['activity_level'] ?? null;
-        $pet->diet = $dietValue;
-        $pet->personality_traits = $personalityValue;
+        $personalityValue = array_key_exists('personality_traits', $validated)
+            ? $validated['personality_traits']
+            : ($validated['temperament'] ?? $pet->personality_traits);
 
-        $pet->vaccination_status = $validated['vaccination_status'] ?? null;
-        $pet->last_vet_visit = $validated['last_vet_visit'] ?? null;
-        $pet->medical_notes = $validated['medical_notes'] ?? null;
-        $pet->food_type = $dietValue;
-        $pet->feeding_schedule = $validated['feeding_schedule'] ?? null;
-        $pet->temperament = $personalityValue;
-        $pet->behaviour_notes = $notesValue;
+        $notesValue = array_key_exists('notes', $validated)
+            ? $validated['notes']
+            : ($validated['behaviour_notes'] ?? $pet->notes);
+
+        if (array_key_exists('name', $validated)) {
+            $pet->name = $validated['name'];
+        }
+
+        if (array_key_exists('species', $validated)) {
+            $pet->species = $validated['species'];
+        }
+
+        if (array_key_exists('breed', $validated)) {
+            $pet->breed = $validated['breed'];
+        }
+
+        if (array_key_exists('dob', $validated) || array_key_exists('date_of_birth', $validated)) {
+            $pet->dob = $validated['dob'] ?? ($validated['date_of_birth'] ?? null);
+        }
+
+        if (array_key_exists('age', $validated)) {
+            $pet->age = $validated['age'];
+        }
+
+        if (array_key_exists('gender', $validated)) {
+            $pet->gender = $validated['gender'];
+        }
+
+        if (array_key_exists('weight', $validated)) {
+            $pet->weight = $validated['weight'];
+        }
+
+        if (array_key_exists('notes', $validated) || array_key_exists('behaviour_notes', $validated)) {
+            $pet->notes = $notesValue;
+            $pet->behaviour_notes = $notesValue;
+        }
+
+        if (array_key_exists('last_vaccination_date', $validated)) {
+            $pet->last_vaccination_date = $validated['last_vaccination_date'];
+        }
+
+        if (array_key_exists('vaccine_interval_days', $validated)) {
+            $pet->vaccine_interval_days = $validated['vaccine_interval_days'];
+        }
+
+        if (array_key_exists('last_grooming_date', $validated)) {
+            $pet->last_grooming_date = $validated['last_grooming_date'];
+        }
+
+        if (array_key_exists('grooming_interval_days', $validated)) {
+            $pet->grooming_interval_days = $validated['grooming_interval_days'];
+        }
+
+        if (array_key_exists('eye_color', $validated)) {
+            $pet->eye_color = $validated['eye_color'];
+        }
+
+        if (array_key_exists('fur_type', $validated)) {
+            $pet->fur_type = $validated['fur_type'];
+        }
+
+        if (array_key_exists('markings', $validated)) {
+            $pet->markings = $validated['markings'];
+        }
+
+        if (array_key_exists('health_conditions', $validated)) {
+            $pet->health_conditions = $validated['health_conditions'];
+        }
+
+        if (array_key_exists('allergies', $validated)) {
+            $pet->allergies = $validated['allergies'];
+        }
+
+        if (array_key_exists('vaccination_history', $validated)) {
+            $pet->vaccination_history = $validated['vaccination_history'];
+        }
+
+        if (array_key_exists('microchip_number', $validated)) {
+            $pet->microchip_number = $validated['microchip_number'];
+        }
+
+        if (array_key_exists('exercise_level', $validated)) {
+            $pet->exercise_level = $validated['exercise_level'];
+        }
+
+        if (array_key_exists('activity_level', $validated)) {
+            $pet->activity_level = $validated['activity_level'];
+        }
+
+        if (array_key_exists('diet', $validated) || array_key_exists('food_type', $validated)) {
+            $pet->diet = $dietValue;
+            $pet->food_type = $dietValue;
+        }
+
+        if (array_key_exists('personality_traits', $validated) || array_key_exists('temperament', $validated)) {
+            $pet->personality_traits = $personalityValue;
+            $pet->temperament = $personalityValue;
+        }
+
+        if (array_key_exists('vaccination_status', $validated)) {
+            $pet->vaccination_status = $validated['vaccination_status'];
+        }
+
+        if (array_key_exists('last_vet_visit', $validated)) {
+            $pet->last_vet_visit = $validated['last_vet_visit'];
+        }
+
+        if (array_key_exists('medical_notes', $validated)) {
+            $pet->medical_notes = $validated['medical_notes'];
+        }
+
+        if (array_key_exists('feeding_schedule', $validated)) {
+            $pet->feeding_schedule = $validated['feeding_schedule'];
+        }
+
+        if (array_key_exists('is_lost', $validated)) {
+            $pet->is_lost = $validated['is_lost'];
+        }
+
+        if (array_key_exists('is_priority', $validated)) {
+            $pet->is_priority = $validated['is_priority'];
+        }
+
+        if (array_key_exists('lost_status', $validated)) {
+            $pet->lost_status = $validated['lost_status'];
+        }
+
+        if (array_key_exists('lost_description', $validated)) {
+            $pet->lost_description = $validated['lost_description'];
+        }
+
+        if (array_key_exists('last_seen_location', $validated)) {
+            $pet->last_seen_location = $validated['last_seen_location'];
+        }
+
+        if (array_key_exists('last_seen_lat', $validated)) {
+            $pet->last_seen_lat = $validated['last_seen_lat'];
+        }
+
+        if (array_key_exists('last_seen_lng', $validated)) {
+            $pet->last_seen_lng = $validated['last_seen_lng'];
+        }
+
+        if (array_key_exists('reported_lost_at', $validated)) {
+            $pet->reported_lost_at = $validated['reported_lost_at'];
+        }
+
+        if (array_key_exists('resolved_at', $validated)) {
+            $pet->resolved_at = $validated['resolved_at'];
+        }
+
+        if (array_key_exists('archived_at', $validated)) {
+            $pet->archived_at = $validated['archived_at'];
+        }
 
         $pet->save();
 
@@ -252,6 +398,10 @@ class PetController extends Controller
 
         if ($pet->photo_path && Storage::disk('public')->exists($pet->photo_path)) {
             Storage::disk('public')->delete($pet->photo_path);
+        }
+
+        if ($pet->lost_photo_path && Storage::disk('public')->exists($pet->lost_photo_path)) {
+            Storage::disk('public')->delete($pet->lost_photo_path);
         }
 
         Reminder::where('pet_id', $pet->id)->delete();
@@ -297,6 +447,10 @@ class PetController extends Controller
 
         if ($pet->photo_path && Storage::disk('public')->exists($pet->photo_path)) {
             Storage::disk('public')->delete($pet->photo_path);
+        }
+
+        if ($pet->lost_photo_path && Storage::disk('public')->exists($pet->lost_photo_path)) {
+            Storage::disk('public')->delete($pet->lost_photo_path);
         }
 
         Reminder::where('pet_id', $pet->id)->delete();
@@ -371,6 +525,10 @@ class PetController extends Controller
 
     private function formatPet(Pet $pet, bool $includeReminders = false): array
     {
+        $photoUrl = $pet->photo_path ? asset('storage/' . $pet->photo_path) : null;
+        $lostPhotoUrl = $pet->lost_photo_path ? asset('storage/' . $pet->lost_photo_path) : null;
+        $displayPhotoUrl = $lostPhotoUrl ?: $photoUrl;
+
         $data = [
             'id' => $pet->id,
             'user_id' => $pet->user_id,
@@ -383,8 +541,12 @@ class PetController extends Controller
             'gender' => $pet->gender,
             'weight' => $pet->weight,
             'notes' => $pet->notes,
+
             'photo_path' => $pet->photo_path,
-            'photo_url' => $pet->photo_path ? asset('storage/' . $pet->photo_path) : null,
+            'photo_url' => $photoUrl,
+            'lost_photo_path' => $pet->lost_photo_path,
+            'lost_photo_url' => $lostPhotoUrl,
+            'display_photo_url' => $displayPhotoUrl,
 
             'last_vaccination_date' => $pet->last_vaccination_date,
             'vaccine_interval_days' => $pet->vaccine_interval_days,
@@ -413,6 +575,17 @@ class PetController extends Controller
 
             'status' => $pet->status,
             'memorial_message' => $pet->memorial_message,
+
+            'is_lost' => $pet->is_lost,
+            'is_priority' => $pet->is_priority,
+            'lost_status' => $pet->lost_status,
+            'lost_description' => $pet->lost_description,
+            'last_seen_location' => $pet->last_seen_location,
+            'last_seen_lat' => $pet->last_seen_lat,
+            'last_seen_lng' => $pet->last_seen_lng,
+            'reported_lost_at' => $pet->reported_lost_at,
+            'resolved_at' => $pet->resolved_at,
+            'archived_at' => $pet->archived_at,
         ];
 
         if ($includeReminders) {

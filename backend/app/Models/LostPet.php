@@ -9,7 +9,6 @@ class LostPet extends Model
 {
     use HasFactory;
 
-    // Your lost pets are stored in the "pets" table
     protected $table = 'pets';
 
     protected $fillable = [
@@ -17,6 +16,7 @@ class LostPet extends Model
         'name',
         'species',
         'breed',
+        'photo_path',
 
         'is_lost',
         'lost_status',
@@ -27,10 +27,14 @@ class LostPet extends Model
 
         'resolved_at',
         'archived_at',
+        'is_priority',
+        'last_seen_lat',
+        'last_seen_lng',
     ];
 
     protected $casts = [
         'is_lost' => 'boolean',
+        'is_priority' => 'boolean',
         'reported_lost_at' => 'datetime',
         'resolved_at' => 'datetime',
         'archived_at' => 'datetime',
