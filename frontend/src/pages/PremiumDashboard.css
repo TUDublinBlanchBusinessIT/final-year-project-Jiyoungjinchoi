@@ -1,25 +1,33 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap");
 
 :root {
-  --pfd-bg: #f6e6d5;
-  --pfd-bg-soft: #fbf1e7;
-  --pfd-cream: #fff8f1;
-  --pfd-cream-2: #f6e2cf;
-  --pfd-peach: #f0c796;
-  --pfd-peach-2: #e5a96d;
-  --pfd-terra: #cb7652;
-  --pfd-terra-dark: #a95b3f;
-  --pfd-brown: #6f402c;
-  --pfd-brown-soft: #97715c;
-  --pfd-line: rgba(117, 70, 46, 0.12);
+  --pfd-bg: #eef2ff;
+  --pfd-bg-2: #f8f5ff;
+  --pfd-bg-3: #fff6fb;
+  --pfd-surface: rgba(255, 255, 255, 0.7);
+  --pfd-surface-strong: rgba(255, 255, 255, 0.86);
+  --pfd-card: rgba(255, 255, 255, 0.72);
+  --pfd-card-2: rgba(248, 245, 255, 0.95);
 
-  --pfd-shadow-sm: 0 12px 26px rgba(109, 63, 42, 0.08);
-  --pfd-shadow-md: 0 24px 48px rgba(109, 63, 42, 0.14);
+  --pfd-primary: #7c6cf2;
+  --pfd-primary-2: #9a8cff;
+  --pfd-pink: #f3b6cf;
+  --pfd-pink-2: #ffd5e5;
+  --pfd-blue: #c9dbff;
+  --pfd-blue-2: #dce8ff;
+  --pfd-lilac: #ece7ff;
 
-  --pfd-radius-xl: 38px;
-  --pfd-radius-lg: 28px;
-  --pfd-radius-md: 22px;
-  --pfd-radius-sm: 16px;
+  --pfd-text: #463a6b;
+  --pfd-text-soft: #70658e;
+  --pfd-line: rgba(94, 84, 144, 0.12);
+
+  --pfd-shadow-sm: 0 10px 24px rgba(113, 101, 170, 0.08);
+  --pfd-shadow-md: 0 24px 50px rgba(113, 101, 170, 0.14);
+
+  --pfd-radius-xl: 34px;
+  --pfd-radius-lg: 26px;
+  --pfd-radius-md: 20px;
+  --pfd-radius-sm: 14px;
 }
 
 * {
@@ -35,10 +43,10 @@ body,
 
 body {
   background:
-    radial-gradient(circle at top left, rgba(240, 199, 150, 0.24), transparent 24%),
-    radial-gradient(circle at top right, rgba(203, 118, 82, 0.15), transparent 18%),
-    linear-gradient(180deg, #f6e6d5 0%, #f9efe6 46%, #f5e6d9 100%);
-  color: var(--pfd-brown);
+    radial-gradient(circle at top left, rgba(201, 219, 255, 0.5), transparent 26%),
+    radial-gradient(circle at top right, rgba(243, 182, 207, 0.35), transparent 22%),
+    linear-gradient(180deg, #edf2ff 0%, #f7f5ff 42%, #fff8fc 100%);
+  color: var(--pfd-text);
   font-family: "Nunito", sans-serif;
 }
 
@@ -52,7 +60,6 @@ h2,
 h3,
 .pfd-hero-title,
 .pfd-hero-photo-name,
-.pfd-arch-name,
 .pfd-pet-tile-name,
 .pfd-banner h2,
 .pfd-care-ring-value,
@@ -65,19 +72,18 @@ h3,
   min-height: 100vh;
 }
 
-/* header */
 .pfd-site-header {
   position: sticky;
   top: 0;
   z-index: 50;
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr) 340px;
-  gap: 20px;
+  grid-template-columns: 200px minmax(0, 1fr) 320px;
+  gap: 18px;
   align-items: center;
-  padding: 16px 24px;
-  background: rgba(251, 242, 233, 0.94);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--pfd-line);
+  padding: 14px 20px;
+  background: rgba(239, 243, 255, 0.84);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(94, 84, 144, 0.08);
 }
 
 .pfd-brand {
@@ -86,16 +92,20 @@ h3,
   gap: 12px;
   cursor: pointer;
   min-width: 0;
+  padding: 10px 12px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(94, 84, 144, 0.08);
+  box-shadow: var(--pfd-shadow-sm);
 }
 
 .pfd-brand-logo {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   object-fit: contain;
-  padding: 6px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: var(--pfd-shadow-sm);
+  padding: 5px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .pfd-brand-copy {
@@ -103,19 +113,19 @@ h3,
 }
 
 .pfd-brand-title {
-  font-size: 30px;
+  font-size: 28px;
   line-height: 1;
-  color: var(--pfd-brown);
+  color: var(--pfd-text);
 }
 
 .pfd-brand-sub {
   margin-top: 3px;
   font-family: "Fredoka", sans-serif;
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--pfd-brown-soft);
+  color: var(--pfd-text-soft);
 }
 
 .pfd-topnav {
@@ -124,10 +134,10 @@ h3,
   justify-content: center;
   gap: 8px;
   min-width: 0;
-  padding: 6px;
-  border-radius: 20px;
-  background: rgba(255, 248, 241, 0.92);
-  border: 1px solid rgba(117, 70, 46, 0.08);
+  padding: 10px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(94, 84, 144, 0.08);
   box-shadow: var(--pfd-shadow-sm);
   overflow-x: auto;
   overflow-y: hidden;
@@ -141,11 +151,11 @@ h3,
 .pfd-topnav-item {
   flex: 0 0 auto;
   text-decoration: none;
-  color: var(--pfd-brown-soft);
-  padding: 11px 16px;
-  border-radius: 14px;
+  color: var(--pfd-text-soft);
+  padding: 10px 14px;
+  border-radius: 999px;
   font-family: "Fredoka", sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   line-height: 1;
   transition: all 0.18s ease;
@@ -153,15 +163,14 @@ h3,
 }
 
 .pfd-topnav-item:hover {
-  color: var(--pfd-brown);
+  color: var(--pfd-text);
   background: rgba(255, 255, 255, 0.72);
 }
 
 .pfd-topnav-item.active {
-  color: var(--pfd-brown);
-  background: #ffffff;
-  border: 1px solid rgba(172, 91, 61, 0.12);
-  box-shadow: 0 8px 18px rgba(109, 63, 42, 0.08);
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--pfd-primary), var(--pfd-primary-2));
+  box-shadow: 0 10px 22px rgba(124, 108, 242, 0.28);
 }
 
 .pfd-header-side {
@@ -174,14 +183,14 @@ h3,
 .pfd-header-meta {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
   flex-wrap: wrap;
 }
 
 .pfd-date-pill,
 .pfd-userchip {
-  background: rgba(255, 250, 246, 0.94);
+  background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--pfd-line);
   box-shadow: var(--pfd-shadow-sm);
 }
@@ -192,7 +201,7 @@ h3,
   font-family: "Fredoka", sans-serif;
   font-size: 12px;
   font-weight: 500;
-  color: var(--pfd-brown-soft);
+  color: var(--pfd-text-soft);
   white-space: nowrap;
 }
 
@@ -210,7 +219,7 @@ h3,
   border-radius: 999px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--pfd-peach-2), var(--pfd-terra));
+  background: linear-gradient(135deg, var(--pfd-primary), #b18cff);
   color: white;
   font-family: "Fredoka", sans-serif;
   font-weight: 600;
@@ -220,14 +229,14 @@ h3,
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
   font-weight: 600;
-  color: var(--pfd-brown);
+  color: var(--pfd-text);
 }
 
 .pfd-userchip-sub {
   font-family: "Fredoka", sans-serif;
   font-size: 10px;
   font-weight: 500;
-  color: var(--pfd-brown-soft);
+  color: var(--pfd-text-soft);
 }
 
 .pfd-search input {
@@ -236,37 +245,38 @@ h3,
   border-radius: 16px;
   border: 1px solid var(--pfd-line);
   outline: none;
-  background: rgba(255, 251, 248, 0.96);
-  color: var(--pfd-brown);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--pfd-text);
   box-shadow: var(--pfd-shadow-sm);
   font-size: 14px;
   font-weight: 700;
 }
 
 .pfd-search input:focus {
-  border-color: rgba(203, 118, 82, 0.35);
-  box-shadow: 0 0 0 4px rgba(203, 118, 82, 0.1), var(--pfd-shadow-sm);
+  border-color: rgba(124, 108, 242, 0.35);
+  box-shadow: 0 0 0 4px rgba(124, 108, 242, 0.1), var(--pfd-shadow-sm);
 }
 
 .pfd-main {
-  padding: 22px;
+  padding: 20px;
 }
 
-/* hero */
 .pfd-hero {
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(420px, 1fr) minmax(360px, 760px);
+  grid-template-columns: minmax(420px, 1fr) minmax(360px, 700px);
   gap: 26px;
   align-items: center;
-  padding: 34px;
-  border-radius: 42px;
+  padding: 28px 24px;
+  border-radius: 30px;
   background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.22), transparent 24%),
-    linear-gradient(180deg, #dfa35f 0%, #dd9b5a 52%, #e4b17f 100%);
-  box-shadow: var(--pfd-shadow-md);
-  min-height: 410px;
+    radial-gradient(circle at top left, rgba(201, 219, 255, 0.42), transparent 26%),
+    radial-gradient(circle at right, rgba(243, 182, 207, 0.2), transparent 24%),
+    rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(94, 84, 144, 0.08);
+  box-shadow: var(--pfd-shadow-sm);
+  min-height: 350px;
 }
 
 .pfd-hero-copy,
@@ -280,29 +290,29 @@ h3,
   font-family: "Fredoka", sans-serif;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(106, 59, 35, 0.92);
+  color: #7d74a1;
 }
 
 .pfd-card-kicker-light {
-  color: rgba(255, 249, 244, 0.95);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .pfd-hero-title {
   margin: 14px 0 0;
-  font-size: clamp(44px, 5vw, 72px);
-  line-height: 0.94;
-  color: #fff8f3;
+  font-size: clamp(46px, 5vw, 72px);
+  line-height: 0.95;
+  color: #43385f;
   max-width: 680px;
 }
 
 .pfd-hero-text {
-  max-width: 560px;
+  max-width: 580px;
   margin: 18px 0 0;
   font-size: 16px;
   line-height: 1.8;
-  color: rgba(104, 59, 36, 0.92);
+  color: var(--pfd-text-soft);
   font-weight: 700;
 }
 
@@ -317,14 +327,14 @@ h3,
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 11px 14px;
+  padding: 10px 14px;
   border-radius: 999px;
-  background: rgba(255, 248, 241, 0.88);
-  border: 1px solid rgba(109, 62, 42, 0.08);
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(94, 84, 144, 0.08);
   box-shadow: var(--pfd-shadow-sm);
   font-family: "Fredoka", sans-serif;
   font-weight: 500;
-  color: var(--pfd-brown);
+  color: var(--pfd-text);
 }
 
 .pfd-hero-actions {
@@ -339,23 +349,23 @@ h3,
 }
 
 .pfd-hero-visual {
-  min-height: 340px;
+  min-height: 300px;
 }
 
 .pfd-hero-photo-card {
   position: relative;
   width: 100%;
-  min-height: 335px;
+  min-height: 310px;
   overflow: hidden;
-  border-radius: 40px;
+  border-radius: 28px;
   box-shadow: var(--pfd-shadow-md);
-  background: rgba(255, 248, 240, 0.24);
+  background: linear-gradient(180deg, #dbe6ff, #f3d9e7);
 }
 
 .pfd-hero-photo-card img {
   width: 100%;
   height: 100%;
-  min-height: 335px;
+  min-height: 310px;
   object-fit: cover;
   display: block;
 }
@@ -364,13 +374,13 @@ h3,
   position: absolute;
   inset: auto 0 0 0;
   padding: 24px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(78, 45, 28, 0.72));
+  background: linear-gradient(180deg, rgba(59, 48, 89, 0), rgba(59, 48, 89, 0.72));
   color: white;
 }
 
 .pfd-hero-photo-name {
   margin-top: 8px;
-  font-size: 42px;
+  font-size: 40px;
   line-height: 1.02;
 }
 
@@ -387,10 +397,10 @@ h3,
   z-index: 4;
   max-width: 210px;
   padding: 14px 16px;
-  border-radius: 999px;
-  background: rgba(255, 247, 239, 0.94);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: var(--pfd-shadow-sm);
-  color: var(--pfd-brown);
+  color: var(--pfd-text);
 }
 
 .pfd-speech-title {
@@ -399,37 +409,37 @@ h3,
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--pfd-terra-dark);
+  color: var(--pfd-primary);
 }
 
 .pfd-speech-text {
   margin-top: 5px;
   font-size: 13px;
   line-height: 1.5;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .pfd-speech-left {
-  top: 16px;
-  left: -18px;
+  top: 14px;
+  left: -14px;
 }
 
 .pfd-speech-right {
-  top: 64px;
-  right: -12px;
+  top: 54px;
+  right: -10px;
 }
 
 .pfd-photo-empty {
   height: 100%;
-  min-height: 335px;
+  min-height: 310px;
   display: grid;
   place-items: center;
   text-align: center;
   padding: 24px;
   background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.35), transparent 35%),
-    linear-gradient(180deg, #efc395, #d98b57);
-  color: #fffaf5;
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.36), transparent 35%),
+    linear-gradient(180deg, #d8e5ff, #f5cddd);
+  color: #ffffff;
 }
 
 .pfd-photo-empty-icon {
@@ -448,47 +458,46 @@ h3,
   max-width: 280px;
   line-height: 1.6;
   font-weight: 700;
-  color: rgba(255, 250, 245, 0.92);
+  color: rgba(255, 255, 255, 0.94);
 }
 
 .pfd-doodle {
   position: absolute;
   z-index: 1;
   user-select: none;
-  filter: drop-shadow(0 10px 20px rgba(106, 62, 36, 0.08));
+  opacity: 0.85;
 }
 
 .pfd-doodle-paw-1 {
-  top: 24px;
+  top: 18px;
   right: 124px;
-  font-size: 30px;
+  font-size: 28px;
 }
 
 .pfd-doodle-paw-2 {
   bottom: 18px;
   left: 18px;
-  font-size: 28px;
+  font-size: 26px;
 }
 
 .pfd-doodle-bone {
-  top: 24px;
-  right: 26px;
-  font-size: 30px;
-}
-
-.pfd-doodle-cat {
-  bottom: 22px;
+  top: 18px;
   right: 24px;
-  font-size: 24px;
+  font-size: 28px;
 }
 
-/* buttons */
+.pfd-doodle-heart {
+  bottom: 18px;
+  right: 22px;
+  font-size: 22px;
+}
+
 .pfd-btn {
   padding: 12px 16px;
-  border-radius: 16px;
-  border: 1px solid rgba(109, 62, 42, 0.08);
-  background: rgba(255, 250, 245, 0.95);
-  color: var(--pfd-brown);
+  border-radius: 14px;
+  border: 1px solid rgba(94, 84, 144, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--pfd-text);
   font-family: "Fredoka", sans-serif;
   font-weight: 500;
   cursor: pointer;
@@ -505,7 +514,7 @@ h3,
 .pfd-btn-primary {
   border: none;
   color: white;
-  background: linear-gradient(135deg, var(--pfd-terra), var(--pfd-terra-dark));
+  background: linear-gradient(135deg, var(--pfd-primary), var(--pfd-primary-2));
 }
 
 .pfd-btn-small {
@@ -516,14 +525,13 @@ h3,
 }
 
 .pfd-btn-danger {
-  background: rgba(255, 238, 234, 0.98);
-  color: #a5402d;
-  border-color: rgba(165, 64, 45, 0.14);
+  background: rgba(255, 239, 244, 0.98);
+  color: #b24d75;
+  border-color: rgba(178, 77, 117, 0.15);
 }
 
-/* collage grid */
 .pfd-collage {
-  margin-top: 18px;
+  margin-top: 16px;
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   gap: 16px;
@@ -538,34 +546,35 @@ h3,
 .pfd-card {
   position: relative;
   overflow: hidden;
-  border-radius: 32px;
+  border-radius: 28px;
   border: 1px solid var(--pfd-line);
   box-shadow: var(--pfd-shadow-sm);
   padding: 20px;
-  background: rgba(255, 248, 242, 0.82);
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(10px);
 }
 
 .pfd-card-care {
-  background: linear-gradient(180deg, #fff6ec, #f4e0cc);
+  background: linear-gradient(180deg, rgba(255, 250, 255, 0.98), rgba(238, 242, 255, 0.96));
   min-height: 100%;
 }
 
 .pfd-care-ring {
-  width: 122px;
-  height: 122px;
+  width: 120px;
+  height: 120px;
   margin: 6px auto 16px;
   border-radius: 999px;
   display: grid;
   place-items: center;
   text-align: center;
-  background: radial-gradient(circle, rgba(255, 250, 246, 0.96), rgba(240, 197, 155, 0.62));
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.98), rgba(214, 226, 255, 0.95));
   box-shadow: var(--pfd-shadow-sm);
 }
 
 .pfd-care-ring-value {
   font-size: 40px;
   line-height: 1;
-  color: var(--pfd-brown);
+  color: var(--pfd-text);
 }
 
 .pfd-care-ring-text {
@@ -573,7 +582,7 @@ h3,
   font-family: "Fredoka", sans-serif;
   font-size: 12px;
   font-weight: 500;
-  color: var(--pfd-brown-soft);
+  color: var(--pfd-text-soft);
 }
 
 .pfd-care-block {
@@ -586,21 +595,21 @@ h3,
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--pfd-terra-dark);
+  color: var(--pfd-primary);
 }
 
 .pfd-care-main {
   margin-top: 6px;
   font-size: 24px;
   line-height: 1.1;
-  color: var(--pfd-brown);
+  color: var(--pfd-text);
 }
 
 .pfd-care-sub {
   margin-top: 6px;
   font-size: 13px;
   line-height: 1.65;
-  color: var(--pfd-brown-soft);
+  color: var(--pfd-text-soft);
   font-weight: 700;
 }
 
@@ -618,13 +627,13 @@ h3,
 }
 
 .pfd-card-gallery {
-  background: linear-gradient(180deg, rgba(255, 246, 238, 0.96), rgba(246, 221, 199, 0.9));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 242, 255, 0.92));
 }
 
 .pfd-card-tallphoto {
   padding: 0;
   min-height: 540px;
-  background: linear-gradient(180deg, #e8a875, #cf7a55);
+  background: linear-gradient(180deg, #d7e4ff, #efc8dc);
 }
 
 .pfd-tallphoto-wrap {
@@ -645,7 +654,7 @@ h3,
   position: absolute;
   inset: auto 0 0 0;
   padding: 20px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(80, 46, 29, 0.72));
+  background: linear-gradient(180deg, rgba(62, 50, 97, 0), rgba(62, 50, 97, 0.74));
   color: white;
 }
 
@@ -693,7 +702,7 @@ h3,
 }
 
 .pfd-card-board {
-  background: linear-gradient(180deg, rgba(255, 246, 239, 0.96), rgba(242, 226, 210, 0.9));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(243, 247, 255, 0.96));
 }
 
 .pfd-card-head {
@@ -708,14 +717,14 @@ h3,
   margin: 6px 0 0;
   font-size: 34px;
   line-height: 1.02;
-  color: var(--pfd-brown);
+  color: var(--pfd-text);
 }
 
 .pfd-card-head p {
   margin: 6px 0 0;
   font-size: 13px;
   line-height: 1.6;
-  color: var(--pfd-brown-soft);
+  color: var(--pfd-text-soft);
   font-weight: 700;
 }
 
@@ -723,7 +732,7 @@ h3,
   padding: 10px 0;
   font-size: 14px;
   line-height: 1.6;
-  color: var(--pfd-brown-soft);
+  color: var(--pfd-text-soft);
   font-weight: 700;
 }
 
@@ -749,10 +758,10 @@ h3,
 }
 
 .pfd-pet-tile {
-  border-radius: 28px;
+  border-radius: 24px;
   overflow: hidden;
-  background: rgba(255, 250, 245, 0.9);
-  border: 1px solid rgba(109, 62, 42, 0.06);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(94, 84, 144, 0.06);
   box-shadow: var(--pfd-shadow-sm);
   max-width: 360px;
 }
@@ -760,8 +769,8 @@ h3,
 .pfd-pet-tile-photo {
   height: 220px;
   overflow: hidden;
-  border-radius: 120px 120px 0 0;
-  background: linear-gradient(180deg, #efc79f, #dd9564);
+  border-radius: 24px 24px 0 0;
+  background: linear-gradient(180deg, #d7e4ff, #f3d0e0);
 }
 
 .pfd-pet-tile-photo img {
@@ -777,7 +786,7 @@ h3,
   display: grid;
   place-items: center;
   font-size: 38px;
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.94);
 }
 
 .pfd-pet-tile-body {
@@ -787,14 +796,14 @@ h3,
 .pfd-pet-tile-name {
   font-size: 28px;
   line-height: 1;
-  color: var(--pfd-brown);
+  color: var(--pfd-text);
 }
 
 .pfd-pet-tile-meta {
   margin-top: 8px;
   font-size: 13px;
   line-height: 1.6;
-  color: var(--pfd-brown-soft);
+  color: var(--pfd-text-soft);
   font-weight: 700;
 }
 
@@ -816,19 +825,19 @@ h3,
   display: flex;
   gap: 12px;
   padding: 14px;
-  border-radius: 22px;
-  background: rgba(255, 250, 245, 0.84);
-  border: 1px solid rgba(109, 62, 42, 0.06);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(94, 84, 144, 0.06);
 }
 
 .pfd-reminder-icon,
 .pfd-mini-item-icon {
   width: 46px;
   height: 46px;
-  border-radius: 16px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
-  background: rgba(239, 193, 143, 0.3);
+  background: linear-gradient(135deg, rgba(201, 219, 255, 0.65), rgba(243, 182, 207, 0.35));
   font-size: 21px;
   flex-shrink: 0;
 }
@@ -838,7 +847,7 @@ h3,
   font-family: "Fredoka", sans-serif;
   font-size: 15px;
   font-weight: 600;
-  color: var(--pfd-brown);
+  color: var(--pfd-text);
 }
 
 .pfd-reminder-desc,
@@ -846,7 +855,7 @@ h3,
   margin-top: 4px;
   font-size: 13px;
   line-height: 1.6;
-  color: var(--pfd-brown-soft);
+  color: var(--pfd-text-soft);
   font-weight: 700;
 }
 
@@ -855,7 +864,7 @@ h3,
   margin-top: 6px;
   font-size: 12px;
   font-weight: 800;
-  color: var(--pfd-terra-dark);
+  color: var(--pfd-primary);
 }
 
 .pfd-banner {
@@ -865,10 +874,10 @@ h3,
   grid-template-columns: 1.15fr 0.95fr;
   gap: 18px;
   padding: 24px;
-  border-radius: 34px;
-  background: linear-gradient(180deg, #cf7a55, #b96343);
+  border-radius: 28px;
+  background: linear-gradient(135deg, #8372f3 0%, #a38fff 52%, #f1b7d0 100%);
   box-shadow: var(--pfd-shadow-md);
-  color: #fff8f3;
+  color: #ffffff;
 }
 
 .pfd-banner-copy h2 {
@@ -885,9 +894,9 @@ h3,
   gap: 8px;
   padding: 8px 14px;
   border-radius: 999px;
-  background: rgba(255, 248, 243, 0.16);
-  border: 1px solid rgba(255, 248, 243, 0.18);
-  color: rgba(255, 248, 243, 0.96);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.96);
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
   font-weight: 500;
@@ -902,16 +911,16 @@ h3,
 
 .pfd-quickaction {
   padding: 16px 14px;
-  border-radius: 22px;
-  border: 1px solid rgba(255, 248, 243, 0.14);
-  background: rgba(255, 248, 243, 0.14);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.16);
   box-shadow: var(--pfd-shadow-sm);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
   cursor: pointer;
-  color: #fff8f3;
+  color: #ffffff;
   font-family: "Fredoka", sans-serif;
   font-size: 15px;
   font-weight: 500;
@@ -920,10 +929,10 @@ h3,
 .pfd-quickicon {
   width: 44px;
   height: 44px;
-  border-radius: 16px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
-  background: rgba(255, 248, 243, 0.2);
+  background: rgba(255, 255, 255, 0.18);
   font-size: 22px;
 }
 
@@ -953,7 +962,6 @@ h3,
   left: 18px;
 }
 
-/* layout placement */
 .pfd-collage > .pfd-card:nth-child(1) {
   grid-column: 1;
 }
@@ -983,7 +991,6 @@ h3,
   grid-column: 1 / span 2;
 }
 
-/* responsive */
 @media (max-width: 1380px) {
   .pfd-site-header {
     grid-template-columns: 1fr;

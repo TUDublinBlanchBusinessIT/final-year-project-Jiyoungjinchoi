@@ -11,6 +11,7 @@ export default function ReportLostPet() {
   const [userName, setUserName] = useState("Premium User");
   const [pets, setPets] = useState([]);
   const [loadingPets, setLoadingPets] = useState(true);
+  const [matchingTypedLocation, setMatchingTypedLocation] = useState(false);
 
   const [selectedPetId, setSelectedPetId] = useState("");
   const [form, setForm] = useState({
@@ -21,6 +22,8 @@ export default function ReportLostPet() {
     lost_at: "",
     description: "",
     priority: false,
+    lat: "",
+    lng: "",
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -125,13 +128,22 @@ export default function ReportLostPet() {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setForm((prev) => {
+      const updated = {
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      };
+
+      if (name === "location") {
+        updated.lat = "";
+        updated.lng = "";
+      }
+
+      return updated;
+    });
   };
 
-  const handleUseLocation = () => {
+  const handleUseMyLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported on this device.");
       return;
@@ -139,18 +151,73 @@ export default function ReportLostPet() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const lat = position.coords.latitude.toFixed(5);
-        const lng = position.coords.longitude.toFixed(5);
+        const lat = position.coords.latitude.toFixed(6);
+        const lng = position.coords.longitude.toFixed(6);
 
         setForm((prev) => ({
           ...prev,
           location: `Lat ${lat}, Lng ${lng}`,
+          lat,
+          lng,
         }));
+
+        setMessage("Current location captured successfully.");
+        setError("");
       },
       () => {
         alert("Unable to get your location. Please allow location access.");
       }
     );
+  };
+
+  const handleUseTypedLocation = async () => {
+    const typedLocation = form.location.trim();
+
+    if (!typedLocation) {
+      setError("Please type a location first.");
+      setMessage("");
+      return;
+    }
+
+    try {
+      setMatchingTypedLocation(true);
+      setError("");
+      setMessage("");
+
+      const query = new URLSearchParams({
+        q: typedLocation,
+        format: "jsonv2",
+        limit: "1",
+      }).toString();
+
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${query}`, {
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      const data = await response.json().catch(() => []);
+
+      if (!response.ok || !Array.isArray(data) || data.length === 0) {
+        throw new Error("Could not match that typed location.");
+      }
+
+      const match = data[0];
+
+      setForm((prev) => ({
+        ...prev,
+        location: typedLocation,
+        lat: match.lat,
+        lng: match.lon,
+      }));
+
+      setMessage("Typed location matched successfully.");
+    } catch (err) {
+      setError(err.message || "Failed to match typed location.");
+      setMessage("");
+    } finally {
+      setMatchingTypedLocation(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -183,8 +250,10 @@ export default function ReportLostPet() {
 
       const payload = {
         pet_id: Number(selectedPetId),
-        last_seen_location: form.location,
-        description: form.description,
+        last_seen_location: form.location.trim(),
+        description: form.description.trim(),
+        lat: form.lat !== "" ? Number(form.lat) : null,
+        lng: form.lng !== "" ? Number(form.lng) : null,
       };
 
       const res = await fetch(`${apiBase}/premium/lost-found`, {
@@ -360,17 +429,50 @@ export default function ReportLostPet() {
               name="location"
               value={form.location}
               onChange={handleChange}
-              placeholder="e.g. Cabra, Dublin or O'Connell Street"
+              placeholder="e.g. Kerry, Cabra, Dublin or O'Connell Street"
             />
           </div>
 
-          <button
-            type="button"
-            className="premium-report-location-btn"
-            onClick={handleUseLocation}
-          >
-            Use My Current Location
-          </button>
+          <div className="premium-report-row">
+            <button
+              type="button"
+              className="premium-report-location-btn"
+              onClick={handleUseMyLocation}
+            >
+              Use My Current Location
+            </button>
+
+            <button
+              type="button"
+              className="premium-report-location-btn"
+              onClick={handleUseTypedLocation}
+              disabled={matchingTypedLocation}
+            >
+              {matchingTypedLocation ? "Matching Location..." : "Use Typed Location"}
+            </button>
+          </div>
+
+          <div className="premium-report-row">
+            <div className="premium-report-field">
+              <label>Latitude</label>
+              <input
+                type="text"
+                value={form.lat}
+                readOnly
+                placeholder="Auto-filled"
+              />
+            </div>
+
+            <div className="premium-report-field">
+              <label>Longitude</label>
+              <input
+                type="text"
+                value={form.lng}
+                readOnly
+                placeholder="Auto-filled"
+              />
+            </div>
+          </div>
 
           <div className="premium-report-field">
             <label>Date &amp; Time Reported Lost</label>

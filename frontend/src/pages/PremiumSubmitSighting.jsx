@@ -74,14 +74,29 @@ export default function PremiumSubmitSighting() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const token = localStorage.getItem("pawfection_token");
+    if (!token) {
+      alert("You must be logged in.");
+      navigate("/login");
+      return;
+    }
+
+    if (!form.sighting_location.trim()) {
+      alert("Location is required.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      const token = localStorage.getItem("pawfection_token");
       const body = new FormData();
+      body.append("pet_id", id);
+      body.append("location", form.sighting_location.trim());
 
-      body.append("location", form.sighting_location);
-      body.append("notes", form.notes);
+      if (form.notes.trim()) {
+        body.append("notes", form.notes.trim());
+      }
 
       if (form.photo) {
         body.append("photo", form.photo);
@@ -103,10 +118,17 @@ export default function PremiumSubmitSighting() {
 
       if (!response.ok) {
         console.error("Failed to submit sighting:", data);
-        alert(data?.message || "Failed to submit sighting.");
+
+        const firstError =
+          data?.message ||
+          (data?.errors && Object.values(data.errors)?.[0]?.[0]) ||
+          "Failed to submit sighting.";
+
+        alert(firstError);
         return;
       }
 
+      alert(data?.message || "Sighting submitted successfully.");
       navigate("/premium/lostfound");
     } catch (error) {
       console.error("Submit sighting error:", error);

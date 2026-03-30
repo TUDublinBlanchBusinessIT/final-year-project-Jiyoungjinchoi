@@ -387,17 +387,17 @@ export default function PremiumDashboard() {
           <img className="pfd-brand-logo" src={PawfectionLogo} alt="Pawfection" />
           <div className="pfd-brand-copy">
             <div className="pfd-brand-title">Pawfection</div>
-            <div className="pfd-brand-sub">Premium My Pet</div>
+            <div className="pfd-brand-sub">Premium Dashboard</div>
           </div>
         </div>
 
         <nav className="pfd-topnav">
           <Link className="pfd-topnav-item active" to="/premium-dashboard">
-            Premium My Pet
+            Premium Dashboard
           </Link>
 
           <Link className="pfd-topnav-item" to="/premium-mypets">
-            View My Pet
+            My Pets
           </Link>
 
           <Link className="pfd-topnav-item" to="/premium/appointments">
@@ -451,18 +451,18 @@ export default function PremiumDashboard() {
           <span className="pfd-doodle pfd-doodle-paw-1">🐾</span>
           <span className="pfd-doodle pfd-doodle-paw-2">🐾</span>
           <span className="pfd-doodle pfd-doodle-bone">🦴</span>
-          <span className="pfd-doodle pfd-doodle-cat">🐱</span>
+          <span className="pfd-doodle pfd-doodle-heart">💗</span>
 
           <div className="pfd-hero-copy">
             <div className="pfd-kicker">
-              {isPremium ? "Pawfection Premium" : "Pawfection Standard"}
+              {isPremium ? "Pawfection Premium Dashboard" : "Pawfection Dashboard"}
             </div>
             <h1 className="pfd-hero-title">
               {getGreeting()}, {userName}
             </h1>
             <p className="pfd-hero-text">
-              This is your Premium My Pet page. View your membership status, manage your
-              pets, and access premium-only features like Vet Chat.
+              Keep your pets, reminders, appointments, and premium support tools in one
+              beautifully organised space.
             </p>
 
             <div className="pfd-hero-chips">
@@ -479,7 +479,7 @@ export default function PremiumDashboard() {
                 {isPremium ? "Open Vet Chat" : "Upgrade for Vet Chat"}
               </button>
               <button className="pfd-btn" onClick={handleViewMyPet}>
-                View My Pet
+                View My Pets
               </button>
               <button
                 className="pfd-btn"
@@ -510,9 +510,9 @@ export default function PremiumDashboard() {
               ) : (
                 <div className="pfd-photo-empty">
                   <div className="pfd-photo-empty-icon">🐶</div>
-                  <div className="pfd-photo-empty-title">Your pet photo appears here</div>
+                  <div className="pfd-photo-empty-title">Your featured pet appears here</div>
                   <div className="pfd-photo-empty-text">
-                    Add or edit a pet profile with a photo to build this look.
+                    Add or edit a pet profile with a photo to personalise your premium dashboard.
                   </div>
                 </div>
               )}
@@ -654,11 +654,11 @@ export default function PremiumDashboard() {
             <div className="pfd-card-head">
               <div>
                 <div className="pfd-card-kicker">Pet gallery</div>
-                <h2>View My Pet</h2>
-                <p>Your uploaded photos arranged in a playful premium board.</p>
+                <h2>My Pets</h2>
+                <p>Your uploaded photos arranged in a clean premium board.</p>
               </div>
               <button className="pfd-btn pfd-btn-small" onClick={handleViewMyPet}>
-                Open Pet
+                Open Pets
               </button>
             </div>
 
@@ -837,10 +837,10 @@ export default function PremiumDashboard() {
             <span className="pfd-banner-bone">🦴</span>
 
             <div className="pfd-banner-copy">
-              <div className="pfd-card-kicker pfd-card-kicker-light">Premium story</div>
+              <div className="pfd-card-kicker pfd-card-kicker-light">Premium care</div>
               <h2>
                 {isPremium
-                  ? "Everything your pet needs, with premium support included."
+                  ? "Everything your pet needs, with premium support beautifully organised."
                   : "Upgrade to Premium for extra pet-care support and Vet Chat."}
               </h2>
               <div className="pfd-banner-divider">
@@ -868,7 +868,7 @@ export default function PremiumDashboard() {
                 className="pfd-quickaction"
                 onClick={() => navigate("/premium/community")}
               >
-                <span className="pfd-quickicon">💬</span>
+                <span className="pfd-quickicon">💗</span>
                 <span>Community</span>
               </button>
             </div>

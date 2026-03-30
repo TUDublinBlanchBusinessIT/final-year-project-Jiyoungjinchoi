@@ -346,3 +346,19 @@
 .lf2-span-full {
   grid-column: 1 / -1;
 }
+.lf2-actions-right .pf2-btn,
+.lf2-tab-card,
+.lf2-right .pf2-btn {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.lf2-left {
+  cursor: pointer;
+}
+
+.lf2-card,
+.lf2-row {
+  position: relative;
+}

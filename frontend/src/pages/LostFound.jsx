@@ -71,7 +71,13 @@ export default function LostFound() {
     }
   };
 
-  const fetchLostPets = async () => {
+  const fetchLostPets = async ({
+    species = speciesFilter,
+    breed = breedFilter,
+    locationText = locationFilter,
+    radius = radiusKm,
+    sort = sortBy,
+  } = {}) => {
     if (!token) {
       navigate("/login");
       return;
@@ -83,14 +89,14 @@ export default function LostFound() {
     try {
       const params = new URLSearchParams();
 
-      if (speciesFilter.trim()) params.append("species", speciesFilter.trim());
-      if (breedFilter.trim()) params.append("breed", breedFilter.trim());
-      if (locationFilter.trim()) params.append("location", locationFilter.trim());
-      if (sortBy) params.append("sort", sortBy);
+      if (species.trim()) params.append("species", species.trim());
+      if (breed.trim()) params.append("breed", breed.trim());
+      if (locationText.trim()) params.append("location", locationText.trim());
+      if (sort) params.append("sort", sort);
 
       const { lat, lng } = getUserCoords();
-      if (radiusKm.trim() && lat && lng) {
-        params.append("radius_km", radiusKm.trim());
+      if (radius.trim() && lat && lng) {
+        params.append("radius_km", radius.trim());
         params.append("lat", lat);
         params.append("lng", lng);
       }
@@ -109,16 +115,14 @@ export default function LostFound() {
       if (!res.ok) {
         setError(data?.message || "Failed to load lost reports.");
         setLostItems([]);
-        setFoundItems([]);
-      } else {
-        const reports = Array.isArray(data?.reports) ? data.reports : [];
-        setLostItems(reports.filter((item) => item.type === "lost"));
-        setFoundItems(reports.filter((item) => item.type === "found"));
+        return;
       }
+
+      const reports = Array.isArray(data?.reports) ? data.reports : [];
+      setLostItems(reports.filter((item) => item.type === "lost"));
     } catch {
       setError("Server error. Is your backend running?");
       setLostItems([]);
-      setFoundItems([]);
     } finally {
       setLoadingLost(false);
     }
@@ -142,10 +146,11 @@ export default function LostFound() {
 
       if (!res.ok) {
         setFoundItems([]);
-      } else {
-        const reports = Array.isArray(data?.reports) ? data.reports : [];
-        setFoundItems(reports.filter((item) => item.type === "found"));
+        return;
       }
+
+      const reports = Array.isArray(data?.reports) ? data.reports : [];
+      setFoundItems(reports.filter((item) => item.type === "found"));
     } catch {
       setFoundItems([]);
     } finally {
@@ -159,7 +164,7 @@ export default function LostFound() {
     await Promise.all([fetchLostPets(), fetchFoundReports()]);
   };
 
-  const clearFilters = () => {
+  const clearFilters = async () => {
     setSearchQuery("");
     setSpeciesFilter("");
     setBreedFilter("");
@@ -169,6 +174,22 @@ export default function LostFound() {
     setError("");
     setSuccess("");
     setActiveTab("lost");
+
+    await Promise.all([
+      fetchLostPets({
+        species: "",
+        breed: "",
+        locationText: "",
+        radius: "",
+        sort: "date",
+      }),
+      fetchFoundReports(),
+    ]);
+  };
+
+  const handleReportLostPet = () => {
+    // change this route only if your App.jsx uses a different one
+    navigate("/reportlostpet");
   };
 
   const markResolved = async (reportId) => {
@@ -213,8 +234,8 @@ export default function LostFound() {
     }
 
     loadUserName();
-    fetchFoundReports();
-  }, []);
+    reloadAll();
+  }, [token, navigate]);
 
   useEffect(() => {
     if (!token) return;
@@ -376,17 +397,27 @@ export default function LostFound() {
 
                 <div className="lf2-actions-right">
                   <button
+                    type="button"
                     className="pf2-btn pf2-btn-primary"
-                    onClick={() => navigate("/lostfound/report")}
+                    onClick={handleReportLostPet}
                   >
                     + Report Lost Pet
                   </button>
 
-                  <button className="pf2-btn" onClick={reloadAll} disabled={loadingLost || loadingFound}>
+                  <button
+                    type="button"
+                    className="pf2-btn"
+                    onClick={reloadAll}
+                    disabled={loadingLost || loadingFound}
+                  >
                     {loadingLost || loadingFound ? "Refreshing..." : "Refresh"}
                   </button>
 
-                  <button className="pf2-btn" onClick={clearFilters}>
+                  <button
+                    type="button"
+                    className="pf2-btn"
+                    onClick={clearFilters}
+                  >
                     Clear Filters
                   </button>
                 </div>
@@ -494,7 +525,10 @@ export default function LostFound() {
                   <div className="lf2-list">
                     {filteredLost.map((item) => (
                       <div key={item.id} className="lf2-row">
-                        <div className="lf2-left" onClick={() => navigate(`/lostfound/view/${item.id}`)}>
+                        <div
+                          className="lf2-left"
+                          onClick={() => navigate(`/lostfound/view/${item.id}`)}
+                        >
                           <div className="lf2-name">{item.pet_name || item.name || "Unnamed Pet"}</div>
 
                           <div className="lf2-badgerow">
@@ -521,15 +555,23 @@ export default function LostFound() {
 
                         <div className="lf2-right">
                           <button
+                            type="button"
                             className="pf2-btn pf2-btn-small"
-                            onClick={() => navigate(`/lostfound/view/${item.id}/sighting`)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/lostfound/view/${item.id}/sighting`);
+                            }}
                           >
                             Submit Sighting
                           </button>
 
                           <button
+                            type="button"
                             className="pf2-btn pf2-btn-small lf2-deletebtn"
-                            onClick={() => markResolved(item.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markResolved(item.id);
+                            }}
                             disabled={busyId === item.id}
                           >
                             {busyId === item.id ? "..." : "Mark Resolved"}

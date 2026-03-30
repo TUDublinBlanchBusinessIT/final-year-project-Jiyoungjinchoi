@@ -7,6 +7,7 @@ import VerifyEmail from "./pages/VerifyEmail";
 
 import Dashboard from "./pages/Dashboard";
 import PremiumDashboard from "./pages/PremiumDashboard";
+import PremiumMyPet from "./pages/PremiumMyPet";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminModeration from "./pages/AdminModeration";
 import AdminLostFound from "./pages/AdminLostFound";
@@ -43,6 +44,8 @@ function App() {
 
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/premium-dashboard" element={<PremiumDashboard />} />
+        <Route path="/premium-mypets" element={<PremiumMyPet />} />
+
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
         <Route path="/admin/moderation" element={<AdminModeration />} />
         <Route path="/admin/lostfound" element={<AdminLostFound />} />
@@ -59,6 +62,13 @@ function App() {
         <Route path="/reminders" element={<Reminders />} />
         <Route path="/profile" element={<ViewProfile />} />
         <Route path="/upgrade-premium" element={<UpgradePremium />} />
+
+        {/* Optional premium aliases so your premium nav works */}
+        <Route path="/premium/community" element={<Community />} />
+        <Route path="/premium/inventory" element={<Inventory />} />
+        <Route path="/premium/appointments" element={<Appointments />} />
+        <Route path="/premium/reminders" element={<Reminders />} />
+        <Route path="/premium/profile" element={<ViewProfile />} />
 
         <Route path="/lostfound" element={<LostFound />} />
         <Route path="/lostfound/report" element={<ReportLostPet />} />
