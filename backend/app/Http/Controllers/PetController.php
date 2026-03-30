@@ -47,6 +47,8 @@ class PetController extends Controller
             'age' => 'required|integer|min:0',
             'gender' => 'nullable|string|max:50',
             'weight' => 'nullable|numeric|min:0',
+            'target_weight' => 'nullable|numeric|min:0',
+            'target_activity_minutes' => 'nullable|integer|min:0',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
 
@@ -100,6 +102,8 @@ class PetController extends Controller
             'age' => $validated['age'],
             'gender' => $validated['gender'] ?? null,
             'weight' => $validated['weight'] ?? null,
+            'target_weight' => $validated['target_weight'] ?? null,
+            'target_activity_minutes' => $validated['target_activity_minutes'] ?? null,
             'notes' => $notesValue,
             'photo_path' => $photoPath,
 
@@ -156,6 +160,8 @@ class PetController extends Controller
             'age' => 'sometimes|required|integer|min:0',
             'gender' => 'nullable|string|max:50',
             'weight' => 'nullable|numeric|min:0',
+            'target_weight' => 'nullable|numeric|min:0',
+            'target_activity_minutes' => 'nullable|integer|min:0',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
 
@@ -255,6 +261,14 @@ class PetController extends Controller
 
         if (array_key_exists('weight', $validated)) {
             $pet->weight = $validated['weight'];
+        }
+
+        if (array_key_exists('target_weight', $validated)) {
+            $pet->target_weight = $validated['target_weight'];
+        }
+
+        if (array_key_exists('target_activity_minutes', $validated)) {
+            $pet->target_activity_minutes = $validated['target_activity_minutes'];
         }
 
         if (array_key_exists('notes', $validated) || array_key_exists('behaviour_notes', $validated)) {
@@ -540,6 +554,8 @@ class PetController extends Controller
             'age' => $pet->age,
             'gender' => $pet->gender,
             'weight' => $pet->weight,
+            'target_weight' => $pet->target_weight,
+            'target_activity_minutes' => $pet->target_activity_minutes,
             'notes' => $pet->notes,
 
             'photo_path' => $pet->photo_path,

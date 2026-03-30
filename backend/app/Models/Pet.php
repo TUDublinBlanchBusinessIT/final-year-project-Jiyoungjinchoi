@@ -82,6 +82,6 @@ class Pet extends Model
 
     public function healthLogs()
     {
-        return $this->hasMany(\App\Models\PetHealthLog::class)->orderByDesc('log_date');
+        return $this->hasMany(\App\Models\PetHealthLog::class);
     }
 }

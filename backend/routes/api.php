@@ -10,6 +10,7 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\Api\SightingController;
 use App\Http\Controllers\Api\PremiumLostFoundController;
+use App\Http\Controllers\Api\PremiumPetController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -49,6 +50,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/inventory/{inventoryItem}', [InventoryController::class, 'destroy']);
     Route::post('/inventory/{inventoryItem}/restock', [InventoryController::class, 'restock']);
     Route::post('/inventory/{inventoryItem}/consume', [InventoryController::class, 'consume']);
+
+    // Premium Pet Intelligence
+    Route::prefix('premium')->group(function () {
+        Route::get('/pets/{pet}/health-logs', [PremiumPetController::class, 'healthLogs']);
+        Route::post('/pets/{pet}/health-logs', [PremiumPetController::class, 'storeHealthLog']);
+        Route::delete('/pets/{pet}/health-logs/{log}', [PremiumPetController::class, 'destroyHealthLog']);
+
+        Route::get('/pets/{pet}/reminders', [PremiumPetController::class, 'reminders']);
+        Route::get('/pets/{pet}/dashboard', [PremiumPetController::class, 'dashboard']);
+        Route::get('/pets/{pet}/recommendations', [PremiumPetController::class, 'recommendations']);
+        Route::get('/pets/{pet}/alerts', [PremiumPetController::class, 'alerts']);
+    });
 
     // Premium Lost & Found
     Route::prefix('premium')->group(function () {

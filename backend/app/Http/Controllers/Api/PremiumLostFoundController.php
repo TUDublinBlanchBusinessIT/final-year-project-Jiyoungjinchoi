@@ -37,8 +37,13 @@ class PremiumLostFoundController extends Controller
                     'description' => $pet->lost_description ?? '',
                     'notes' => $pet->lost_description ?? '',
 
-                    'lat' => $pet->last_seen_lat !== null ? (float) $pet->last_seen_lat : null,
-                    'lng' => $pet->last_seen_lng !== null ? (float) $pet->last_seen_lng : null,
+                    'lat' => isset($pet->last_seen_lat) && $pet->last_seen_lat !== null
+                        ? (float) $pet->last_seen_lat
+                        : null,
+
+                    'lng' => isset($pet->last_seen_lng) && $pet->last_seen_lng !== null
+                        ? (float) $pet->last_seen_lng
+                        : null,
 
                     'lostDate' => optional($pet->reported_lost_at)?->format('Y-m-d'),
                     'reported_at' => optional($pet->reported_lost_at)?->format('Y-m-d H:i:s'),
@@ -99,54 +104,64 @@ class PremiumLostFoundController extends Controller
                 ];
             });
 
-        $sightings = Sighting::with(['pet', 'reporter'])
-            ->latest()
-            ->get()
-            ->map(function ($sighting) {
-                $sightingImageUrl = $this->makeImageUrl($sighting->photo_path ?? null);
+        $sightings = collect();
 
-                $fallbackLat = optional($sighting->pet)->last_seen_lat;
-                $fallbackLng = optional($sighting->pet)->last_seen_lng;
+        try {
+            $sightings = Sighting::with(['pet', 'reporter'])
+                ->latest()
+                ->get()
+                ->map(function ($sighting) {
+                    $sightingImageUrl = $this->makeImageUrl($sighting->photo_path ?? null);
 
-                return [
-                    'id' => $sighting->id,
-                    'pet_id' => $sighting->pet_id,
-                    'type' => 'sighting',
-                    'priority' => false,
+                    $pet = $sighting->pet;
+                    $fallbackLat = $pet && isset($pet->last_seen_lat) ? $pet->last_seen_lat : null;
+                    $fallbackLng = $pet && isset($pet->last_seen_lng) ? $pet->last_seen_lng : null;
 
-                    'name' => optional($sighting->pet)->name ?? 'Pet Sighting',
-                    'pet_name' => optional($sighting->pet)->name ?? 'Pet Sighting',
-                    'species' => optional($sighting->pet)->species ?? 'Unknown',
-                    'breed' => optional($sighting->pet)->breed ?? 'Unknown',
+                    $sightingLat = isset($sighting->lat) ? $sighting->lat : null;
+                    $sightingLng = isset($sighting->lng) ? $sighting->lng : null;
 
-                    'area' => $sighting->location ?? 'Unknown area',
-                    'location' => $sighting->location ?? 'Unknown area',
-                    'last_seen_location' => $sighting->location ?? 'Unknown area',
-                    'description' => $sighting->notes ?? '',
-                    'notes' => $sighting->notes ?? '',
+                    return [
+                        'id' => $sighting->id,
+                        'pet_id' => $sighting->pet_id ?? null,
+                        'type' => 'sighting',
+                        'priority' => false,
 
-                    'lat' => $sighting->lat !== null
-                        ? (float) $sighting->lat
-                        : ($fallbackLat !== null ? (float) $fallbackLat : null),
+                        'name' => optional($pet)->name ?? 'Pet Sighting',
+                        'pet_name' => optional($pet)->name ?? 'Pet Sighting',
+                        'species' => optional($pet)->species ?? 'Unknown',
+                        'breed' => optional($pet)->breed ?? 'Unknown',
 
-                    'lng' => $sighting->lng !== null
-                        ? (float) $sighting->lng
-                        : ($fallbackLng !== null ? (float) $fallbackLng : null),
+                        'area' => $sighting->location ?? 'Unknown area',
+                        'location' => $sighting->location ?? 'Unknown area',
+                        'last_seen_location' => $sighting->location ?? 'Unknown area',
+                        'description' => $sighting->notes ?? '',
+                        'notes' => $sighting->notes ?? '',
 
-                    'lostDate' => optional($sighting->created_at)?->format('Y-m-d'),
-                    'reported_at' => optional($sighting->created_at)?->format('Y-m-d H:i:s'),
-                    'created_at' => optional($sighting->created_at)?->format('Y-m-d H:i:s'),
+                        'lat' => $sightingLat !== null
+                            ? (float) $sightingLat
+                            : ($fallbackLat !== null ? (float) $fallbackLat : null),
 
-                    'photo_path' => $sighting->photo_path ?? null,
-                    'photo_url' => $sightingImageUrl,
-                    'lost_photo_path' => null,
-                    'lost_photo_url' => null,
-                    'display_photo_url' => $sightingImageUrl,
+                        'lng' => $sightingLng !== null
+                            ? (float) $sightingLng
+                            : ($fallbackLng !== null ? (float) $fallbackLng : null),
 
-                    'status' => 'Sighting',
-                    'owner_name' => optional($sighting->reporter)->name ?? 'Unknown owner',
-                ];
-            });
+                        'lostDate' => optional($sighting->created_at)?->format('Y-m-d'),
+                        'reported_at' => optional($sighting->created_at)?->format('Y-m-d H:i:s'),
+                        'created_at' => optional($sighting->created_at)?->format('Y-m-d H:i:s'),
+
+                        'photo_path' => $sighting->photo_path ?? null,
+                        'photo_url' => $sightingImageUrl,
+                        'lost_photo_path' => null,
+                        'lost_photo_url' => null,
+                        'display_photo_url' => $sightingImageUrl,
+
+                        'status' => 'Sighting',
+                        'owner_name' => optional($sighting->reporter)->name ?? 'Unknown owner',
+                    ];
+                });
+        } catch (\Throwable $e) {
+            $sightings = collect();
+        }
 
         $reports = $lostPets
             ->concat($foundReports)
@@ -164,6 +179,8 @@ class PremiumLostFoundController extends Controller
             'pet_id' => ['required', 'integer', 'exists:pets,id'],
             'last_seen_location' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:1000'],
+            'lat' => ['nullable', 'numeric'],
+            'lng' => ['nullable', 'numeric'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
         ]);
 
@@ -183,6 +200,8 @@ class PremiumLostFoundController extends Controller
             'is_lost' => true,
             'lost_status' => 'missing',
             'last_seen_location' => $validated['last_seen_location'],
+            'last_seen_lat' => $validated['lat'] ?? null,
+            'last_seen_lng' => $validated['lng'] ?? null,
             'lost_description' => $validated['description'],
             'lost_photo_path' => $photoPath,
             'reported_lost_at' => now(),
@@ -197,6 +216,8 @@ class PremiumLostFoundController extends Controller
                 'species' => $pet->species,
                 'breed' => $pet->breed,
                 'last_seen_location' => $pet->last_seen_location,
+                'lat' => isset($pet->last_seen_lat) && $pet->last_seen_lat !== null ? (float) $pet->last_seen_lat : null,
+                'lng' => isset($pet->last_seen_lng) && $pet->last_seen_lng !== null ? (float) $pet->last_seen_lng : null,
                 'description' => $pet->lost_description,
                 'photo_url' => $this->makeImageUrl($pet->photo_path),
                 'lost_photo_url' => $this->makeImageUrl($pet->lost_photo_path),
@@ -239,8 +260,13 @@ class PremiumLostFoundController extends Controller
                 'description' => $pet->lost_description ?? 'No description provided.',
                 'notes' => $pet->lost_description ?? 'No description provided.',
 
-                'lat' => $pet->last_seen_lat !== null ? (float) $pet->last_seen_lat : null,
-                'lng' => $pet->last_seen_lng !== null ? (float) $pet->last_seen_lng : null,
+                'lat' => isset($pet->last_seen_lat) && $pet->last_seen_lat !== null
+                    ? (float) $pet->last_seen_lat
+                    : null,
+
+                'lng' => isset($pet->last_seen_lng) && $pet->last_seen_lng !== null
+                    ? (float) $pet->last_seen_lng
+                    : null,
 
                 'lostDate' => optional($pet->reported_lost_at)?->format('Y-m-d'),
                 'reported_at' => optional($pet->reported_lost_at)?->format('Y-m-d H:i:s'),
