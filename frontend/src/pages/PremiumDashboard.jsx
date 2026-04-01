@@ -251,7 +251,7 @@ export default function PremiumDashboard() {
 
   const handleVetChat = () => {
     if (isPremium) {
-      navigate("/vet-chat");
+      navigate("/premium/vet-chat");
     } else {
       navigate("/upgrade-premium");
     }
@@ -414,6 +414,9 @@ export default function PremiumDashboard() {
           </Link>
           <Link className="pfd-topnav-item" to="/premium/inventory">
             Inventory
+          </Link>
+          <Link className="pfd-topnav-item" to="/premium/vet-chat">
+            Vet Chat
           </Link>
           <Link className="pfd-topnav-item" to="/premium/profile">
             Profile

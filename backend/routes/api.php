@@ -11,6 +11,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\Api\SightingController;
 use App\Http\Controllers\Api\PremiumLostFoundController;
 use App\Http\Controllers\Api\PremiumPetController;
+use App\Http\Controllers\Api\AiVetChatController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -61,6 +62,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/pets/{pet}/dashboard', [PremiumPetController::class, 'dashboard']);
         Route::get('/pets/{pet}/recommendations', [PremiumPetController::class, 'recommendations']);
         Route::get('/pets/{pet}/alerts', [PremiumPetController::class, 'alerts']);
+
+        // AI Vet Chat
+        Route::post('/ai-vet-chat', [AiVetChatController::class, 'chat']);
     });
 
     // Premium Lost & Found

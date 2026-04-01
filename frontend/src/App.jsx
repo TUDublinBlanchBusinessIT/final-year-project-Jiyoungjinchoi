@@ -8,6 +8,7 @@ import VerifyEmail from "./pages/VerifyEmail";
 import Dashboard from "./pages/Dashboard";
 import PremiumDashboard from "./pages/PremiumDashboard";
 import PremiumMyPet from "./pages/PremiumMyPet";
+import PremiumVetChat from "./pages/PremiumVetChat";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminModeration from "./pages/AdminModeration";
 import AdminLostFound from "./pages/AdminLostFound";
@@ -45,6 +46,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/premium-dashboard" element={<PremiumDashboard />} />
         <Route path="/premium-mypets" element={<PremiumMyPet />} />
+        <Route path="/premium/vet-chat" element={<PremiumVetChat />} />
 
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
         <Route path="/admin/moderation" element={<AdminModeration />} />
