@@ -53,7 +53,7 @@ export default function PremiumVetChat() {
 
   const [showIntakeForm, setShowIntakeForm] = useState(true);
   const [chatStarted, setChatStarted] = useState(false);
-  const [chatStatus, setChatStatus] = useState("idle"); // idle | preparing | summarising | connected
+  const [chatStatus, setChatStatus] = useState("idle"); // idle | preparing | summarising | connected | ended
   const [assistantName, setAssistantName] = useState("Pawfection AI Vet Assistant");
 
   const [formError, setFormError] = useState("");
@@ -79,6 +79,23 @@ export default function PremiumVetChat() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
+
+  const [activeSessionId, setActiveSessionId] = useState(null);
+  const [sessionStartedAt, setSessionStartedAt] = useState(null);
+  const [sessionEnded, setSessionEnded] = useState(false);
+
+  const [sessionHistory, setSessionHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const [selectedHistorySession, setSelectedHistorySession] = useState(null);
+
+  const [ratingForm, setRatingForm] = useState({
+    score: 0,
+    feedback: "",
+  });
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingSuccess, setRatingSuccess] = useState("");
+  const [ratingError, setRatingError] = useState("");
 
   const token = localStorage.getItem("pawfection_token");
   const apiBase = "http://127.0.0.1:8000/api";
@@ -139,6 +156,15 @@ export default function PremiumVetChat() {
     };
   }, [imagePreviews]);
 
+  useEffect(() => {
+    if (selectedPetId && isPremium) {
+      fetchSessionHistory(selectedPetId);
+    } else {
+      setSessionHistory([]);
+      setSelectedHistorySession(null);
+    }
+  }, [selectedPetId, isPremium]);
+
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const fetchPets = async () => {
@@ -173,6 +199,38 @@ export default function PremiumVetChat() {
       setPetsError("Server error. Is your backend running?");
     } finally {
       setLoadingPets(false);
+    }
+  };
+
+  const fetchSessionHistory = async (petId) => {
+    if (!token || !petId) return;
+
+    setLoadingHistory(true);
+    setHistoryError("");
+
+    try {
+      const res = await fetch(`${apiBase}/premium/ai-vet-chat/sessions?pet_id=${petId}`, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setSessionHistory([]);
+        setHistoryError(data?.message || "Could not load AI vet chat history.");
+        return;
+      }
+
+      const sessions = Array.isArray(data) ? data : data?.sessions || [];
+      setSessionHistory(sessions);
+    } catch {
+      setSessionHistory([]);
+      setHistoryError("Could not load AI vet chat history.");
+    } finally {
+      setLoadingHistory(false);
     }
   };
 
@@ -219,6 +277,19 @@ export default function PremiumVetChat() {
     return items;
   }, [selectedPet]);
 
+  const formatDateTime = (value) => {
+    if (!value) return "—";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleString("en-IE", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   const handleSymptomToggle = (symptom) => {
     setIntakeForm((prev) => {
       const exists = prev.symptoms.includes(symptom);
@@ -251,6 +322,13 @@ export default function PremiumVetChat() {
     setChatMessages([]);
     setChatStarted(false);
     setChatStatus("idle");
+    setActiveSessionId(null);
+    setSessionStartedAt(null);
+    setSessionEnded(false);
+    setSelectedHistorySession(null);
+    setRatingForm({ score: 0, feedback: "" });
+    setRatingSuccess("");
+    setRatingError("");
   };
 
   const handleFileChange = (e) => {
@@ -356,6 +434,136 @@ Please acknowledge these details, give your first guidance based on them, and th
     `.trim();
   };
 
+  const buildTranscriptPayload = (messages) => {
+    return messages.map((msg) => ({
+      sender: msg.sender,
+      sender_label: msg.senderLabel,
+      type: msg.type,
+      text: msg.text || null,
+      image_url: msg.imageUrl || null,
+      file_name: msg.fileName || null,
+      time: msg.time,
+    }));
+  };
+
+  const createSessionRecord = async ({ intakeSummary, guidance, initialTranscript }) => {
+    const res = await fetch(`${apiBase}/premium/ai-vet-chat/sessions`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        pet_id: selectedPet?.id,
+        intake_summary: intakeSummary,
+        concern: intakeForm.concern,
+        duration: intakeForm.duration,
+        appetite: intakeForm.appetite,
+        behaviour: intakeForm.behaviour,
+        symptoms: intakeForm.symptoms,
+        guidance,
+        transcript: initialTranscript,
+        started_at: new Date().toISOString(),
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data?.message || "Could not create AI vet chat session.");
+    }
+
+    return data;
+  };
+
+  const syncTranscriptToSession = async (sessionId, messages) => {
+    if (!sessionId) return;
+
+    try {
+      await fetch(`${apiBase}/premium/ai-vet-chat/sessions/${sessionId}/transcript`, {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          transcript: buildTranscriptPayload(messages),
+        }),
+      });
+    } catch {
+      // Silent fail so the UI keeps working even if transcript sync is not finished yet.
+    }
+  };
+
+  const endSessionRecord = async (sessionId, messages) => {
+    const res = await fetch(`${apiBase}/premium/ai-vet-chat/sessions/${sessionId}/end`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        ended_at: new Date().toISOString(),
+        transcript: buildTranscriptPayload(messages),
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data?.message || "Could not end AI vet chat session.");
+    }
+
+    return data;
+  };
+
+  const submitSessionRating = async () => {
+    if (!activeSessionId) {
+      setRatingError("No ended session found to rate.");
+      return;
+    }
+
+    if (!ratingForm.score) {
+      setRatingError("Please choose a rating before submitting.");
+      return;
+    }
+
+    setSubmittingRating(true);
+    setRatingError("");
+    setRatingSuccess("");
+
+    try {
+      const res = await fetch(`${apiBase}/premium/ai-vet-chat/sessions/${activeSessionId}/rating`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          rating: ratingForm.score,
+          feedback: ratingForm.feedback,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Could not save your session rating.");
+      }
+
+      setRatingSuccess("Thank you. Your session rating has been saved.");
+      fetchSessionHistory(selectedPetId);
+    } catch (error) {
+      setRatingError(error.message || "Could not save your session rating.");
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
+
   const addSystemMessage = (text) => {
     setChatMessages((prev) => [
       ...prev,
@@ -390,23 +598,6 @@ Please acknowledge these details, give your first guidance based on them, and th
     ]);
   };
 
-  const addUserMessage = (text) => {
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now() + Math.random(),
-        sender: "user",
-        senderLabel: userName,
-        type: "text",
-        text,
-        time: new Date().toLocaleTimeString("en-IE", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      },
-    ]);
-  };
-
   const sendMessageToAi = async (messageText) => {
     const res = await fetch(`${apiBase}/premium/ai-vet-chat`, {
       method: "POST",
@@ -417,6 +608,7 @@ Please acknowledge these details, give your first guidance based on them, and th
       },
       body: JSON.stringify({
         pet_id: selectedPet?.id,
+        session_id: activeSessionId,
         message: messageText,
         concern: intakeForm.concern,
         duration: intakeForm.duration,
@@ -445,9 +637,12 @@ Please acknowledge these details, give your first guidance based on them, and th
     setFormError("");
     setFormSuccess("");
     setChatError("");
+    setRatingSuccess("");
+    setRatingError("");
+    setSelectedHistorySession(null);
 
     if (!isPremium) {
-      setFormError("AI Vet Assistant is a premium feature. Please upgrade to continue.");
+      setFormError("AI Vet Chat is a premium feature. Please upgrade to continue.");
       return;
     }
 
@@ -474,8 +669,10 @@ Please acknowledge these details, give your first guidance based on them, and th
     setChatStarted(true);
     setShowIntakeForm(false);
     setChatStatus("preparing");
-    setFormSuccess("AI guidance session started.");
+    setFormSuccess("AI Vet Chat session started.");
     setChatMessages([]);
+    setSessionEnded(false);
+    setRatingForm({ score: 0, feedback: "" });
 
     try {
       await wait(700);
@@ -484,6 +681,11 @@ Please acknowledge these details, give your first guidance based on them, and th
       await wait(700);
       setChatStatus("connected");
 
+      const nowTime = new Date().toLocaleTimeString("en-IE", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
       const starterMessages = [
         {
           id: 1,
@@ -491,10 +693,7 @@ Please acknowledge these details, give your first guidance based on them, and th
           senderLabel: "System",
           type: "text",
           text: "You are now chatting with Pawfection AI Vet Assistant.",
-          time: new Date().toLocaleTimeString("en-IE", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          time: nowTime,
         },
       ];
 
@@ -505,10 +704,7 @@ Please acknowledge these details, give your first guidance based on them, and th
           senderLabel: "Pawfection AI Vet Assistant",
           type: "text",
           text: `AI intake summary prepared:\n${summary}`,
-          time: new Date().toLocaleTimeString("en-IE", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          time: nowTime,
         });
       }
 
@@ -518,10 +714,7 @@ Please acknowledge these details, give your first guidance based on them, and th
         senderLabel: userName,
         type: "text",
         text: `Submitted intake details:\n${intakeChatText}`,
-        time: new Date().toLocaleTimeString("en-IE", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        time: nowTime,
       });
 
       starterMessages.push({
@@ -530,22 +723,57 @@ Please acknowledge these details, give your first guidance based on them, and th
         senderLabel: "Pawfection AI Vet Assistant",
         type: "text",
         text: `Thanks, ${userName}. I’ve received the intake details for ${selectedPet?.name || "your pet"} and I’ll use them as the starting point for this conversation, so you do not need to repeat them.`,
-        time: new Date().toLocaleTimeString("en-IE", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        time: nowTime,
       });
 
       setChatMessages(starterMessages);
+      setSessionStartedAt(new Date().toISOString());
+
+      try {
+        const sessionData = await createSessionRecord({
+          intakeSummary: summary,
+          guidance,
+          initialTranscript: buildTranscriptPayload(starterMessages),
+        });
+
+        setActiveSessionId(sessionData?.session?.id || sessionData?.id || null);
+      } catch (error) {
+        setFormError(error.message || "Session could not be saved yet.");
+      }
 
       setSendingMessage(true);
 
       try {
         const data = await sendMessageToAi(initialAiPrompt);
-        addAiMessage(
-          data?.reply ||
-            "I’m sorry, I could not generate a response right now. Please try again."
-        );
+        const aiReply =
+          data?.reply || "I’m sorry, I could not generate a response right now. Please try again.";
+
+        setChatMessages((prev) => {
+          const updated = [
+            ...prev,
+            {
+              id: Date.now() + Math.random(),
+              sender: "ai",
+              senderLabel: data?.assistant_name || assistantName,
+              type: "text",
+              text: aiReply,
+              time: new Date().toLocaleTimeString("en-IE", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            },
+          ];
+
+          if (activeSessionId || data?.session_id) {
+            syncTranscriptToSession(activeSessionId || data?.session_id, updated);
+          }
+
+          return updated;
+        });
+
+        if (data?.session_id && !activeSessionId) {
+          setActiveSessionId(data.session_id);
+        }
       } catch (error) {
         setChatError(error.message || "AI response could not be generated.");
         addSystemMessage("The AI assistant could not respond just now. Please try again.");
@@ -556,15 +784,15 @@ Please acknowledge these details, give your first guidance based on them, and th
       setChatStatus("idle");
       setChatStarted(false);
       setShowIntakeForm(true);
-      setFormError("Could not start the AI chat session.");
+      setFormError("Could not start the AI vet chat session.");
     }
   };
 
   const handleSendMessage = async () => {
     if (!chatInput.trim() && selectedFiles.length === 0) return;
 
-    if (chatStatus !== "connected") {
-      setChatError("You can send messages once the AI session is active.");
+    if (chatStatus !== "connected" || sessionEnded) {
+      setChatError("This session is read-only now. Start a new AI Vet Chat to send more messages.");
       return;
     }
 
@@ -604,7 +832,8 @@ Please acknowledge these details, give your first guidance based on them, and th
       });
     }
 
-    setChatMessages((prev) => [...prev, ...newMessages]);
+    const updatedAfterUser = [...chatMessages, ...newMessages];
+    setChatMessages(updatedAfterUser);
 
     const sentText = chatInput.trim();
     const emergency = detectEmergency();
@@ -618,16 +847,57 @@ Please acknowledge these details, give your first guidance based on them, and th
     setImagePreviews([]);
 
     try {
+      if (activeSessionId) {
+        syncTranscriptToSession(activeSessionId, updatedAfterUser);
+      }
+
       if (sentText) {
         const data = await sendMessageToAi(sentText);
-        addAiMessage(
-          data?.reply ||
-            "I’m sorry, I could not generate a response right now. Please try again."
-        );
+
+        const aiMessage = {
+          id: Date.now() + Math.random(),
+          sender: "ai",
+          senderLabel: data?.assistant_name || assistantName,
+          type: "text",
+          text:
+            data?.reply ||
+            "I’m sorry, I could not generate a response right now. Please try again.",
+          time: new Date().toLocaleTimeString("en-IE", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        };
+
+        const updatedWithReply = [...updatedAfterUser, aiMessage];
+        setChatMessages(updatedWithReply);
+
+        if (activeSessionId || data?.session_id) {
+          syncTranscriptToSession(activeSessionId || data?.session_id, updatedWithReply);
+        }
+
+        if (data?.session_id && !activeSessionId) {
+          setActiveSessionId(data.session_id);
+        }
       } else if (newMessages.some((msg) => msg.type === "image")) {
-        addAiMessage(
-          "I can see that you uploaded image files in this chat session, but image analysis has not been connected yet. Please describe what the photo shows so I can help with general guidance."
-        );
+        const aiMessage = {
+          id: Date.now() + Math.random(),
+          sender: "ai",
+          senderLabel: assistantName,
+          type: "text",
+          text:
+            "I can see that you uploaded image files in this chat session, but image analysis has not been connected yet. Please describe what the photo shows so I can help with general guidance.",
+          time: new Date().toLocaleTimeString("en-IE", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        };
+
+        const updatedWithReply = [...updatedAfterUser, aiMessage];
+        setChatMessages(updatedWithReply);
+
+        if (activeSessionId) {
+          syncTranscriptToSession(activeSessionId, updatedWithReply);
+        }
       }
     } catch (error) {
       setChatError(error.message || "AI response could not be generated.");
@@ -637,29 +907,83 @@ Please acknowledge these details, give your first guidance based on them, and th
     }
   };
 
-  const handleEndSession = () => {
-    const confirmed = window.confirm("End this AI guidance session?");
+  const handleEndSession = async () => {
+    const confirmed = window.confirm("End this AI Vet Chat session?");
     if (!confirmed) return;
 
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now() + Math.random(),
-        sender: "system",
-        senderLabel: "System",
-        type: "text",
-        text: "This AI guidance session has ended.",
-        time: new Date().toLocaleTimeString("en-IE", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      },
-    ]);
+    const finalMessage = {
+      id: Date.now() + Math.random(),
+      sender: "system",
+      senderLabel: "System",
+      type: "text",
+      text: "This AI Vet Chat session has ended.",
+      time: new Date().toLocaleTimeString("en-IE", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
 
-    setChatStatus("idle");
+    const finalTranscript = [...chatMessages, finalMessage];
+    setChatMessages(finalTranscript);
+
+    try {
+      if (activeSessionId) {
+        await endSessionRecord(activeSessionId, finalTranscript);
+      }
+
+      setChatStatus("ended");
+      setChatStarted(false);
+      setShowIntakeForm(true);
+      setSessionEnded(true);
+      setFormSuccess("Session ended. You can now rate it and review it in history.");
+      fetchSessionHistory(selectedPetId);
+    } catch (error) {
+      setChatError(error.message || "Could not end the session properly.");
+    }
+  };
+
+  const handleOpenHistorySession = (session) => {
+    setSelectedHistorySession(session);
+    setShowIntakeForm(false);
     setChatStarted(false);
+    setChatStatus("ended");
+    setSessionEnded(true);
+    setActiveSessionId(session?.id || null);
+    setAiSummary(session?.intake_summary || "");
+    setAiGuidance(Array.isArray(session?.guidance) ? session.guidance : []);
+    setChatMessages(Array.isArray(session?.transcript) ? session.transcript.map((msg, index) => ({
+      id: msg?.id || `${session?.id || "history"}-${index}`,
+      sender: msg?.sender || "system",
+      senderLabel: msg?.sender_label || msg?.senderLabel || "System",
+      type: msg?.type || "text",
+      text: msg?.text || "",
+      imageUrl: msg?.image_url || msg?.imageUrl || "",
+      fileName: msg?.file_name || msg?.fileName || "",
+      time: msg?.time || "",
+    })) : []);
+    setRatingForm({
+      score: session?.rating || 0,
+      feedback: session?.feedback || "",
+    });
+    setRatingSuccess("");
+    setRatingError("");
+  };
+
+  const handleStartNewSessionView = () => {
+    setSelectedHistorySession(null);
+    setChatMessages([]);
+    setAiSummary("");
+    setAiGuidance([]);
+    setEmergencyDetected(false);
+    setChatStarted(false);
+    setChatStatus("idle");
+    setSessionEnded(false);
+    setActiveSessionId(null);
+    setSessionStartedAt(null);
     setShowIntakeForm(true);
-    setFormSuccess("Session ended. Transcript saving and rating can be added later.");
+    setRatingForm({ score: 0, feedback: "" });
+    setRatingSuccess("");
+    setRatingError("");
   };
 
   const statusMeta = useMemo(() => {
@@ -678,9 +1002,15 @@ Please acknowledge these details, give your first guidance based on them, and th
         };
       case "connected":
         return {
-          label: "AI session active",
+          label: "AI vet chat active",
           tone: "good",
           text: "You are chatting with Pawfection AI Vet Assistant.",
+        };
+      case "ended":
+        return {
+          label: "Session ended",
+          tone: "medium",
+          text: "This saved transcript is now read-only.",
         };
       default:
         return {
@@ -692,7 +1022,7 @@ Please acknowledge these details, give your first guidance based on them, and th
   }, [chatStatus]);
 
   if (!premiumChecked) {
-    return <div className="pvc-loading-screen">Loading AI Vet Assistant...</div>;
+    return <div className="pvc-loading-screen">Loading AI Vet Chat...</div>;
   }
 
   return (
@@ -710,7 +1040,7 @@ Please acknowledge these details, give your first guidance based on them, and th
           <img className="pvc-brand-logo" src={PawfectionLogo} alt="Pawfection" />
           <div className="pvc-brand-copy">
             <div className="pvc-brand-title">Pawfection</div>
-            <div className="pvc-brand-sub">Premium AI Vet Assistant</div>
+            <div className="pvc-brand-sub">Premium AI Vet Chat</div>
           </div>
         </div>
 
@@ -722,7 +1052,7 @@ Please acknowledge these details, give your first guidance based on them, and th
             My Pet
           </Link>
           <Link className="pvc-topnav-item active" to="/premium/vet-chat">
-            Vet Chat
+            AI Vet Chat
           </Link>
           <Link className="pvc-topnav-item" to="/premium/appointments">
             Appointments
@@ -763,8 +1093,8 @@ Please acknowledge these details, give your first guidance based on them, and th
               {getGreeting()}, {userName}
             </h1>
             <p className="pvc-hero-text">
-              Start an AI guidance session, organise symptoms with pet-aware context,
-              and get general support in a clear and safe premium space.
+              Start an AI Vet Chat session, keep pet-linked transcript history,
+              and review previous support sessions in one premium space.
             </p>
 
             <div className="pvc-selector-wrap">
@@ -794,6 +1124,14 @@ Please acknowledge these details, give your first guidance based on them, and th
                 onClick={() => setShowIntakeForm((prev) => !prev)}
               >
                 {showIntakeForm ? "Hide Intake Form" : "Open Intake Form"}
+              </button>
+
+              <button
+                className="pvc-btn"
+                type="button"
+                onClick={handleStartNewSessionView}
+              >
+                New AI Vet Chat
               </button>
 
               <button
@@ -852,7 +1190,7 @@ Please acknowledge these details, give your first guidance based on them, and th
                     <div className="pvc-stat-pill">
                       {selectedPet?.allergies ? "Allergies noted" : "No allergies added"}
                     </div>
-                    <div className="pvc-stat-pill">{chatStarted ? statusMeta.label : "AI support ready"}</div>
+                    <div className="pvc-stat-pill">{statusMeta.label}</div>
                   </div>
                 </div>
               </>
@@ -864,9 +1202,10 @@ Please acknowledge these details, give your first guidance based on them, and th
           <section className="pvc-locked-wrap">
             <article className="pvc-card pvc-card-wide pvc-locked-card">
               <div className="pvc-card-kicker">Premium Access Needed</div>
-              <h3>AI Vet Assistant is only available for premium users</h3>
+              <h3>AI Vet Chat is only available for premium users</h3>
               <p className="pvc-locked-text">
-                Upgrade to premium to access AI-assisted symptom summaries and pet-linked guidance support.
+                Upgrade to premium to access AI-assisted symptom summaries, pet-linked transcripts,
+                session history, and post-session ratings.
               </p>
 
               <div className="pvc-locked-actions">
@@ -931,9 +1270,9 @@ Please acknowledge these details, give your first guidance based on them, and th
             <section className="pvc-grid">
               <article className="pvc-card pvc-card-wide">
                 <div className="pvc-card-kicker">Consultation Intake</div>
-                <h3>Start your AI guidance request</h3>
+                <h3>Start your AI Vet Chat request</h3>
 
-                {showIntakeForm && (
+                {showIntakeForm && !sessionEnded && (
                   <form className="pvc-intake-form" onSubmit={handleStartChat}>
                     <div className="pvc-field">
                       <label>Reason for concern</label>
@@ -1031,10 +1370,16 @@ Please acknowledge these details, give your first guidance based on them, and th
 
                     <div className="pvc-intake-actions">
                       <button className="pvc-btn pvc-btn-primary" type="submit">
-                        Start AI Chat
+                        Start AI Vet Chat
                       </button>
                     </div>
                   </form>
+                )}
+
+                {sessionEnded && (
+                  <div className="pvc-readonly-note">
+                    This session has ended. Its saved transcript is read-only.
+                  </div>
                 )}
               </article>
 
@@ -1100,9 +1445,47 @@ Please acknowledge these details, give your first guidance based on them, and th
                 </div>
               </article>
 
+              <article className="pvc-card">
+                <div className="pvc-card-kicker">Saved Sessions</div>
+                <h3>AI Vet Chat history</h3>
+
+                {loadingHistory ? (
+                  <div className="pvc-empty">Loading session history...</div>
+                ) : historyError ? (
+                  <div className="pvc-form-message pvc-form-error">{historyError}</div>
+                ) : sessionHistory.length === 0 ? (
+                  <div className="pvc-empty">
+                    No saved AI vet chat sessions for this pet yet. Start one to build transcript history.
+                  </div>
+                ) : (
+                  <div className="pvc-history-list">
+                    {sessionHistory.map((session) => (
+                      <button
+                        key={session.id}
+                        type="button"
+                        className={`pvc-history-item ${
+                          String(selectedHistorySession?.id) === String(session.id) ? "active" : ""
+                        }`}
+                        onClick={() => handleOpenHistorySession(session)}
+                      >
+                        <div className="pvc-history-top">
+                          <strong>{formatDateTime(session?.started_at || session?.created_at)}</strong>
+                          <span className="pvc-history-rating">
+                            {session?.rating ? `★ ${session.rating}/5` : "Not rated"}
+                          </span>
+                        </div>
+                        <div className="pvc-history-text">
+                          {session?.intake_summary || "Saved session"}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </article>
+
               <article className="pvc-card pvc-card-wide">
                 <div className="pvc-card-kicker">AI Guidance Session</div>
-                <h3>AI Pet Care Chat</h3>
+                <h3>AI Vet Chat</h3>
 
                 <div className="pvc-chat-shell">
                   <div className="pvc-chat-statusbar">
@@ -1112,10 +1495,16 @@ Please acknowledge these details, give your first guidance based on them, and th
                     <div className="pvc-status-text">{statusMeta.text}</div>
                   </div>
 
+                  <div className="pvc-session-meta-bar">
+                    <div><strong>Pet:</strong> {selectedPet?.name || "—"}</div>
+                    <div><strong>Started:</strong> {formatDateTime(selectedHistorySession?.started_at || sessionStartedAt)}</div>
+                    <div><strong>Ended:</strong> {formatDateTime(selectedHistorySession?.ended_at)}</div>
+                  </div>
+
                   <div className="pvc-chat-window">
                     {!chatMessages.length ? (
                       <div className="pvc-chat-empty">
-                        Complete the intake form to begin the AI guidance session.
+                        Complete the intake form to begin the AI Vet Chat session.
                       </div>
                     ) : (
                       chatMessages.map((message) => (
@@ -1159,15 +1548,16 @@ Please acknowledge these details, give your first guidance based on them, and th
                       rows="2"
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
+                      disabled={chatStatus !== "connected" || sessionEnded}
                       placeholder={
-                        chatStatus === "connected"
+                        chatStatus === "connected" && !sessionEnded
                           ? "Type your message to the AI assistant..."
-                          : "You can send messages once the AI session is active..."
+                          : "This transcript is read-only. Start a new AI Vet Chat to send messages."
                       }
                     />
 
                     <div className="pvc-composer-actions">
-                      <label className="pvc-upload-btn">
+                      <label className={`pvc-upload-btn ${(chatStatus !== "connected" || sessionEnded) ? "disabled" : ""}`}>
                         Add Image
                         <input
                           type="file"
@@ -1175,6 +1565,7 @@ Please acknowledge these details, give your first guidance based on them, and th
                           multiple
                           onChange={handleFileChange}
                           hidden
+                          disabled={chatStatus !== "connected" || sessionEnded}
                         />
                       </label>
 
@@ -1182,7 +1573,7 @@ Please acknowledge these details, give your first guidance based on them, and th
                         className="pvc-btn pvc-btn-primary pvc-btn-small"
                         type="button"
                         onClick={handleSendMessage}
-                        disabled={sendingMessage || chatStatus !== "connected"}
+                        disabled={sendingMessage || chatStatus !== "connected" || sessionEnded}
                       >
                         {sendingMessage ? "Sending..." : "Send"}
                       </button>
@@ -1191,13 +1582,13 @@ Please acknowledge these details, give your first guidance based on them, and th
                         className="pvc-btn pvc-btn-small pvc-btn-danger"
                         type="button"
                         onClick={handleEndSession}
-                        disabled={!chatStarted && chatStatus !== "connected"}
+                        disabled={chatStatus !== "connected" || sessionEnded}
                       >
                         End Session
                       </button>
                     </div>
 
-                    {imagePreviews.length > 0 && (
+                    {imagePreviews.length > 0 && !sessionEnded && (
                       <div className="pvc-composer-preview-row">
                         {imagePreviews.map((preview, index) => (
                           <div key={index} className="pvc-composer-preview">
@@ -1208,6 +1599,67 @@ Please acknowledge these details, give your first guidance based on them, and th
                     )}
                   </div>
                 </div>
+              </article>
+
+              <article className="pvc-card pvc-card-wide">
+                <div className="pvc-card-kicker">Post-Session Rating</div>
+                <h3>Rate this AI Vet Chat session</h3>
+
+                {sessionEnded || selectedHistorySession ? (
+                  <>
+                    <div className="pvc-rating-stars">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          className={`pvc-star-btn ${ratingForm.score >= star ? "active" : ""}`}
+                          onClick={() =>
+                            !selectedHistorySession &&
+                            setRatingForm((prev) => ({ ...prev, score: star }))
+                          }
+                          disabled={!!selectedHistorySession}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="pvc-field">
+                      <label>Short feedback</label>
+                      <textarea
+                        rows="3"
+                        value={ratingForm.feedback}
+                        onChange={(e) =>
+                          setRatingForm((prev) => ({ ...prev, feedback: e.target.value }))
+                        }
+                        placeholder="Share how helpful this AI vet chat session was..."
+                        disabled={!!selectedHistorySession}
+                      />
+                    </div>
+
+                    {selectedHistorySession ? (
+                      <div className="pvc-readonly-note">
+                        This saved session has already been stored and is being shown in read-only mode.
+                      </div>
+                    ) : (
+                      <button
+                        className="pvc-btn pvc-btn-primary"
+                        type="button"
+                        onClick={submitSessionRating}
+                        disabled={submittingRating}
+                      >
+                        {submittingRating ? "Saving rating..." : "Submit Rating"}
+                      </button>
+                    )}
+
+                    {ratingError && <div className="pvc-form-message pvc-form-error">{ratingError}</div>}
+                    {ratingSuccess && <div className="pvc-form-message pvc-form-success">{ratingSuccess}</div>}
+                  </>
+                ) : (
+                  <div className="pvc-empty">
+                    End an AI Vet Chat session to rate it here.
+                  </div>
+                )}
               </article>
             </section>
           </>

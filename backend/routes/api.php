@@ -52,8 +52,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/inventory/{inventoryItem}/restock', [InventoryController::class, 'restock']);
     Route::post('/inventory/{inventoryItem}/consume', [InventoryController::class, 'consume']);
 
-    // Premium Pet Intelligence
+    // Premium features
     Route::prefix('premium')->group(function () {
+        // Premium Pet Intelligence
         Route::get('/pets/{pet}/health-logs', [PremiumPetController::class, 'healthLogs']);
         Route::post('/pets/{pet}/health-logs', [PremiumPetController::class, 'storeHealthLog']);
         Route::delete('/pets/{pet}/health-logs/{log}', [PremiumPetController::class, 'destroyHealthLog']);
@@ -63,8 +64,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/pets/{pet}/recommendations', [PremiumPetController::class, 'recommendations']);
         Route::get('/pets/{pet}/alerts', [PremiumPetController::class, 'alerts']);
 
-        // AI Vet Chat
+        // AI Vet Chat - existing live chat route
         Route::post('/ai-vet-chat', [AiVetChatController::class, 'chat']);
+
+        // User Story 200 - save and review AI vet chat sessions
+        Route::get('/ai-vet-chat/sessions', [AiVetChatController::class, 'sessions']);
+        Route::post('/ai-vet-chat/sessions', [AiVetChatController::class, 'storeSession']);
+        Route::put('/ai-vet-chat/sessions/{session}/transcript', [AiVetChatController::class, 'updateTranscript']);
+        Route::post('/ai-vet-chat/sessions/{session}/end', [AiVetChatController::class, 'endSession']);
+        Route::post('/ai-vet-chat/sessions/{session}/rating', [AiVetChatController::class, 'storeRating']);
     });
 
     // Premium Lost & Found
