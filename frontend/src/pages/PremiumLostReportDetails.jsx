@@ -150,7 +150,7 @@ export default function PremiumReportDetails() {
             </Link>
             <Link to="/community">Community</Link>
             <Link to="/inventory">Inventory</Link>
-            <Link className="pfd-topnav-item" to="/premium/vet-chat">AI Vet Chat</Link>
+            <Link className="pfd-topnav-item" to="/premium/vet-chat">AI Pet Assistant</Link>
             <Link to="/profile">Profile</Link>
           </div>
         </nav>

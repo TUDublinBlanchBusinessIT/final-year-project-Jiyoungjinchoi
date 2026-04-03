@@ -17,11 +17,16 @@ class AiVetChatController extends Controller
         $validated = $request->validate([
             'pet_id' => ['required', 'integer', 'exists:pets,id'],
             'session_id' => ['nullable', 'integer'],
-            'message' => ['required', 'string', 'max:3000'],
+            'message' => ['required', 'string', 'max:5000'],
+
+            'support_mode' => ['nullable', 'string', 'max:255'],
+            'pet_profile_context' => ['nullable', 'string', 'max:20000'],
+
             'concern' => ['nullable', 'string', 'max:3000'],
             'duration' => ['nullable', 'string', 'max:1000'],
             'appetite' => ['nullable', 'string', 'max:1000'],
             'behaviour' => ['nullable', 'string', 'max:1000'],
+
             'symptoms' => ['nullable', 'array'],
             'symptoms.*' => ['string', 'max:255'],
         ]);
@@ -40,7 +45,7 @@ class AiVetChatController extends Controller
 
         if (!$this->userIsPremium($user)) {
             return response()->json([
-                'message' => 'AI Vet Chat is available for premium users only.',
+                'message' => 'AI Pet Assistant is available for premium users only.',
             ], 403);
         }
 
@@ -49,13 +54,13 @@ class AiVetChatController extends Controller
 
             if (!$session) {
                 throw ValidationException::withMessages([
-                    'session_id' => 'AI vet chat session not found for this pet.',
+                    'session_id' => 'AI assistant session not found for this pet.',
                 ]);
             }
 
             if (!empty($session->ended_at)) {
                 return response()->json([
-                    'message' => 'This AI vet chat session has already ended and is read-only.',
+                    'message' => 'This AI assistant session has already ended and is read-only.',
                 ], 422);
             }
         }
@@ -69,7 +74,9 @@ class AiVetChatController extends Controller
             ], 500);
         }
 
+        $supportMode = trim((string) ($validated['support_mode'] ?? 'Health & Symptoms'));
         $symptoms = $validated['symptoms'] ?? [];
+        $petProfileContext = trim((string) ($validated['pet_profile_context'] ?? ''));
 
         $petContext = [
             'name' => $pet->name,
@@ -82,25 +89,90 @@ class AiVetChatController extends Controller
             'health_conditions' => $pet->health_conditions,
             'vaccination_status' => $pet->vaccination_status,
             'notes' => $pet->notes,
+            'eye_color' => $pet->eye_color ?? null,
+            'fur_type' => $pet->fur_type ?? null,
+            'markings' => $pet->markings ?? null,
+            'microchip_number' => $pet->microchip_number ?? null,
+            'vaccination_history' => $pet->vaccination_history ?? null,
+            'last_vaccination_date' => $pet->last_vaccination_date ?? null,
+            'vaccine_interval_days' => $pet->vaccine_interval_days ?? null,
+            'last_grooming_date' => $pet->last_grooming_date ?? null,
+            'grooming_interval_days' => $pet->grooming_interval_days ?? null,
         ];
 
         $systemPrompt = <<<PROMPT
-You are Pawfection AI Vet Assistant.
+You are Pawfection AI Pet Assistant.
 
 You are an AI support assistant for pet owners.
 You are NOT a licensed veterinarian.
 Do NOT claim to diagnose, prescribe, or replace a real vet.
 You must clearly speak as an AI assistant.
 Give practical, calm, general pet-care guidance only.
-When symptoms may be urgent, strongly recommend immediate in-person veterinary care.
-When useful, ask 2 to 4 short follow-up questions.
-Keep answers supportive, clear, and not overly long.
+Keep answers supportive, clear, structured, and not overly long.
 Avoid repeating the same sentence structure every time.
-If the user mentions emergencies such as collapse, seizures, trouble breathing, severe bleeding, poisoning, or inability to stand, tell them to seek emergency veterinary help immediately.
+Ask 2 to 4 short follow-up questions only when useful.
+
+The selected support mode may be one of:
+- Health & Symptoms
+- Behaviour & Training
+- Food & Nutrition
+- Grooming & Care
+- Routine & Reminders
+- Appointment Prep
+- Lost Pet Support
+- New Pet Owner Help
+- Travel & Planning
+- Other
+
+Rules by mode:
+
+If support mode is "Health & Symptoms":
+- provide general symptom guidance only
+- do not diagnose
+- mention when in-person veterinary care may be needed
+- if the user mentions emergencies such as collapse, seizures, trouble breathing, severe bleeding, poisoning, or inability to stand, strongly recommend immediate emergency veterinary help
+
+If support mode is NOT "Health & Symptoms":
+- do not frame the answer as a medical consultation unless the user clearly asks a health question
+- give practical, relevant support for the chosen topic
+- use the pet profile naturally where helpful
+- be helpful for planning, organisation, routines, behaviour, feeding, grooming, lost pet support, travel, and other general pet care topics
+
+If support mode is "Lost Pet Support":
+- help write clear, calm, useful lost pet wording
+- help organise identifying details from the pet profile
+
+If support mode is "Appointment Prep":
+- help prepare questions, summaries, and notes for the upcoming appointment
+
+If support mode is "Routine & Reminders":
+- help structure routines, schedules, and reminder ideas
+
+If support mode is "Behaviour & Training":
+- help identify patterns, triggers, and gentle next-step ideas
+
+If support mode is "Food & Nutrition":
+- help organise food routines and transitions, but avoid medical claims
+
+If support mode is "Grooming & Care":
+- help with home care, grooming frequency, coat or care planning
+
+If support mode is "New Pet Owner Help":
+- help with first steps, checklists, and beginner guidance
+
+If support mode is "Travel & Planning":
+- help with packing lists, transition tips, and travel prep
+
+If support mode is "Other":
+- help broadly with pet-related questions that do not fit the listed categories
+
+End with a short disclaimer when the topic is health-related or could be risky.
 PROMPT;
 
         $userPrompt = [
+            'support_mode' => $supportMode,
             'pet_context' => $petContext,
+            'pet_profile_context' => $petProfileContext ?: null,
             'intake' => [
                 'main_concern' => $validated['concern'] ?? null,
                 'duration' => $validated['duration'] ?? null,
@@ -109,7 +181,7 @@ PROMPT;
                 'symptoms' => $symptoms,
             ],
             'latest_user_message' => $validated['message'],
-            'instruction' => 'Respond as Pawfection AI Vet Assistant. Mention that you are AI, provide general guidance only, include urgent warning signs if relevant, and end with a short disclaimer.',
+            'instruction' => 'Respond as Pawfection AI Pet Assistant. Use the selected support mode and the pet profile context naturally. For health mode, provide general guidance only and do not diagnose. For non-health modes, provide broader pet support relevant to the chosen topic.',
         ];
 
         $response = Http::withToken($apiKey)
@@ -132,12 +204,12 @@ PROMPT;
                         'content' => [
                             [
                                 'type' => 'input_text',
-                                'text' => json_encode($userPrompt, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+                                'text' => json_encode($userPrompt, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                             ],
                         ],
                     ],
                 ],
-                'max_output_tokens' => 500,
+                'max_output_tokens' => 700,
             ]);
 
         if (!$response->successful()) {
@@ -178,8 +250,11 @@ PROMPT;
 
         return response()->json([
             'reply' => $reply,
-            'assistant_name' => 'Pawfection AI Vet Assistant',
-            'disclaimer' => 'This is AI guidance only and not a substitute for a licensed veterinarian.',
+            'assistant_name' => 'Pawfection AI Pet Assistant',
+            'disclaimer' => $supportMode === 'Health & Symptoms'
+                ? 'This is AI guidance only and not a substitute for a licensed veterinarian.'
+                : 'This is AI support only and should be used as general pet guidance.',
+            'support_mode' => $supportMode,
             'session_id' => $validated['session_id'] ?? null,
         ]);
     }
@@ -204,7 +279,7 @@ PROMPT;
 
         if (!$this->userIsPremium($user)) {
             return response()->json([
-                'message' => 'AI Vet Chat history is available for premium users only.',
+                'message' => 'AI Pet Assistant history is available for premium users only.',
             ], 403);
         }
 
@@ -229,6 +304,7 @@ PROMPT;
         $validated = $request->validate([
             'pet_id' => ['required', 'integer', 'exists:pets,id'],
             'intake_summary' => ['nullable', 'string', 'max:10000'],
+            'support_mode' => ['nullable', 'string', 'max:255'],
             'concern' => ['nullable', 'string', 'max:3000'],
             'duration' => ['nullable', 'string', 'max:1000'],
             'appetite' => ['nullable', 'string', 'max:1000'],
@@ -255,7 +331,7 @@ PROMPT;
 
         if (!$this->userIsPremium($user)) {
             return response()->json([
-                'message' => 'AI Vet Chat is available for premium users only.',
+                'message' => 'AI Pet Assistant is available for premium users only.',
             ], 403);
         }
 
@@ -263,6 +339,7 @@ PROMPT;
             'user_id' => $user->id,
             'pet_id' => $pet->id,
             'intake_summary' => $validated['intake_summary'] ?? null,
+            'support_mode' => $validated['support_mode'] ?? 'Health & Symptoms',
             'concern' => $validated['concern'] ?? null,
             'duration' => $validated['duration'] ?? null,
             'appetite' => $validated['appetite'] ?? null,
@@ -281,7 +358,7 @@ PROMPT;
         $session = DB::table('ai_vet_chat_sessions')->where('id', $sessionId)->first();
 
         return response()->json([
-            'message' => 'AI vet chat session created successfully.',
+            'message' => 'AI assistant session created successfully.',
             'session' => $this->formatSession($session),
         ], 201);
     }
@@ -296,7 +373,7 @@ PROMPT;
 
         if (!$this->userIsPremium($user)) {
             return response()->json([
-                'message' => 'AI Vet Chat is available for premium users only.',
+                'message' => 'AI Pet Assistant is available for premium users only.',
             ], 403);
         }
 
@@ -304,13 +381,13 @@ PROMPT;
 
         if (!$session) {
             return response()->json([
-                'message' => 'AI vet chat session not found.',
+                'message' => 'AI assistant session not found.',
             ], 404);
         }
 
         if (!empty($session->ended_at)) {
             return response()->json([
-                'message' => 'This AI vet chat session has already ended and is read-only.',
+                'message' => 'This AI assistant session has already ended and is read-only.',
             ], 422);
         }
 
@@ -340,7 +417,7 @@ PROMPT;
 
         if (!$this->userIsPremium($user)) {
             return response()->json([
-                'message' => 'AI Vet Chat is available for premium users only.',
+                'message' => 'AI Pet Assistant is available for premium users only.',
             ], 403);
         }
 
@@ -348,13 +425,13 @@ PROMPT;
 
         if (!$session) {
             return response()->json([
-                'message' => 'AI vet chat session not found.',
+                'message' => 'AI assistant session not found.',
             ], 404);
         }
 
         if (!empty($session->ended_at)) {
             return response()->json([
-                'message' => 'This AI vet chat session has already ended.',
+                'message' => 'This AI assistant session has already ended.',
                 'session' => $this->formatSession($session),
             ], 200);
         }
@@ -372,7 +449,7 @@ PROMPT;
         $updated = DB::table('ai_vet_chat_sessions')->where('id', $session->id)->first();
 
         return response()->json([
-            'message' => 'AI vet chat session ended successfully.',
+            'message' => 'AI assistant session ended successfully.',
             'session' => $this->formatSession($updated),
         ]);
     }
@@ -388,7 +465,7 @@ PROMPT;
 
         if (!$this->userIsPremium($user)) {
             return response()->json([
-                'message' => 'AI Vet Chat is available for premium users only.',
+                'message' => 'AI Pet Assistant is available for premium users only.',
             ], 403);
         }
 
@@ -396,13 +473,13 @@ PROMPT;
 
         if (!$session) {
             return response()->json([
-                'message' => 'AI vet chat session not found.',
+                'message' => 'AI assistant session not found.',
             ], 404);
         }
 
         if (empty($session->ended_at)) {
             return response()->json([
-                'message' => 'Please end the AI vet chat session before rating it.',
+                'message' => 'Please end the AI assistant session before rating it.',
             ], 422);
         }
 
@@ -417,7 +494,7 @@ PROMPT;
         $updated = DB::table('ai_vet_chat_sessions')->where('id', $session->id)->first();
 
         return response()->json([
-            'message' => 'AI vet chat session rating saved successfully.',
+            'message' => 'AI assistant session rating saved successfully.',
             'session' => $this->formatSession($updated),
         ]);
     }
@@ -487,6 +564,7 @@ PROMPT;
             'user_id' => $session->user_id,
             'pet_id' => $session->pet_id,
             'intake_summary' => $session->intake_summary,
+            'support_mode' => $session->support_mode ?? 'Health & Symptoms',
             'concern' => $session->concern,
             'duration' => $session->duration,
             'appetite' => $session->appetite,

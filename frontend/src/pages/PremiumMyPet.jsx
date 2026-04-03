@@ -722,7 +722,7 @@ export default function PremiumMyPet() {
             Inventory
           </Link>
           <Link className="pfd-topnav-item" to="/premium/vet-chat">
-            AI Vet Chat
+            AI Pet Assistant
           </Link>
           <Link className="pmp-topnav-item" to="/premium/profile">
             Profile

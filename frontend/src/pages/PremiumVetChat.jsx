@@ -3,7 +3,20 @@ import { Link, useNavigate } from "react-router-dom";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
 import "./PremiumVetChat.css";
 
-const SYMPTOM_OPTIONS = [
+const SUPPORT_MODES = [
+  "Health & Symptoms",
+  "Behaviour & Training",
+  "Food & Nutrition",
+  "Grooming & Care",
+  "Routine & Reminders",
+  "Appointment Prep",
+  "Lost Pet Support",
+  "New Pet Owner Help",
+  "Travel & Planning",
+  "Other",
+];
+
+const HEALTH_SYMPTOM_OPTIONS = [
   "Vomiting",
   "Diarrhoea",
   "Not Eating",
@@ -38,6 +51,122 @@ const EMERGENCY_KEYWORDS = [
   "not moving",
 ];
 
+const MODE_PROMPTS = {
+  "Health & Symptoms": [
+    "My pet has been vomiting since this morning",
+    "My dog is limping after a walk",
+    "My cat is scratching more than usual",
+  ],
+  "Behaviour & Training": [
+    "My dog barks when guests arrive",
+    "My puppy keeps chewing furniture",
+    "My cat scratches the sofa",
+  ],
+  "Food & Nutrition": [
+    "How should I change my pet’s food safely?",
+    "Can you help me build a feeding routine?",
+    "My pet is eating less than usual",
+  ],
+  "Grooming & Care": [
+    "How often should I groom this breed?",
+    "What home grooming routine is best?",
+    "How can I make nail trimming easier?",
+  ],
+  "Routine & Reminders": [
+    "Create a weekly care plan for my pet",
+    "What reminders should I set each month?",
+    "Help me build a daily routine",
+  ],
+  "Appointment Prep": [
+    "Help me prepare for tomorrow’s vet visit",
+    "What questions should I ask the groomer?",
+    "Can you summarise my pet’s recent issues?",
+  ],
+  "Lost Pet Support": [
+    "Help me write a lost pet alert",
+    "What details should I include in a missing pet post?",
+    "Create a description from my pet profile",
+  ],
+  "New Pet Owner Help": [
+    "I just adopted a kitten, what should I do first?",
+    "What should I buy for a new puppy?",
+    "Can you make me a first-week checklist?",
+  ],
+  "Travel & Planning": [
+    "What should I pack for travelling with my dog?",
+    "How can I help my cat adjust to a new home?",
+    "Create a travel checklist for my pet",
+  ],
+  Other: [
+    "I need help with something else about my pet",
+    "Can you guide me on a pet question not listed here?",
+    "I’m not sure which support option fits my question",
+  ],
+};
+
+const getDefaultIntakeForm = () => ({
+  supportMode: "Health & Symptoms",
+
+  // General / health
+  concern: "",
+  duration: "",
+  appetite: "",
+  behaviour: "",
+  symptoms: [],
+  useAiSummary: true,
+
+  // Behaviour & training
+  behaviourIssue: "",
+  behaviourTrigger: "",
+  behaviourFrequency: "",
+  trainingGoal: "",
+
+  // Food & nutrition
+  currentFood: "",
+  feedingSchedule: "",
+  eatingChange: "",
+  nutritionGoal: "",
+
+  // Grooming & care
+  groomingNeed: "",
+  groomingFrequency: "",
+  coatSkinNotes: "",
+  careGoal: "",
+
+  // Routine & reminders
+  routineGoal: "",
+  currentRoutine: "",
+  reminderNeeds: "",
+  planningNotes: "",
+
+  // Appointment prep
+  appointmentType: "",
+  appointmentDate: "",
+  appointmentGoal: "",
+  appointmentQuestions: "",
+
+  // Lost pet support
+  lastSeenLocation: "",
+  lastSeenTime: "",
+  petDescription: "",
+  collarMicrochipInfo: "",
+
+  // New pet owner
+  newPetSituation: "",
+  starterHelpNeeded: "",
+  homeSetupStatus: "",
+
+  // Travel
+  travelType: "",
+  destinationType: "",
+  travelConcern: "",
+  packingHelp: "",
+
+  // Other
+  otherTopic: "",
+  otherDetails: "",
+});
+
 export default function PremiumVetChat() {
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
@@ -53,21 +182,14 @@ export default function PremiumVetChat() {
 
   const [showIntakeForm, setShowIntakeForm] = useState(true);
   const [chatStarted, setChatStarted] = useState(false);
-  const [chatStatus, setChatStatus] = useState("idle"); // idle | preparing | summarising | connected | ended
-  const [assistantName, setAssistantName] = useState("Pawfection AI Vet Assistant");
+  const [chatStatus, setChatStatus] = useState("idle");
+  const [assistantName, setAssistantName] = useState("Pawfection AI Pet Assistant");
 
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
   const [chatError, setChatError] = useState("");
 
-  const [intakeForm, setIntakeForm] = useState({
-    concern: "",
-    duration: "",
-    appetite: "",
-    behaviour: "",
-    symptoms: [],
-    useAiSummary: true,
-  });
+  const [intakeForm, setIntakeForm] = useState(getDefaultIntakeForm());
 
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -220,7 +342,7 @@ export default function PremiumVetChat() {
 
       if (!res.ok) {
         setSessionHistory([]);
-        setHistoryError(data?.message || "Could not load AI vet chat history.");
+        setHistoryError(data?.message || "Could not load AI assistant history.");
         return;
       }
 
@@ -228,7 +350,7 @@ export default function PremiumVetChat() {
       setSessionHistory(sessions);
     } catch {
       setSessionHistory([]);
-      setHistoryError("Could not load AI vet chat history.");
+      setHistoryError("Could not load AI assistant history.");
     } finally {
       setLoadingHistory(false);
     }
@@ -266,13 +388,20 @@ export default function PremiumVetChat() {
     if (!selectedPet) return [];
 
     const items = [];
+
     if (selectedPet?.breed) items.push(`Breed: ${selectedPet.breed}`);
+    if (selectedPet?.species) items.push(`Species: ${selectedPet.species}`);
     if (selectedPet?.age) items.push(`Age: ${selectedPet.age} yrs`);
     if (selectedPet?.weight) items.push(`Weight: ${selectedPet.weight}kg`);
     if (selectedPet?.gender) items.push(`Gender: ${selectedPet.gender}`);
     if (selectedPet?.allergies) items.push(`Allergies: ${selectedPet.allergies}`);
     if (selectedPet?.health_conditions) items.push(`Conditions: ${selectedPet.health_conditions}`);
     if (selectedPet?.vaccination_status) items.push(`Vaccination: ${selectedPet.vaccination_status}`);
+    if (selectedPet?.eye_color) items.push(`Eye colour: ${selectedPet.eye_color}`);
+    if (selectedPet?.fur_type) items.push(`Fur type: ${selectedPet.fur_type}`);
+    if (selectedPet?.markings) items.push(`Markings: ${selectedPet.markings}`);
+    if (selectedPet?.microchip_number) items.push(`Microchip: ${selectedPet.microchip_number}`);
+    if (selectedPet?.notes) items.push(`Notes: ${selectedPet.notes}`);
 
     return items;
   }, [selectedPet]);
@@ -311,6 +440,20 @@ export default function PremiumVetChat() {
     }));
   };
 
+  const handleSupportModeChange = (mode) => {
+    setIntakeForm((prev) => ({
+      ...prev,
+      supportMode: mode,
+      symptoms: mode === "Health & Symptoms" ? prev.symptoms : [],
+    }));
+    setFormError("");
+    setFormSuccess("");
+    setChatError("");
+    setAiSummary("");
+    setAiGuidance([]);
+    setEmergencyDetected(false);
+  };
+
   const handlePetChange = (petId) => {
     setSelectedPetId(String(petId));
     setFormError("");
@@ -329,6 +472,7 @@ export default function PremiumVetChat() {
     setRatingForm({ score: 0, feedback: "" });
     setRatingSuccess("");
     setRatingError("");
+    setIntakeForm(getDefaultIntakeForm());
   };
 
   const handleFileChange = (e) => {
@@ -341,8 +485,136 @@ export default function PremiumVetChat() {
   };
 
   const detectEmergency = () => {
+    if (intakeForm.supportMode !== "Health & Symptoms") return false;
+
     const combinedText = `${intakeForm.concern} ${intakeForm.symptoms.join(" ")} ${chatInput}`.toLowerCase();
     return EMERGENCY_KEYWORDS.some((keyword) => combinedText.includes(keyword));
+  };
+
+  const buildPetProfileText = () => {
+    if (!selectedPet) return "No pet selected.";
+
+    const sections = [
+      `Name: ${selectedPet?.name || "Unknown"}`,
+      `Species: ${selectedPet?.species || "Unknown"}`,
+      `Breed: ${selectedPet?.breed || "Unknown"}`,
+      `DOB: ${selectedPet?.dob || "Unknown"}`,
+      `Age: ${selectedPet?.age || "Unknown"}`,
+      `Gender: ${selectedPet?.gender || "Unknown"}`,
+      `Weight: ${selectedPet?.weight || "Unknown"}`,
+      `Eye colour: ${selectedPet?.eye_color || "Unknown"}`,
+      `Fur type: ${selectedPet?.fur_type || "Unknown"}`,
+      `Markings: ${selectedPet?.markings || "Unknown"}`,
+      `Allergies: ${selectedPet?.allergies || "None recorded"}`,
+      `Health conditions: ${selectedPet?.health_conditions || "None recorded"}`,
+      `Vaccination status: ${selectedPet?.vaccination_status || "Not recorded"}`,
+      `Vaccination history: ${selectedPet?.vaccination_history || "Not recorded"}`,
+      `Microchip number: ${selectedPet?.microchip_number || "Not recorded"}`,
+      `Last vaccination date: ${selectedPet?.last_vaccination_date || "Not recorded"}`,
+      `Vaccine interval days: ${selectedPet?.vaccine_interval_days || "Not recorded"}`,
+      `Last grooming date: ${selectedPet?.last_grooming_date || "Not recorded"}`,
+      `Grooming interval days: ${selectedPet?.grooming_interval_days || "Not recorded"}`,
+      `General notes: ${selectedPet?.notes || "None recorded"}`,
+    ];
+
+    return sections.join("\n");
+  };
+
+  const buildModeSpecificSummary = () => {
+    const mode = intakeForm.supportMode;
+
+    switch (mode) {
+      case "Health & Symptoms":
+        return [
+          `Support mode: ${mode}`,
+          `Reason for concern: ${intakeForm.concern || "Not provided"}`,
+          `Duration: ${intakeForm.duration || "Not provided"}`,
+          `Appetite / drinking: ${intakeForm.appetite || "Not provided"}`,
+          `Behaviour change: ${intakeForm.behaviour || "Not provided"}`,
+          `Symptoms: ${intakeForm.symptoms.length ? intakeForm.symptoms.join(", ") : "None selected"}`,
+        ].join("\n");
+
+      case "Behaviour & Training":
+        return [
+          `Support mode: ${mode}`,
+          `Behaviour issue: ${intakeForm.behaviourIssue || "Not provided"}`,
+          `Trigger: ${intakeForm.behaviourTrigger || "Not provided"}`,
+          `Frequency: ${intakeForm.behaviourFrequency || "Not provided"}`,
+          `Training goal: ${intakeForm.trainingGoal || "Not provided"}`,
+        ].join("\n");
+
+      case "Food & Nutrition":
+        return [
+          `Support mode: ${mode}`,
+          `Current food: ${intakeForm.currentFood || "Not provided"}`,
+          `Feeding schedule: ${intakeForm.feedingSchedule || "Not provided"}`,
+          `Eating change: ${intakeForm.eatingChange || "Not provided"}`,
+          `Nutrition goal: ${intakeForm.nutritionGoal || "Not provided"}`,
+        ].join("\n");
+
+      case "Grooming & Care":
+        return [
+          `Support mode: ${mode}`,
+          `Grooming need: ${intakeForm.groomingNeed || "Not provided"}`,
+          `Current grooming frequency: ${intakeForm.groomingFrequency || "Not provided"}`,
+          `Coat / skin notes: ${intakeForm.coatSkinNotes || "Not provided"}`,
+          `Care goal: ${intakeForm.careGoal || "Not provided"}`,
+        ].join("\n");
+
+      case "Routine & Reminders":
+        return [
+          `Support mode: ${mode}`,
+          `Routine goal: ${intakeForm.routineGoal || "Not provided"}`,
+          `Current routine: ${intakeForm.currentRoutine || "Not provided"}`,
+          `Reminder needs: ${intakeForm.reminderNeeds || "Not provided"}`,
+          `Planning notes: ${intakeForm.planningNotes || "Not provided"}`,
+        ].join("\n");
+
+      case "Appointment Prep":
+        return [
+          `Support mode: ${mode}`,
+          `Appointment type: ${intakeForm.appointmentType || "Not provided"}`,
+          `Appointment date: ${intakeForm.appointmentDate || "Not provided"}`,
+          `Appointment goal: ${intakeForm.appointmentGoal || "Not provided"}`,
+          `Questions to prepare: ${intakeForm.appointmentQuestions || "Not provided"}`,
+        ].join("\n");
+
+      case "Lost Pet Support":
+        return [
+          `Support mode: ${mode}`,
+          `Last seen location: ${intakeForm.lastSeenLocation || "Not provided"}`,
+          `Last seen time: ${intakeForm.lastSeenTime || "Not provided"}`,
+          `Pet description: ${intakeForm.petDescription || "Not provided"}`,
+          `Collar / microchip info: ${intakeForm.collarMicrochipInfo || "Not provided"}`,
+        ].join("\n");
+
+      case "New Pet Owner Help":
+        return [
+          `Support mode: ${mode}`,
+          `Situation: ${intakeForm.newPetSituation || "Not provided"}`,
+          `Help needed: ${intakeForm.starterHelpNeeded || "Not provided"}`,
+          `Home setup status: ${intakeForm.homeSetupStatus || "Not provided"}`,
+        ].join("\n");
+
+      case "Travel & Planning":
+        return [
+          `Support mode: ${mode}`,
+          `Travel type: ${intakeForm.travelType || "Not provided"}`,
+          `Destination type: ${intakeForm.destinationType || "Not provided"}`,
+          `Travel concern: ${intakeForm.travelConcern || "Not provided"}`,
+          `Packing help: ${intakeForm.packingHelp || "Not provided"}`,
+        ].join("\n");
+
+      case "Other":
+        return [
+          `Support mode: ${mode}`,
+          `Topic: ${intakeForm.otherTopic || "Not provided"}`,
+          `Details: ${intakeForm.otherDetails || "Not provided"}`,
+        ].join("\n");
+
+      default:
+        return `Support mode: ${mode}`;
+    }
   };
 
   const buildAiSummary = () => {
@@ -352,85 +624,121 @@ export default function PremiumVetChat() {
     const species = selectedPet?.species || "pet";
     const breed = selectedPet?.breed || "unknown breed";
     const age = selectedPet?.age ? `${selectedPet.age}-year-old` : "age not provided";
-    const symptomText = intakeForm.symptoms.length
-      ? intakeForm.symptoms.join(", ")
-      : "no symptom tags selected";
 
-    return `${petName} is a ${age} ${species}${breed ? ` (${breed})` : ""}. Main concern: ${
-      intakeForm.concern || "not provided"
-    }. Symptoms selected: ${symptomText}. Appetite: ${
-      intakeForm.appetite || "not provided"
-    }. Behaviour change: ${intakeForm.behaviour || "not provided"}. Duration: ${
-      intakeForm.duration || "not provided"
+    return `${petName} is a ${age} ${species}${breed ? ` (${breed})` : ""}. ${
+      buildModeSpecificSummary()
     }. ${selectedFiles.length ? `The owner attached ${selectedFiles.length} image(s).` : "No images attached."}`;
   };
 
   const buildAiGuidance = (emergency) => {
+    const mode = intakeForm.supportMode;
     const guidance = [];
 
-    if (emergency) {
+    if (mode === "Health & Symptoms" && emergency) {
       guidance.push("Possible urgent warning signs detected. Please contact an emergency vet clinic immediately.");
       guidance.push("Do not wait for chat advice if your pet is struggling to breathe, collapsing, bleeding heavily, or having a seizure.");
       return guidance;
     }
 
-    if (intakeForm.symptoms.includes("Vomiting") || intakeForm.symptoms.includes("Diarrhoea")) {
-      guidance.push("Monitor hydration closely and note how often the symptoms are happening.");
+    switch (mode) {
+      case "Health & Symptoms":
+        if (intakeForm.symptoms.includes("Vomiting") || intakeForm.symptoms.includes("Diarrhoea")) {
+          guidance.push("Monitor hydration closely and note how often the symptoms are happening.");
+        }
+        if (intakeForm.symptoms.includes("Not Eating")) {
+          guidance.push("Track when your pet last ate and drank, and whether appetite is fully absent or just reduced.");
+        }
+        if (intakeForm.symptoms.includes("Itching") || intakeForm.symptoms.includes("Skin Rash")) {
+          guidance.push("Avoid any new treats, shampoos, or skin products until the issue is reviewed.");
+        }
+        if (intakeForm.symptoms.includes("Limping")) {
+          guidance.push("Limit exercise and watch for swelling, pain, or difficulty bearing weight.");
+        }
+        guidance.push("The AI can organise symptoms and suggest next questions, but it does not diagnose.");
+        break;
+
+      case "Behaviour & Training":
+        guidance.push("The AI can help identify triggers, patterns, and gentle next-step training ideas.");
+        guidance.push("Consistency, routine, and tracking when the behaviour happens can make support more useful.");
+        break;
+
+      case "Food & Nutrition":
+        guidance.push("The AI can help organise feeding routines, transitions, and food-related questions using your pet profile.");
+        guidance.push("Major diet changes should still be checked with a qualified vet when needed.");
+        break;
+
+      case "Grooming & Care":
+        guidance.push("The AI can suggest care routines, grooming schedules, and home care questions based on breed and coat details.");
+        break;
+
+      case "Routine & Reminders":
+        guidance.push("The AI can help create a daily, weekly, or monthly care plan using your pet’s saved details.");
+        break;
+
+      case "Appointment Prep":
+        guidance.push("The AI can help prepare summaries, organise questions, and make appointments more productive.");
+        break;
+
+      case "Lost Pet Support":
+        guidance.push("The AI can help draft clear missing pet alerts and organise key identifying details from your pet profile.");
+        break;
+
+      case "New Pet Owner Help":
+        guidance.push("The AI can help with first-week checklists, home setup ideas, and basic care guidance.");
+        break;
+
+      case "Travel & Planning":
+        guidance.push("The AI can help plan travel checklists, packing lists, and transition support for your pet.");
+        break;
+
+      case "Other":
+        guidance.push("The AI can still help with broader pet-related questions even if they do not fit the main categories.");
+        guidance.push("Use this option for general pet support, unusual requests, or anything not covered elsewhere.");
+        break;
+
+      default:
+        guidance.push("The AI will use your pet’s profile and the intake details to guide the chat.");
+        break;
     }
 
-    if (intakeForm.symptoms.includes("Not Eating")) {
-      guidance.push("Track when your pet last ate and drank, and whether appetite is fully absent or just reduced.");
-    }
-
-    if (intakeForm.symptoms.includes("Itching") || intakeForm.symptoms.includes("Skin Rash")) {
-      guidance.push("Avoid any new treats, shampoos, or skin products until the issue is reviewed.");
-    }
-
-    if (intakeForm.symptoms.includes("Limping")) {
-      guidance.push("Limit exercise and watch for swelling, pain, or difficulty bearing weight.");
-    }
-
-    guidance.push("This AI assistant gives general guidance only and does not replace a licensed veterinarian.");
-
+    guidance.push("This AI assistant gives general support only and does not replace a licensed veterinarian or emergency service.");
     return guidance;
   };
 
   const buildIntakeChatText = () => {
-    const symptomText = intakeForm.symptoms.length
-      ? intakeForm.symptoms.join(", ")
-      : "None selected";
-
-    return [
-      `Concern: ${intakeForm.concern || "Not provided"}`,
-      `Duration: ${intakeForm.duration || "Not provided"}`,
-      `Appetite / drinking: ${intakeForm.appetite || "Not provided"}`,
-      `Behaviour: ${intakeForm.behaviour || "Not provided"}`,
-      `Symptoms: ${symptomText}`,
-      `Images attached: ${selectedFiles.length ? `${selectedFiles.length}` : "0"}`,
-    ].join("\n");
+    return buildModeSpecificSummary() + `\nImages attached: ${selectedFiles.length ? `${selectedFiles.length}` : "0"}`;
   };
 
   const buildInitialAiPrompt = () => {
-    const symptomText = intakeForm.symptoms.length
-      ? intakeForm.symptoms.join(", ")
-      : "None selected";
+    const petProfileText = buildPetProfileText();
+    const modeSummary = buildModeSpecificSummary();
 
     return `
-Please respond to this intake and continue the conversation without asking me to repeat the same details again.
+You are Pawfection AI Pet Assistant.
 
-Pet name: ${selectedPet?.name || "Unknown"}
-Species: ${selectedPet?.species || "Unknown"}
-Breed: ${selectedPet?.breed || "Unknown"}
-Age: ${selectedPet?.age || "Unknown"}
-Weight: ${selectedPet?.weight || "Unknown"}
-Concern: ${intakeForm.concern || "Not provided"}
-Duration: ${intakeForm.duration || "Not provided"}
-Appetite / drinking: ${intakeForm.appetite || "Not provided"}
-Behaviour change: ${intakeForm.behaviour || "Not provided"}
-Symptoms selected: ${symptomText}
+Please respond to this support request and continue the conversation without asking the user to repeat the same details again.
+
+The selected support mode is: ${intakeForm.supportMode}
+
+Use the pet profile below as existing context. The pet profile details are already known and should be considered throughout the conversation.
+
+PET PROFILE:
+${petProfileText}
+
+USER REQUEST DETAILS:
+${modeSummary}
+
 Images attached: ${selectedFiles.length ? `${selectedFiles.length}` : "0"}
 
-Please acknowledge these details, give your first guidance based on them, and then ask only useful follow-up questions.
+Instructions:
+- Acknowledge the user's selected support mode.
+- Use the pet's saved profile details naturally in your response.
+- Give practical, helpful first guidance.
+- Ask only useful follow-up questions.
+- If the support mode is Health & Symptoms, do not diagnose and mention when in-person veterinary care may be needed.
+- If urgent warning signs appear in health mode, advise emergency vet care clearly.
+- For non-health modes, provide structured and supportive guidance relevant to the chosen topic.
+- If the mode is Other, help the user as broadly as possible with their pet-related question and clarify the request gently if needed.
     `.trim();
   };
 
@@ -457,6 +765,7 @@ Please acknowledge these details, give your first guidance based on them, and th
       body: JSON.stringify({
         pet_id: selectedPet?.id,
         intake_summary: intakeSummary,
+        support_mode: intakeForm.supportMode,
         concern: intakeForm.concern,
         duration: intakeForm.duration,
         appetite: intakeForm.appetite,
@@ -471,7 +780,7 @@ Please acknowledge these details, give your first guidance based on them, and th
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      throw new Error(data?.message || "Could not create AI vet chat session.");
+      throw new Error(data?.message || "Could not create AI assistant session.");
     }
 
     return data;
@@ -493,7 +802,7 @@ Please acknowledge these details, give your first guidance based on them, and th
         }),
       });
     } catch {
-      // Silent fail so the UI keeps working even if transcript sync is not finished yet.
+      // silent fail
     }
   };
 
@@ -514,7 +823,7 @@ Please acknowledge these details, give your first guidance based on them, and th
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      throw new Error(data?.message || "Could not end AI vet chat session.");
+      throw new Error(data?.message || "Could not end the AI assistant session.");
     }
 
     return data;
@@ -581,23 +890,6 @@ Please acknowledge these details, give your first guidance based on them, and th
     ]);
   };
 
-  const addAiMessage = (text, label = assistantName) => {
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now() + Math.random(),
-        sender: "ai",
-        senderLabel: label,
-        type: "text",
-        text,
-        time: new Date().toLocaleTimeString("en-IE", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      },
-    ]);
-  };
-
   const sendMessageToAi = async (messageText) => {
     const res = await fetch(`${apiBase}/premium/ai-vet-chat`, {
       method: "POST",
@@ -609,6 +901,8 @@ Please acknowledge these details, give your first guidance based on them, and th
       body: JSON.stringify({
         pet_id: selectedPet?.id,
         session_id: activeSessionId,
+        support_mode: intakeForm.supportMode,
+        pet_profile_context: buildPetProfileText(),
         message: messageText,
         concern: intakeForm.concern,
         duration: intakeForm.duration,
@@ -631,6 +925,66 @@ Please acknowledge these details, give your first guidance based on them, and th
     return data;
   };
 
+  const validateBeforeStart = () => {
+    if (!isPremium) return "AI Pet Assistant is a premium feature. Please upgrade to continue.";
+    if (!selectedPet) return "Please select a pet first.";
+
+    switch (intakeForm.supportMode) {
+      case "Health & Symptoms":
+        if (!intakeForm.concern.trim()) return "Please describe the reason for concern.";
+        return "";
+
+      case "Behaviour & Training":
+        if (!intakeForm.behaviourIssue.trim()) return "Please describe the behaviour issue.";
+        return "";
+
+      case "Food & Nutrition":
+        if (!intakeForm.currentFood.trim() && !intakeForm.nutritionGoal.trim()) {
+          return "Please add current food details or a nutrition goal.";
+        }
+        return "";
+
+      case "Grooming & Care":
+        if (!intakeForm.groomingNeed.trim()) return "Please describe the grooming or care need.";
+        return "";
+
+      case "Routine & Reminders":
+        if (!intakeForm.routineGoal.trim()) return "Please describe the routine goal.";
+        return "";
+
+      case "Appointment Prep":
+        if (!intakeForm.appointmentType.trim() && !intakeForm.appointmentGoal.trim()) {
+          return "Please add the appointment type or goal.";
+        }
+        return "";
+
+      case "Lost Pet Support":
+        if (!intakeForm.lastSeenLocation.trim() && !intakeForm.petDescription.trim()) {
+          return "Please add the last seen location or pet description.";
+        }
+        return "";
+
+      case "New Pet Owner Help":
+        if (!intakeForm.newPetSituation.trim()) return "Please describe your new pet situation.";
+        return "";
+
+      case "Travel & Planning":
+        if (!intakeForm.travelConcern.trim() && !intakeForm.travelType.trim()) {
+          return "Please describe the trip or travel concern.";
+        }
+        return "";
+
+      case "Other":
+        if (!intakeForm.otherTopic.trim() && !intakeForm.otherDetails.trim()) {
+          return "Please describe what you need help with.";
+        }
+        return "";
+
+      default:
+        return "";
+    }
+  };
+
   const handleStartChat = async (e) => {
     e.preventDefault();
 
@@ -641,18 +995,9 @@ Please acknowledge these details, give your first guidance based on them, and th
     setRatingError("");
     setSelectedHistorySession(null);
 
-    if (!isPremium) {
-      setFormError("AI Vet Chat is a premium feature. Please upgrade to continue.");
-      return;
-    }
-
-    if (!selectedPet) {
-      setFormError("Please select a pet first.");
-      return;
-    }
-
-    if (!intakeForm.concern.trim()) {
-      setFormError("Please describe the reason for concern.");
+    const validationError = validateBeforeStart();
+    if (validationError) {
+      setFormError(validationError);
       return;
     }
 
@@ -669,7 +1014,7 @@ Please acknowledge these details, give your first guidance based on them, and th
     setChatStarted(true);
     setShowIntakeForm(false);
     setChatStatus("preparing");
-    setFormSuccess("AI Vet Chat session started.");
+    setFormSuccess("AI Pet Assistant session started.");
     setChatMessages([]);
     setSessionEnded(false);
     setRatingForm({ score: 0, feedback: "" });
@@ -692,16 +1037,24 @@ Please acknowledge these details, give your first guidance based on them, and th
           sender: "system",
           senderLabel: "System",
           type: "text",
-          text: "You are now chatting with Pawfection AI Vet Assistant.",
+          text: "You are now chatting with Pawfection AI Pet Assistant.",
+          time: nowTime,
+        },
+        {
+          id: 2,
+          sender: "ai",
+          senderLabel: "Pawfection AI Pet Assistant",
+          type: "text",
+          text: `Selected support mode: ${intakeForm.supportMode}`,
           time: nowTime,
         },
       ];
 
       if (intakeForm.useAiSummary && summary) {
         starterMessages.push({
-          id: 2,
+          id: 3,
           sender: "ai",
-          senderLabel: "Pawfection AI Vet Assistant",
+          senderLabel: "Pawfection AI Pet Assistant",
           type: "text",
           text: `AI intake summary prepared:\n${summary}`,
           time: nowTime,
@@ -709,7 +1062,7 @@ Please acknowledge these details, give your first guidance based on them, and th
       }
 
       starterMessages.push({
-        id: 3,
+        id: 4,
         sender: "user",
         senderLabel: userName,
         type: "text",
@@ -718,11 +1071,11 @@ Please acknowledge these details, give your first guidance based on them, and th
       });
 
       starterMessages.push({
-        id: 4,
+        id: 5,
         sender: "ai",
-        senderLabel: "Pawfection AI Vet Assistant",
+        senderLabel: "Pawfection AI Pet Assistant",
         type: "text",
-        text: `Thanks, ${userName}. I’ve received the intake details for ${selectedPet?.name || "your pet"} and I’ll use them as the starting point for this conversation, so you do not need to repeat them.`,
+        text: `Thanks, ${userName}. I’ve received the support request for ${selectedPet?.name || "your pet"} and I’ll use the saved pet profile as context, so you do not need to repeat those details again.`,
         time: nowTime,
       });
 
@@ -784,7 +1137,7 @@ Please acknowledge these details, give your first guidance based on them, and th
       setChatStatus("idle");
       setChatStarted(false);
       setShowIntakeForm(true);
-      setFormError("Could not start the AI vet chat session.");
+      setFormError("Could not start the AI Pet Assistant session.");
     }
   };
 
@@ -792,7 +1145,7 @@ Please acknowledge these details, give your first guidance based on them, and th
     if (!chatInput.trim() && selectedFiles.length === 0) return;
 
     if (chatStatus !== "connected" || sessionEnded) {
-      setChatError("This session is read-only now. Start a new AI Vet Chat to send more messages.");
+      setChatError("This session is read-only now. Start a new AI Pet Assistant session to send more messages.");
       return;
     }
 
@@ -908,7 +1261,7 @@ Please acknowledge these details, give your first guidance based on them, and th
   };
 
   const handleEndSession = async () => {
-    const confirmed = window.confirm("End this AI Vet Chat session?");
+    const confirmed = window.confirm("End this AI Pet Assistant session?");
     if (!confirmed) return;
 
     const finalMessage = {
@@ -916,7 +1269,7 @@ Please acknowledge these details, give your first guidance based on them, and th
       sender: "system",
       senderLabel: "System",
       type: "text",
-      text: "This AI Vet Chat session has ended.",
+      text: "This AI Pet Assistant session has ended.",
       time: new Date().toLocaleTimeString("en-IE", {
         hour: "2-digit",
         minute: "2-digit",
@@ -951,16 +1304,20 @@ Please acknowledge these details, give your first guidance based on them, and th
     setActiveSessionId(session?.id || null);
     setAiSummary(session?.intake_summary || "");
     setAiGuidance(Array.isArray(session?.guidance) ? session.guidance : []);
-    setChatMessages(Array.isArray(session?.transcript) ? session.transcript.map((msg, index) => ({
-      id: msg?.id || `${session?.id || "history"}-${index}`,
-      sender: msg?.sender || "system",
-      senderLabel: msg?.sender_label || msg?.senderLabel || "System",
-      type: msg?.type || "text",
-      text: msg?.text || "",
-      imageUrl: msg?.image_url || msg?.imageUrl || "",
-      fileName: msg?.file_name || msg?.fileName || "",
-      time: msg?.time || "",
-    })) : []);
+    setChatMessages(
+      Array.isArray(session?.transcript)
+        ? session.transcript.map((msg, index) => ({
+            id: msg?.id || `${session?.id || "history"}-${index}`,
+            sender: msg?.sender || "system",
+            senderLabel: msg?.sender_label || msg?.senderLabel || "System",
+            type: msg?.type || "text",
+            text: msg?.text || "",
+            imageUrl: msg?.image_url || msg?.imageUrl || "",
+            fileName: msg?.file_name || msg?.fileName || "",
+            time: msg?.time || "",
+          }))
+        : []
+    );
     setRatingForm({
       score: session?.rating || 0,
       feedback: session?.feedback || "",
@@ -984,6 +1341,7 @@ Please acknowledge these details, give your first guidance based on them, and th
     setRatingForm({ score: 0, feedback: "" });
     setRatingSuccess("");
     setRatingError("");
+    setIntakeForm(getDefaultIntakeForm());
   };
 
   const statusMeta = useMemo(() => {
@@ -998,13 +1356,13 @@ Please acknowledge these details, give your first guidance based on them, and th
         return {
           label: "Generating AI summary",
           tone: "warning",
-          text: "Organising symptom context for a clearer response.",
+          text: "Organising pet context for a clearer response.",
         };
       case "connected":
         return {
-          label: "AI vet chat active",
+          label: "AI assistant active",
           tone: "good",
-          text: "You are chatting with Pawfection AI Vet Assistant.",
+          text: "You are chatting with Pawfection AI Pet Assistant.",
         };
       case "ended":
         return {
@@ -1016,13 +1374,15 @@ Please acknowledge these details, give your first guidance based on them, and th
         return {
           label: "Ready to start",
           tone: "medium",
-          text: "Complete the intake form to begin.",
+          text: "Choose a support mode and complete the form to begin.",
         };
     }
   }, [chatStatus]);
 
+  const currentModePrompts = MODE_PROMPTS[intakeForm.supportMode] || [];
+
   if (!premiumChecked) {
-    return <div className="pvc-loading-screen">Loading AI Vet Chat...</div>;
+    return <div className="pvc-loading-screen">Loading AI Pet Assistant...</div>;
   }
 
   return (
@@ -1040,7 +1400,7 @@ Please acknowledge these details, give your first guidance based on them, and th
           <img className="pvc-brand-logo" src={PawfectionLogo} alt="Pawfection" />
           <div className="pvc-brand-copy">
             <div className="pvc-brand-title">Pawfection</div>
-            <div className="pvc-brand-sub">Premium AI Vet Chat</div>
+            <div className="pvc-brand-sub">AI Pet Assistant</div>
           </div>
         </div>
 
@@ -1063,11 +1423,11 @@ Please acknowledge these details, give your first guidance based on them, and th
           <Link className="pvc-topnav-item" to="/premium/community">
             Community
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/inventory">
+          <Link className="pvc-topnav-item" to="/premium/inventory">
             Inventory
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/vet-chat">
-            AI Vet Chat
+          <Link className="pvc-topnav-item" to="/premium/vet-chat">
+            AI Pet Assistant
           </Link>
           <Link className="pvc-topnav-item" to="/premium/profile">
             Profile
@@ -1091,13 +1451,14 @@ Please acknowledge these details, give your first guidance based on them, and th
       <main className="pvc-main">
         <section className="pvc-hero">
           <div className="pvc-hero-copy">
-            <div className="pvc-kicker">Pawfection Premium AI Care Support</div>
+            <div className="pvc-kicker">Pawfection Premium AI Support</div>
             <h1 className="pvc-hero-title">
               {getGreeting()}, {userName}
             </h1>
             <p className="pvc-hero-text">
-              Start an AI Vet Chat session, keep pet-linked transcript history,
-              and review previous support sessions in one premium space.
+              Get AI support for health, behaviour, feeding, grooming, routines,
+              appointment prep, lost pet help, travel planning, new pet owner guidance,
+              and anything else pet-related in one premium space.
             </p>
 
             <div className="pvc-selector-wrap">
@@ -1129,20 +1490,14 @@ Please acknowledge these details, give your first guidance based on them, and th
                 {showIntakeForm ? "Hide Intake Form" : "Open Intake Form"}
               </button>
 
-              <button
-                className="pvc-btn"
-                type="button"
-                onClick={handleStartNewSessionView}
-              >
-                New AI Vet Chat
+              <button className="pvc-btn" type="button" onClick={handleStartNewSessionView}>
+                New AI Session
               </button>
 
               <button
                 className="pvc-btn"
                 type="button"
-                onClick={() =>
-                  selectedPet ? navigate(`/pets/${selectedPet.id}/edit`) : null
-                }
+                onClick={() => (selectedPet ? navigate(`/pets/${selectedPet.id}/edit`) : null)}
               >
                 Edit Pet Profile
               </button>
@@ -1205,10 +1560,10 @@ Please acknowledge these details, give your first guidance based on them, and th
           <section className="pvc-locked-wrap">
             <article className="pvc-card pvc-card-wide pvc-locked-card">
               <div className="pvc-card-kicker">Premium Access Needed</div>
-              <h3>AI Vet Chat is only available for premium users</h3>
+              <h3>AI Pet Assistant is only available for premium users</h3>
               <p className="pvc-locked-text">
-                Upgrade to premium to access AI-assisted symptom summaries, pet-linked transcripts,
-                session history, and post-session ratings.
+                Upgrade to premium to access AI-assisted summaries, pet-linked transcripts,
+                session history, daily pet support tools, and post-session ratings.
               </p>
 
               <div className="pvc-locked-actions">
@@ -1234,7 +1589,7 @@ Please acknowledge these details, give your first guidance based on them, and th
             <section className="pvc-pet-details-wrap">
               <div className="pvc-card">
                 <div className="pvc-card-kicker">Selected Pet Context</div>
-                <h3>Pet care snapshot</h3>
+                <h3>Pet profile snapshot</h3>
 
                 <div className="pvc-context-box">
                   <div><strong>Name:</strong> {selectedPet?.name || "—"}</div>
@@ -1242,112 +1597,594 @@ Please acknowledge these details, give your first guidance based on them, and th
                   <div><strong>Breed:</strong> {selectedPet?.breed || "—"}</div>
                   <div><strong>Age:</strong> {selectedPet?.age || "—"}</div>
                   <div><strong>Weight:</strong> {selectedPet?.weight || "—"}</div>
+                  <div><strong>Gender:</strong> {selectedPet?.gender || "—"}</div>
                   <div><strong>Allergies:</strong> {selectedPet?.allergies || "None recorded"}</div>
                   <div><strong>Conditions:</strong> {selectedPet?.health_conditions || "None recorded"}</div>
                   <div><strong>Vaccination:</strong> {selectedPet?.vaccination_status || "Not set"}</div>
+                  <div><strong>Microchip:</strong> {selectedPet?.microchip_number || "Not recorded"}</div>
+                  <div><strong>Notes:</strong> {selectedPet?.notes || "None recorded"}</div>
                 </div>
               </div>
 
               <aside className="pvc-card">
-                <div className="pvc-card-kicker">Safety Notice</div>
-                <h3>Emergency guidance</h3>
+                <div className="pvc-card-kicker">AI Assistant Overview</div>
+                <h3>What it can help with</h3>
 
                 <div className={`pvc-alert-item ${emergencyDetected ? "pvc-alert-warning" : "pvc-alert-good"}`}>
                   <div className="pvc-alert-title">
-                    {emergencyDetected ? "Urgent symptoms flagged" : "No urgent flag detected"}
+                    {emergencyDetected ? "Urgent symptoms flagged" : "Multi-purpose AI support"}
                   </div>
                   <div className="pvc-alert-text">
                     {emergencyDetected
                       ? "If your pet is collapsing, struggling to breathe, bleeding heavily, having a seizure, or may have been poisoned, contact an emergency vet immediately."
-                      : "AI guidance is for organisation and general support only. It does not replace emergency or in-person veterinary care."}
+                      : "This assistant can support health questions, behaviour, training, feeding, grooming, routines, appointment prep, lost pet help, travel planning, new owner guidance, and other pet-related questions."}
                   </div>
                 </div>
 
                 <div className="pvc-quick-box">
                   <strong>AI ROLE</strong>
-                  <span>Explains general next steps, organises symptoms, asks follow-up questions, and flags urgent warning signs.</span>
+                  <span>
+                    Uses your pet’s saved profile as context, organises details, gives general support,
+                    suggests next steps, and helps you prepare better questions and plans.
+                  </span>
                 </div>
               </aside>
             </section>
 
             <section className="pvc-grid">
               <article className="pvc-card pvc-card-wide">
+                <div className="pvc-card-kicker">Support Mode</div>
+                <h3>Choose what you need help with</h3>
+
+                <div className="pvc-chip-wrap" style={{ marginTop: "12px" }}>
+                  {SUPPORT_MODES.map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      className={`pvc-chip ${intakeForm.supportMode === mode ? "active" : ""}`}
+                      onClick={() => handleSupportModeChange(mode)}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="pvc-ai-box" style={{ marginTop: "16px" }}>
+                  <div className="pvc-ai-section">
+                    <div className="pvc-ai-title">Suggested prompts</div>
+                    <div className="pvc-ai-list">
+                      {currentModePrompts.map((item, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          className="pvc-ai-list-item"
+                          onClick={() => {
+                            if (intakeForm.supportMode === "Health & Symptoms") {
+                              setIntakeForm((prev) => ({ ...prev, concern: item }));
+                            } else if (intakeForm.supportMode === "Behaviour & Training") {
+                              setIntakeForm((prev) => ({ ...prev, behaviourIssue: item }));
+                            } else if (intakeForm.supportMode === "Food & Nutrition") {
+                              setIntakeForm((prev) => ({ ...prev, nutritionGoal: item }));
+                            } else if (intakeForm.supportMode === "Grooming & Care") {
+                              setIntakeForm((prev) => ({ ...prev, groomingNeed: item }));
+                            } else if (intakeForm.supportMode === "Routine & Reminders") {
+                              setIntakeForm((prev) => ({ ...prev, routineGoal: item }));
+                            } else if (intakeForm.supportMode === "Appointment Prep") {
+                              setIntakeForm((prev) => ({ ...prev, appointmentGoal: item }));
+                            } else if (intakeForm.supportMode === "Lost Pet Support") {
+                              setIntakeForm((prev) => ({ ...prev, petDescription: item }));
+                            } else if (intakeForm.supportMode === "New Pet Owner Help") {
+                              setIntakeForm((prev) => ({ ...prev, newPetSituation: item }));
+                            } else if (intakeForm.supportMode === "Travel & Planning") {
+                              setIntakeForm((prev) => ({ ...prev, travelConcern: item }));
+                            } else if (intakeForm.supportMode === "Other") {
+                              setIntakeForm((prev) => ({ ...prev, otherDetails: item }));
+                            }
+                          }}
+                          style={{
+                            textAlign: "left",
+                            width: "100%",
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article className="pvc-card pvc-card-wide">
                 <div className="pvc-card-kicker">Consultation Intake</div>
-                <h3>Start your AI Vet Chat request</h3>
+                <h3>Start your AI Pet Assistant request</h3>
 
                 {showIntakeForm && !sessionEnded && (
                   <form className="pvc-intake-form" onSubmit={handleStartChat}>
                     <div className="pvc-field">
-                      <label>Reason for concern</label>
-                      <textarea
-                        name="concern"
-                        rows="4"
-                        value={intakeForm.concern}
-                        onChange={handleInputChange}
-                        placeholder="Describe what is happening with your pet..."
-                        required
-                      />
+                      <label>Selected support mode</label>
+                      <input type="text" value={intakeForm.supportMode} readOnly />
                     </div>
 
-                    <div className="pvc-intake-grid">
-                      <div className="pvc-field">
-                        <label>How long has this been happening?</label>
-                        <input
-                          type="text"
-                          name="duration"
-                          value={intakeForm.duration}
-                          onChange={handleInputChange}
-                          placeholder="e.g. Since this morning"
-                        />
-                      </div>
+                    {intakeForm.supportMode === "Health & Symptoms" && (
+                      <>
+                        <div className="pvc-field">
+                          <label>Reason for concern</label>
+                          <textarea
+                            name="concern"
+                            rows="4"
+                            value={intakeForm.concern}
+                            onChange={handleInputChange}
+                            placeholder="Describe what is happening with your pet..."
+                            required
+                          />
+                        </div>
 
-                      <div className="pvc-field">
-                        <label>Appetite / drinking</label>
-                        <input
-                          type="text"
-                          name="appetite"
-                          value={intakeForm.appetite}
-                          onChange={handleInputChange}
-                          placeholder="e.g. Eating less but drinking water"
-                        />
-                      </div>
-                    </div>
+                        <div className="pvc-intake-grid">
+                          <div className="pvc-field">
+                            <label>How long has this been happening?</label>
+                            <input
+                              type="text"
+                              name="duration"
+                              value={intakeForm.duration}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Since this morning"
+                            />
+                          </div>
 
-                    <div className="pvc-field">
-                      <label>Behaviour change</label>
-                      <input
-                        type="text"
-                        name="behaviour"
-                        value={intakeForm.behaviour}
-                        onChange={handleInputChange}
-                        placeholder="e.g. More sleepy, hiding, restless"
-                      />
-                    </div>
+                          <div className="pvc-field">
+                            <label>Appetite / drinking</label>
+                            <input
+                              type="text"
+                              name="appetite"
+                              value={intakeForm.appetite}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Eating less but drinking water"
+                            />
+                          </div>
+                        </div>
 
-                    <div className="pvc-field">
-                      <label>Quick symptom tags</label>
-                      <div className="pvc-chip-wrap">
-                        {SYMPTOM_OPTIONS.map((symptom) => (
-                          <button
-                            key={symptom}
-                            type="button"
-                            className={`pvc-chip ${intakeForm.symptoms.includes(symptom) ? "active" : ""}`}
-                            onClick={() => handleSymptomToggle(symptom)}
-                          >
-                            {symptom}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                        <div className="pvc-field">
+                          <label>Behaviour change</label>
+                          <input
+                            type="text"
+                            name="behaviour"
+                            value={intakeForm.behaviour}
+                            onChange={handleInputChange}
+                            placeholder="e.g. More sleepy, hiding, restless"
+                          />
+                        </div>
+
+                        <div className="pvc-field">
+                          <label>Quick symptom tags</label>
+                          <div className="pvc-chip-wrap">
+                            {HEALTH_SYMPTOM_OPTIONS.map((symptom) => (
+                              <button
+                                key={symptom}
+                                type="button"
+                                className={`pvc-chip ${intakeForm.symptoms.includes(symptom) ? "active" : ""}`}
+                                onClick={() => handleSymptomToggle(symptom)}
+                              >
+                                {symptom}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {intakeForm.supportMode === "Behaviour & Training" && (
+                      <>
+                        <div className="pvc-field">
+                          <label>Behaviour issue</label>
+                          <textarea
+                            name="behaviourIssue"
+                            rows="4"
+                            value={intakeForm.behaviourIssue}
+                            onChange={handleInputChange}
+                            placeholder="Describe the behaviour you want help with..."
+                          />
+                        </div>
+
+                        <div className="pvc-intake-grid">
+                          <div className="pvc-field">
+                            <label>When does it happen?</label>
+                            <input
+                              type="text"
+                              name="behaviourTrigger"
+                              value={intakeForm.behaviourTrigger}
+                              onChange={handleInputChange}
+                              placeholder="e.g. When visitors arrive"
+                            />
+                          </div>
+                          <div className="pvc-field">
+                            <label>How often?</label>
+                            <input
+                              type="text"
+                              name="behaviourFrequency"
+                              value={intakeForm.behaviourFrequency}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Daily, every evening"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pvc-field">
+                          <label>Training goal</label>
+                          <input
+                            type="text"
+                            name="trainingGoal"
+                            value={intakeForm.trainingGoal}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Calm greeting routine"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {intakeForm.supportMode === "Food & Nutrition" && (
+                      <>
+                        <div className="pvc-field">
+                          <label>Current food / diet</label>
+                          <textarea
+                            name="currentFood"
+                            rows="3"
+                            value={intakeForm.currentFood}
+                            onChange={handleInputChange}
+                            placeholder="Describe current food, treats, or diet..."
+                          />
+                        </div>
+
+                        <div className="pvc-intake-grid">
+                          <div className="pvc-field">
+                            <label>Feeding schedule</label>
+                            <input
+                              type="text"
+                              name="feedingSchedule"
+                              value={intakeForm.feedingSchedule}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Twice a day"
+                            />
+                          </div>
+                          <div className="pvc-field">
+                            <label>Eating change</label>
+                            <input
+                              type="text"
+                              name="eatingChange"
+                              value={intakeForm.eatingChange}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Eating less this week"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pvc-field">
+                          <label>Nutrition goal</label>
+                          <input
+                            type="text"
+                            name="nutritionGoal"
+                            value={intakeForm.nutritionGoal}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Safe food transition"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {intakeForm.supportMode === "Grooming & Care" && (
+                      <>
+                        <div className="pvc-field">
+                          <label>Grooming or care need</label>
+                          <textarea
+                            name="groomingNeed"
+                            rows="3"
+                            value={intakeForm.groomingNeed}
+                            onChange={handleInputChange}
+                            placeholder="Describe what you need help with..."
+                          />
+                        </div>
+
+                        <div className="pvc-intake-grid">
+                          <div className="pvc-field">
+                            <label>Current grooming frequency</label>
+                            <input
+                              type="text"
+                              name="groomingFrequency"
+                              value={intakeForm.groomingFrequency}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Once a month"
+                            />
+                          </div>
+                          <div className="pvc-field">
+                            <label>Coat / skin notes</label>
+                            <input
+                              type="text"
+                              name="coatSkinNotes"
+                              value={intakeForm.coatSkinNotes}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Thick coat, dry skin"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pvc-field">
+                          <label>Care goal</label>
+                          <input
+                            type="text"
+                            name="careGoal"
+                            value={intakeForm.careGoal}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Easier home grooming routine"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {intakeForm.supportMode === "Routine & Reminders" && (
+                      <>
+                        <div className="pvc-field">
+                          <label>Routine goal</label>
+                          <textarea
+                            name="routineGoal"
+                            rows="3"
+                            value={intakeForm.routineGoal}
+                            onChange={handleInputChange}
+                            placeholder="What kind of routine do you want help building?"
+                          />
+                        </div>
+
+                        <div className="pvc-intake-grid">
+                          <div className="pvc-field">
+                            <label>Current routine</label>
+                            <input
+                              type="text"
+                              name="currentRoutine"
+                              value={intakeForm.currentRoutine}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Morning walk, evening feed"
+                            />
+                          </div>
+                          <div className="pvc-field">
+                            <label>Reminder needs</label>
+                            <input
+                              type="text"
+                              name="reminderNeeds"
+                              value={intakeForm.reminderNeeds}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Vaccines, grooming, flea treatment"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pvc-field">
+                          <label>Extra planning notes</label>
+                          <input
+                            type="text"
+                            name="planningNotes"
+                            value={intakeForm.planningNotes}
+                            onChange={handleInputChange}
+                            placeholder="Anything else to include?"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {intakeForm.supportMode === "Appointment Prep" && (
+                      <>
+                        <div className="pvc-intake-grid">
+                          <div className="pvc-field">
+                            <label>Appointment type</label>
+                            <input
+                              type="text"
+                              name="appointmentType"
+                              value={intakeForm.appointmentType}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Vet, grooming, check-up"
+                            />
+                          </div>
+                          <div className="pvc-field">
+                            <label>Appointment date</label>
+                            <input
+                              type="text"
+                              name="appointmentDate"
+                              value={intakeForm.appointmentDate}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Tomorrow at 3pm"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pvc-field">
+                          <label>Main appointment goal</label>
+                          <textarea
+                            name="appointmentGoal"
+                            rows="3"
+                            value={intakeForm.appointmentGoal}
+                            onChange={handleInputChange}
+                            placeholder="What do you want help preparing for?"
+                          />
+                        </div>
+
+                        <div className="pvc-field">
+                          <label>Questions you want to prepare</label>
+                          <input
+                            type="text"
+                            name="appointmentQuestions"
+                            value={intakeForm.appointmentQuestions}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Diet, skin issue, vaccination"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {intakeForm.supportMode === "Lost Pet Support" && (
+                      <>
+                        <div className="pvc-intake-grid">
+                          <div className="pvc-field">
+                            <label>Last seen location</label>
+                            <input
+                              type="text"
+                              name="lastSeenLocation"
+                              value={intakeForm.lastSeenLocation}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Near my home / local park"
+                            />
+                          </div>
+                          <div className="pvc-field">
+                            <label>Last seen time</label>
+                            <input
+                              type="text"
+                              name="lastSeenTime"
+                              value={intakeForm.lastSeenTime}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Today around 7pm"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pvc-field">
+                          <label>Pet description</label>
+                          <textarea
+                            name="petDescription"
+                            rows="3"
+                            value={intakeForm.petDescription}
+                            onChange={handleInputChange}
+                            placeholder="Describe your pet, or ask the AI to generate one from the profile"
+                          />
+                        </div>
+
+                        <div className="pvc-field">
+                          <label>Collar / microchip info</label>
+                          <input
+                            type="text"
+                            name="collarMicrochipInfo"
+                            value={intakeForm.collarMicrochipInfo}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Blue collar, microchipped"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {intakeForm.supportMode === "New Pet Owner Help" && (
+                      <>
+                        <div className="pvc-field">
+                          <label>Your situation</label>
+                          <textarea
+                            name="newPetSituation"
+                            rows="3"
+                            value={intakeForm.newPetSituation}
+                            onChange={handleInputChange}
+                            placeholder="e.g. I just adopted a kitten yesterday"
+                          />
+                        </div>
+
+                        <div className="pvc-intake-grid">
+                          <div className="pvc-field">
+                            <label>Help needed</label>
+                            <input
+                              type="text"
+                              name="starterHelpNeeded"
+                              value={intakeForm.starterHelpNeeded}
+                              onChange={handleInputChange}
+                              placeholder="e.g. First week checklist"
+                            />
+                          </div>
+                          <div className="pvc-field">
+                            <label>Home setup status</label>
+                            <input
+                              type="text"
+                              name="homeSetupStatus"
+                              value={intakeForm.homeSetupStatus}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Have food and bed, not litter tray yet"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {intakeForm.supportMode === "Travel & Planning" && (
+                      <>
+                        <div className="pvc-intake-grid">
+                          <div className="pvc-field">
+                            <label>Travel type</label>
+                            <input
+                              type="text"
+                              name="travelType"
+                              value={intakeForm.travelType}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Car trip, moving house, holiday"
+                            />
+                          </div>
+                          <div className="pvc-field">
+                            <label>Destination type</label>
+                            <input
+                              type="text"
+                              name="destinationType"
+                              value={intakeForm.destinationType}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Family home, hotel, new apartment"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pvc-field">
+                          <label>Main concern</label>
+                          <textarea
+                            name="travelConcern"
+                            rows="3"
+                            value={intakeForm.travelConcern}
+                            onChange={handleInputChange}
+                            placeholder="What do you want help planning?"
+                          />
+                        </div>
+
+                        <div className="pvc-field">
+                          <label>Packing or preparation help</label>
+                          <input
+                            type="text"
+                            name="packingHelp"
+                            value={intakeForm.packingHelp}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Need a packing checklist"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {intakeForm.supportMode === "Other" && (
+                      <>
+                        <div className="pvc-field">
+                          <label>What do you need help with?</label>
+                          <input
+                            type="text"
+                            name="otherTopic"
+                            value={intakeForm.otherTopic}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Something not listed above"
+                          />
+                        </div>
+
+                        <div className="pvc-field">
+                          <label>More details</label>
+                          <textarea
+                            name="otherDetails"
+                            rows="4"
+                            value={intakeForm.otherDetails}
+                            onChange={handleInputChange}
+                            placeholder="Describe what you want help with about your pet..."
+                          />
+                        </div>
+                      </>
+                    )}
 
                     <div className="pvc-field">
                       <label>Upload pictures</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleFileChange}
-                      />
+                      <input type="file" accept="image/*" multiple onChange={handleFileChange} />
                     </div>
 
                     {imagePreviews.length > 0 && (
@@ -1368,12 +2205,12 @@ Please acknowledge these details, give your first guidance based on them, and th
                         checked={intakeForm.useAiSummary}
                         onChange={handleInputChange}
                       />
-                      <span>Use AI to prepare an intake summary before the guidance session</span>
+                      <span>Use AI to prepare a summary before the support session</span>
                     </label>
 
                     <div className="pvc-intake-actions">
                       <button className="pvc-btn pvc-btn-primary" type="submit">
-                        Start AI Vet Chat
+                        Start AI Pet Assistant
                       </button>
                     </div>
                   </form>
@@ -1416,20 +2253,21 @@ Please acknowledge these details, give your first guidance based on them, and th
                       </div>
                     ) : (
                       <div className="pvc-ai-text">
-                        General support guidance will appear here once the AI reviews the concern.
+                        General support guidance will appear here once the AI reviews the request.
                       </div>
                     )}
                   </div>
 
                   <div className="pvc-ai-disclaimer">
-                    This is AI guidance only. It supports symptom organisation and general care guidance, not diagnosis or emergency treatment.
+                    This is AI guidance only. It supports organisation, planning, and general pet care guidance.
+                    It does not replace diagnosis, emergency treatment, or a licensed veterinarian.
                   </div>
                 </div>
               </article>
 
               <article className="pvc-card">
                 <div className="pvc-card-kicker">Pet-Aware Context</div>
-                <h3>Relevant profile details</h3>
+                <h3>Profile details shared with AI</h3>
 
                 <div className="pvc-insight-list">
                   {petCareContext.length ? (
@@ -1450,7 +2288,7 @@ Please acknowledge these details, give your first guidance based on them, and th
 
               <article className="pvc-card">
                 <div className="pvc-card-kicker">Saved Sessions</div>
-                <h3>AI Vet Chat history</h3>
+                <h3>AI Pet Assistant history</h3>
 
                 {loadingHistory ? (
                   <div className="pvc-empty">Loading session history...</div>
@@ -1458,7 +2296,7 @@ Please acknowledge these details, give your first guidance based on them, and th
                   <div className="pvc-form-message pvc-form-error">{historyError}</div>
                 ) : sessionHistory.length === 0 ? (
                   <div className="pvc-empty">
-                    No saved AI vet chat sessions for this pet yet. Start one to build transcript history.
+                    No saved AI assistant sessions for this pet yet. Start one to build transcript history.
                   </div>
                 ) : (
                   <div className="pvc-history-list">
@@ -1488,7 +2326,7 @@ Please acknowledge these details, give your first guidance based on them, and th
 
               <article className="pvc-card pvc-card-wide">
                 <div className="pvc-card-kicker">AI Guidance Session</div>
-                <h3>AI Vet Chat</h3>
+                <h3>AI Pet Assistant</h3>
 
                 <div className="pvc-chat-shell">
                   <div className="pvc-chat-statusbar">
@@ -1500,6 +2338,7 @@ Please acknowledge these details, give your first guidance based on them, and th
 
                   <div className="pvc-session-meta-bar">
                     <div><strong>Pet:</strong> {selectedPet?.name || "—"}</div>
+                    <div><strong>Mode:</strong> {intakeForm.supportMode}</div>
                     <div><strong>Started:</strong> {formatDateTime(selectedHistorySession?.started_at || sessionStartedAt)}</div>
                     <div><strong>Ended:</strong> {formatDateTime(selectedHistorySession?.ended_at)}</div>
                   </div>
@@ -1507,7 +2346,7 @@ Please acknowledge these details, give your first guidance based on them, and th
                   <div className="pvc-chat-window">
                     {!chatMessages.length ? (
                       <div className="pvc-chat-empty">
-                        Complete the intake form to begin the AI Vet Chat session.
+                        Choose a support mode and complete the intake form to begin the AI Pet Assistant session.
                       </div>
                     ) : (
                       chatMessages.map((message) => (
@@ -1555,7 +2394,7 @@ Please acknowledge these details, give your first guidance based on them, and th
                       placeholder={
                         chatStatus === "connected" && !sessionEnded
                           ? "Type your message to the AI assistant..."
-                          : "This transcript is read-only. Start a new AI Vet Chat to send messages."
+                          : "This transcript is read-only. Start a new AI session to send messages."
                       }
                     />
 
@@ -1606,7 +2445,7 @@ Please acknowledge these details, give your first guidance based on them, and th
 
               <article className="pvc-card pvc-card-wide">
                 <div className="pvc-card-kicker">Post-Session Rating</div>
-                <h3>Rate this AI Vet Chat session</h3>
+                <h3>Rate this AI Pet Assistant session</h3>
 
                 {sessionEnded || selectedHistorySession ? (
                   <>
@@ -1635,7 +2474,7 @@ Please acknowledge these details, give your first guidance based on them, and th
                         onChange={(e) =>
                           setRatingForm((prev) => ({ ...prev, feedback: e.target.value }))
                         }
-                        placeholder="Share how helpful this AI vet chat session was..."
+                        placeholder="Share how helpful this AI pet assistant session was..."
                         disabled={!!selectedHistorySession}
                       />
                     </div>
@@ -1660,7 +2499,7 @@ Please acknowledge these details, give your first guidance based on them, and th
                   </>
                 ) : (
                   <div className="pvc-empty">
-                    End an AI Vet Chat session to rate it here.
+                    End an AI Pet Assistant session to rate it here.
                   </div>
                 )}
               </article>

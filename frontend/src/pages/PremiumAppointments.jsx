@@ -723,7 +723,7 @@ export default function PremiumAppointments() {
             Inventory
           </Link>
           <Link className="pmpa-topnav-item" to="/premium/vet-chat">
-            AI Vet Chat
+            AI Pet Assistant
           </Link>
           <Link className="pmpa-topnav-item" to="/premium/profile">
             Profile

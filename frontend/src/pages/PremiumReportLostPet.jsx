@@ -319,7 +319,7 @@ export default function ReportLostPet() {
           </Link>
           <Link to="/premium-community">Community</Link>
           <Link to="/premium-inventory">Inventory</Link>
-          <Link to="/premium/vet-chat">AI Vet Chat</Link>
+          <Link to="/premium/vet-chat">AI Pet Assistant</Link>
           <Link to="/premium/profile">Profile</Link>
         </nav>
 

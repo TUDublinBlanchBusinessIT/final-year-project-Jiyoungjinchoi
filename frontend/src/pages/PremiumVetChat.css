@@ -23,10 +23,21 @@
 
   --pvc-shadow-sm: 0 10px 24px rgba(110, 98, 170, 0.08);
   --pvc-shadow-md: 0 24px 48px rgba(110, 98, 170, 0.14);
+  --pvc-shadow-lg: 0 30px 60px rgba(110, 98, 170, 0.16);
 }
 
 * {
   box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background:
+    radial-gradient(circle at top left, rgba(207, 224, 255, 0.46), transparent 28%),
+    radial-gradient(circle at top right, rgba(243, 191, 212, 0.32), transparent 22%),
+    linear-gradient(180deg, #edf2ff 0%, #f7f5ff 46%, #fff8fc 100%);
 }
 
 button,
@@ -85,6 +96,12 @@ h3 {
   border: 1px solid rgba(92, 82, 145, 0.08);
   box-shadow: var(--pvc-shadow-sm);
   cursor: pointer;
+  transition: 0.18s ease;
+}
+
+.pvc-brand:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--pvc-shadow-md);
 }
 
 .pvc-brand-logo {
@@ -448,13 +465,20 @@ h3 {
 .pvc-context-box {
   margin-top: 14px;
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
   padding: 16px;
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(255,255,255,0.84), rgba(247,242,255,0.92));
   border: 1px solid rgba(92, 82, 145, 0.06);
   color: var(--pvc-text-soft);
   font-weight: 700;
+}
+
+.pvc-context-box div {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.62);
 }
 
 .pvc-alert-item {
@@ -511,6 +535,7 @@ h3 {
   color: var(--pvc-text-soft);
   font-size: 14px;
   font-weight: 700;
+  line-height: 1.7;
 }
 
 .pvc-intake-form {
@@ -548,6 +573,17 @@ h3 {
   background: rgba(255, 255, 255, 0.92);
   color: var(--pvc-text);
   outline: none;
+}
+
+.pvc-field textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.pvc-field input[readonly] {
+  background: rgba(244, 240, 255, 0.95);
+  color: var(--pvc-text-soft);
+  font-weight: 700;
 }
 
 .pvc-field input:focus,
@@ -700,6 +736,7 @@ h3 {
   font-size: 13px;
   line-height: 1.7;
   font-weight: 700;
+  white-space: pre-wrap;
 }
 
 .pvc-ai-list {
@@ -717,6 +754,13 @@ h3 {
   font-size: 13px;
   line-height: 1.6;
   font-weight: 700;
+  transition: 0.18s ease;
+}
+
+button.pvc-ai-list-item:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--pvc-shadow-sm);
+  color: var(--pvc-text);
 }
 
 .pvc-ai-disclaimer {
@@ -1030,8 +1074,6 @@ h3 {
   gap: 12px;
 }
 
-/* New for User Story 200 */
-
 .pvc-history-list {
   display: grid;
   gap: 12px;
@@ -1160,6 +1202,10 @@ h3 {
   .pvc-pet-details-wrap {
     grid-template-columns: 1fr;
   }
+
+  .pvc-context-box {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 900px) {
@@ -1224,5 +1270,9 @@ h3 {
 
   .pvc-chat-window {
     min-height: 340px;
+  }
+
+  .pvc-card h3 {
+    font-size: 24px;
   }
 }
