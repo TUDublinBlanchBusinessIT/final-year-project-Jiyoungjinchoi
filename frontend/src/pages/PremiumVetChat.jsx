@@ -1051,9 +1051,6 @@ Please acknowledge these details, give your first guidance based on them, and th
           <Link className="pvc-topnav-item" to="/premium-mypets">
             My Pet
           </Link>
-          <Link className="pvc-topnav-item active" to="/premium/vet-chat">
-            AI Vet Chat
-          </Link>
           <Link className="pvc-topnav-item" to="/premium/appointments">
             Appointments
           </Link>
@@ -1065,6 +1062,12 @@ Please acknowledge these details, give your first guidance based on them, and th
           </Link>
           <Link className="pvc-topnav-item" to="/premium/community">
             Community
+          </Link>
+          <Link className="pfd-topnav-item" to="/premium/inventory">
+            Inventory
+          </Link>
+          <Link className="pfd-topnav-item" to="/premium/vet-chat">
+            AI Vet Chat
           </Link>
           <Link className="pvc-topnav-item" to="/premium/profile">
             Profile

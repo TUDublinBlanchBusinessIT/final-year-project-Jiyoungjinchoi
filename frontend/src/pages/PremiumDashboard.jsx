@@ -29,7 +29,7 @@ export default function PremiumDashboard() {
   const isPremium = accountType === "premium";
 
   const premiumBenefits = [
-    "Access to Vet Chat",
+    "Access to AI Vet Chat",
     "Priority pet-care support",
     "Premium-only pet tools",
     "Enhanced reminders and guidance",
@@ -416,7 +416,7 @@ export default function PremiumDashboard() {
             Inventory
           </Link>
           <Link className="pfd-topnav-item" to="/premium/vet-chat">
-            Vet Chat
+            AI Vet Chat
           </Link>
           <Link className="pfd-topnav-item" to="/premium/profile">
             Profile

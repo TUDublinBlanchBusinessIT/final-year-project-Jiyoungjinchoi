@@ -9,6 +9,8 @@ import Dashboard from "./pages/Dashboard";
 import PremiumDashboard from "./pages/PremiumDashboard";
 import PremiumMyPet from "./pages/PremiumMyPet";
 import PremiumVetChat from "./pages/PremiumVetChat";
+import PremiumAppointments from "./pages/PremiumAppointments";
+
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminModeration from "./pages/AdminModeration";
 import AdminLostFound from "./pages/AdminLostFound";
@@ -47,6 +49,7 @@ function App() {
         <Route path="/premium-dashboard" element={<PremiumDashboard />} />
         <Route path="/premium-mypets" element={<PremiumMyPet />} />
         <Route path="/premium/vet-chat" element={<PremiumVetChat />} />
+        <Route path="/premium/appointments" element={<PremiumAppointments />} />
 
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
         <Route path="/admin/moderation" element={<AdminModeration />} />
@@ -65,10 +68,8 @@ function App() {
         <Route path="/profile" element={<ViewProfile />} />
         <Route path="/upgrade-premium" element={<UpgradePremium />} />
 
-        {/* Optional premium aliases so your premium nav works */}
         <Route path="/premium/community" element={<Community />} />
         <Route path="/premium/inventory" element={<Inventory />} />
-        <Route path="/premium/appointments" element={<Appointments />} />
         <Route path="/premium/reminders" element={<Reminders />} />
         <Route path="/premium/profile" element={<ViewProfile />} />
 

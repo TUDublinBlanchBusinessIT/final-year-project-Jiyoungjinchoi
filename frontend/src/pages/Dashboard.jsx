@@ -464,7 +464,7 @@ export default function Dashboard() {
               </div>
 
               <div className="pf2-empty" style={{ textAlign: "left" }}>
-                Unlock premium pet-care features like Vet Chat, extra support, and premium tools.
+                Unlock premium pet-care features like AI Vet Chat, extra support, and premium tools.
                 <div style={{ marginTop: "12px" }}>
                   <button
                     className="pf2-btn pf2-btn-primary"

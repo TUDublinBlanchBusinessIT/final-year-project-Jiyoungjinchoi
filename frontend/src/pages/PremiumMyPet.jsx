@@ -721,6 +721,9 @@ export default function PremiumMyPet() {
           <Link className="pmp-topnav-item" to="/premium/inventory">
             Inventory
           </Link>
+          <Link className="pfd-topnav-item" to="/premium/vet-chat">
+            AI Vet Chat
+          </Link>
           <Link className="pmp-topnav-item" to="/premium/profile">
             Profile
           </Link>
