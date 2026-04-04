@@ -35,6 +35,7 @@ import SubmitSighting from "./pages/SubmitSighting";
 import PremiumSubmitSighting from "./pages/PremiumSubmitSighting";
 import LostReportDetails from "./pages/LostReportDetails";
 import PremiumLostReportDetails from "./pages/PremiumLostReportDetails";
+import PremiumProfile from "./pages/PremiumProfile";
 
 function App() {
   return (
@@ -71,7 +72,7 @@ function App() {
         <Route path="/premium/community" element={<Community />} />
         <Route path="/premium/inventory" element={<Inventory />} />
         <Route path="/premium/reminders" element={<Reminders />} />
-        <Route path="/premium/profile" element={<ViewProfile />} />
+        <Route path="/premium/profile" element={<PremiumProfile />} />
 
         <Route path="/lostfound" element={<LostFound />} />
         <Route path="/lostfound/report" element={<ReportLostPet />} />
@@ -96,6 +97,8 @@ function App() {
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />
+
+        
       </Routes>
     </Router>
   );

@@ -191,11 +191,26 @@
   transform: translateY(-1px);
 }
 
+.profile-primary-btn:disabled,
+.profile-danger-btn:disabled,
+.profile-outline-btn:disabled,
+.toggle-btn:disabled,
+.settings-toggle-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .subscription-message {
   margin-top: 18px;
   font-size: 15px;
   font-weight: 600;
   color: #2e7d32;
+  background: #ecf8ef;
+  border: 1px solid #d2edd8;
+  padding: 14px 16px;
+  border-radius: 14px;
+  line-height: 1.6;
 }
 
 /* subscription */
@@ -275,6 +290,18 @@
   border: 1px solid #eee;
   border-radius: 22px;
   padding: 22px;
+  position: relative;
+  overflow: hidden;
+}
+
+.billing-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(135deg, #c79cf2 0%, #f4a8c9 100%);
+  opacity: 0.9;
 }
 
 .billing-row {
@@ -455,6 +482,28 @@
   width: 100%;
 }
 
+/* optional nicer subscription emphasis */
+.billing-card h3 {
+  position: relative;
+  z-index: 1;
+}
+
+.subscription-summary-card,
+.billing-card,
+.profile-info-item,
+.settings-section,
+.memorial-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.subscription-summary-card:hover,
+.billing-card:hover,
+.profile-info-item:hover,
+.memorial-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+}
+
 @media (max-width: 1000px) {
   .subscription-summary-grid-three {
     grid-template-columns: 1fr;
@@ -502,5 +551,15 @@
   .billing-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .profile-action-row {
+    flex-direction: column;
+  }
+
+  .profile-primary-btn,
+  .profile-danger-btn,
+  .profile-outline-btn {
+    width: 100%;
   }
 }

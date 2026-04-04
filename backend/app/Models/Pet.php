@@ -56,6 +56,10 @@ class Pet extends Model
         'reported_lost_at',
         'resolved_at',
         'archived_at',
+        'memorial_message',
+        'memorial_photo_url',
+        'memorial_theme',
+        'memorial_visibility',
     ];
 
     protected $casts = [

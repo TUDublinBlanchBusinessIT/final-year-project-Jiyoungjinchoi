@@ -6,15 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Pet;
 use App\Models\PetHealthLog;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class PremiumPetController extends Controller
 {
-    public function healthLogs(Pet $pet)
+    public function healthLogs(Pet $pet): JsonResponse
     {
-        $user = auth()->user();
-
-        if ((int) $pet->user_id !== (int) $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $unauthorized = $this->authorizePetOwner($pet);
+        if ($unauthorized) {
+            return $unauthorized;
         }
 
         return response()->json(
@@ -22,12 +22,11 @@ class PremiumPetController extends Controller
         );
     }
 
-    public function storeHealthLog(Request $request, Pet $pet)
+    public function storeHealthLog(Request $request, Pet $pet): JsonResponse
     {
-        $user = auth()->user();
-
-        if ((int) $pet->user_id !== (int) $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $unauthorized = $this->authorizePetOwner($pet);
+        if ($unauthorized) {
+            return $unauthorized;
         }
 
         $validated = $request->validate([
@@ -53,16 +52,17 @@ class PremiumPetController extends Controller
         ], 201);
     }
 
-    public function destroyHealthLog(Pet $pet, PetHealthLog $log)
+    public function destroyHealthLog(Pet $pet, PetHealthLog $log): JsonResponse
     {
-        $user = auth()->user();
-
-        if ((int) $pet->user_id !== (int) $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $unauthorized = $this->authorizePetOwner($pet);
+        if ($unauthorized) {
+            return $unauthorized;
         }
 
         if ((int) $log->pet_id !== (int) $pet->id) {
-            return response()->json(['message' => 'Health log does not belong to this pet.'], 422);
+            return response()->json([
+                'message' => 'Health log does not belong to this pet.',
+            ], 422);
         }
 
         $log->delete();
@@ -72,12 +72,11 @@ class PremiumPetController extends Controller
         ]);
     }
 
-    public function reminders(Pet $pet)
+    public function reminders(Pet $pet): JsonResponse
     {
-        $user = auth()->user();
-
-        if ((int) $pet->user_id !== (int) $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $unauthorized = $this->authorizePetOwner($pet);
+        if ($unauthorized) {
+            return $unauthorized;
         }
 
         return response()->json(
@@ -85,12 +84,11 @@ class PremiumPetController extends Controller
         );
     }
 
-    public function dashboard(Pet $pet)
+    public function dashboard(Pet $pet): JsonResponse
     {
-        $user = auth()->user();
-
-        if ((int) $pet->user_id !== (int) $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $unauthorized = $this->authorizePetOwner($pet);
+        if ($unauthorized) {
+            return $unauthorized;
         }
 
         $healthLogs = $pet->healthLogs()->orderBy('log_date')->get();
@@ -105,29 +103,72 @@ class PremiumPetController extends Controller
         ]);
     }
 
-    public function recommendations(Pet $pet)
+    public function recommendations(Pet $pet): JsonResponse
     {
-        $user = auth()->user();
-
-        if ((int) $pet->user_id !== (int) $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $unauthorized = $this->authorizePetOwner($pet);
+        if ($unauthorized) {
+            return $unauthorized;
         }
 
         return response()->json($this->buildRecommendations($pet));
     }
 
-    public function alerts(Pet $pet)
+    public function alerts(Pet $pet): JsonResponse
     {
-        $user = auth()->user();
-
-        if ((int) $pet->user_id !== (int) $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $unauthorized = $this->authorizePetOwner($pet);
+        if ($unauthorized) {
+            return $unauthorized;
         }
 
         $healthLogs = $pet->healthLogs()->orderBy('log_date')->get();
         $reminders = $pet->reminders()->latest()->get();
 
         return response()->json($this->buildAlerts($pet, $healthLogs, $reminders));
+    }
+
+    public function customiseMemorial(Request $request, Pet $pet): JsonResponse
+    {
+        $unauthorized = $this->authorizePetOwner($pet);
+        if ($unauthorized) {
+            return $unauthorized;
+        }
+
+        $validated = $request->validate([
+            'memorial_message' => ['nullable', 'string', 'max:3000'],
+            'memorial_photo_url' => ['nullable', 'url', 'max:2048'],
+            'memorial_theme' => ['nullable', 'string', 'max:100'],
+            'memorial_visibility' => ['nullable', 'in:private,public'],
+        ]);
+
+        $pet->memorial_message = $validated['memorial_message'] ?? $pet->memorial_message;
+        $pet->memorial_photo_url = $validated['memorial_photo_url'] ?? $pet->memorial_photo_url;
+        $pet->memorial_theme = $validated['memorial_theme'] ?? $pet->memorial_theme;
+        $pet->memorial_visibility = $validated['memorial_visibility'] ?? $pet->memorial_visibility;
+
+        $pet->save();
+
+        return response()->json([
+            'message' => 'Memorial customisation saved successfully.',
+            'data' => [
+                'id' => $pet->id,
+                'name' => $pet->name,
+                'memorial_message' => $pet->memorial_message,
+                'memorial_photo_url' => $pet->memorial_photo_url,
+                'memorial_theme' => $pet->memorial_theme,
+                'memorial_visibility' => $pet->memorial_visibility,
+            ],
+        ]);
+    }
+
+    protected function authorizePetOwner(Pet $pet): ?JsonResponse
+    {
+        $user = auth()->user();
+
+        if (!$user || (int) $pet->user_id !== (int) $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        return null;
     }
 
     protected function buildRecommendations(Pet $pet): array

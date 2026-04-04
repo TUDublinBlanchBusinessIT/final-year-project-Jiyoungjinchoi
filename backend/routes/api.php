@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\SightingController;
 use App\Http\Controllers\Api\PremiumLostFoundController;
 use App\Http\Controllers\Api\PremiumPetController;
 use App\Http\Controllers\Api\AiVetChatController;
+use App\Http\Controllers\Api\StripeController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -22,6 +23,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Stripe / Subscription
+    Route::post('/stripe/checkout', [StripeController::class, 'checkout']);
+    Route::post('/stripe/billing-portal', [StripeController::class, 'billingPortal']);
+    Route::post('/cancel-premium', [StripeController::class, 'cancelPremium']);
+    Route::get('/subscription-status', [StripeController::class, 'subscriptionStatus']);
 
     // Pets
     Route::get('/pets', [PetController::class, 'index']);
@@ -64,7 +71,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/pets/{pet}/recommendations', [PremiumPetController::class, 'recommendations']);
         Route::get('/pets/{pet}/alerts', [PremiumPetController::class, 'alerts']);
 
-        // AI Vet Chat - existing live chat route
+        // Premium memorial customisation
+        Route::post('/pets/{pet}/memorial-customise', [PremiumPetController::class, 'customiseMemorial']);
+
+        // AI Vet Chat
         Route::post('/ai-vet-chat', [AiVetChatController::class, 'chat']);
 
         // User Story 200 - save and review AI vet chat sessions
