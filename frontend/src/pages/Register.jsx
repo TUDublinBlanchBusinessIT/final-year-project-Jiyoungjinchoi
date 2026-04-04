@@ -86,7 +86,8 @@ export default function Register() {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          name: `${form.firstName} ${form.lastName}`,
+          first_name: form.firstName,
+          last_name: form.lastName,
           email: form.email,
           password: form.password,
           password_confirmation: form.confirmPassword,
@@ -97,11 +98,23 @@ export default function Register() {
 
       if (!response.ok) {
         if (data.errors) {
+          const fieldMap = {
+            first_name: "firstName",
+            last_name: "lastName",
+            email: "email",
+            password: "password",
+            password_confirmation: "confirmPassword",
+          };
+
           setServerErrors(
             Object.fromEntries(
-              Object.entries(data.errors).map(([k, v]) => [k, v[0]])
+              Object.entries(data.errors).map(([k, v]) => [
+                fieldMap[k] || k,
+                v[0],
+              ])
             )
           );
+
           setStatus({
             type: "error",
             message: "Please correct the highlighted errors.",
@@ -112,15 +125,16 @@ export default function Register() {
         throw new Error(data.message || "Registration failed.");
       }
 
-      // ✅ Save user info (used by VerifyEmail page)
-      localStorage.setItem("pawfection_user_email", data?.user?.email || form.email);
+      localStorage.setItem(
+        "pawfection_user_email",
+        data?.user?.email || form.email
+      );
 
       setStatus({
         type: "success",
         message: "Account created successfully. Redirecting to verify page…",
       });
 
-      // ✅ redirect after short delay
       setTimeout(() => {
         navigate("/verify-email");
       }, 800);
@@ -136,7 +150,7 @@ export default function Register() {
 
   const inputStyle = (error) => ({
     width: "100%",
-    boxSizing: "border-box", // ✅ stops overlap
+    boxSizing: "border-box",
     padding: "10px 12px",
     borderRadius: 12,
     border: `1px solid ${error ? "#f04438" : "#d0d5dd"}`,
@@ -251,7 +265,7 @@ export default function Register() {
                     : field.charAt(0).toUpperCase() + field.slice(1)}
                 </div>
                 <input
-                  type={field.includes("password") ? "password" : "text"}
+                  type={field.toLowerCase().includes("password") ? "password" : "text"}
                   style={inputStyle(fieldError(field))}
                   value={form[field]}
                   onChange={(e) => updateField(field, e.target.value)}

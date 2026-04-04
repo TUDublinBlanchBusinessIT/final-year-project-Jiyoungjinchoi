@@ -21,6 +21,7 @@ import EditPet from "./pages/EditPet";
 import MyPets from "./pages/MyPets";
 import PetOverview from "./pages/PetOverview";
 import Community from "./pages/Community";
+import PremiumCommunity from "./pages/PremiumCommunity";
 import Inventory from "./pages/Inventory";
 import Appointments from "./pages/Appointments";
 import Reminders from "./pages/Reminders";
@@ -69,7 +70,7 @@ function App() {
         <Route path="/profile" element={<ViewProfile />} />
         <Route path="/upgrade-premium" element={<UpgradePremium />} />
 
-        <Route path="/premium/community" element={<Community />} />
+        <Route path="/premium/community" element={<PremiumCommunity />} />
         <Route path="/premium/inventory" element={<Inventory />} />
         <Route path="/premium/reminders" element={<Reminders />} />
         <Route path="/premium/profile" element={<PremiumProfile />} />
@@ -97,8 +98,6 @@ function App() {
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />
-
-        
       </Routes>
     </Router>
   );

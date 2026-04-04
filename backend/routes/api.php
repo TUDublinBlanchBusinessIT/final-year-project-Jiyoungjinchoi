@@ -8,6 +8,9 @@ use App\Http\Controllers\PetController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\PostController;
+use App\Http\Controllers\CommentController;
+use App\Http\Controllers\LikeController;
 use App\Http\Controllers\Api\SightingController;
 use App\Http\Controllers\Api\PremiumLostFoundController;
 use App\Http\Controllers\Api\PremiumPetController;
@@ -58,6 +61,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/inventory/{inventoryItem}', [InventoryController::class, 'destroy']);
     Route::post('/inventory/{inventoryItem}/restock', [InventoryController::class, 'restock']);
     Route::post('/inventory/{inventoryItem}/consume', [InventoryController::class, 'consume']);
+
+    // Community posts
+    Route::get('/posts', [PostController::class, 'index']);
+    Route::post('/posts', [PostController::class, 'store']);
+    Route::post('/posts/{post}/like', [LikeController::class, 'toggle']);
+    Route::post('/posts/{post}/report', [PostController::class, 'report']);
+    Route::delete('/posts/{post}', [PostController::class, 'destroy']);
+
+    // Comments
+    Route::get('/posts/{post}/comments', [CommentController::class, 'index']);
+    Route::post('/posts/{post}/comments', [CommentController::class, 'store']);
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
+    Route::delete('/posts/{post}/comments/{comment}', [CommentController::class, 'destroyForPost']);
 
     // Premium features
     Route::prefix('premium')->group(function () {

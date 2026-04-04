@@ -11,6 +11,7 @@ class Post extends Model
 
     protected $fillable = [
         'user_id',
+        'pet_id',
         'content',
         'image_path',
     ];
@@ -19,7 +20,13 @@ class Post extends Model
     {
         return $this->belongsTo(User::class);
     }
-        public function likes()
+
+    public function pet()
+    {
+        return $this->belongsTo(Pet::class);
+    }
+
+    public function likes()
     {
         return $this->hasMany(\App\Models\Like::class);
     }
