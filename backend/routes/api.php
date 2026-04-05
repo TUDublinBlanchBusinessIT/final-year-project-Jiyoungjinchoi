@@ -42,10 +42,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pets/{pet}/memorial', [PetController::class, 'markMemorial']);
     Route::delete('/pets/{pet}/memorial', [PetController::class, 'deleteMemorial']);
 
-    // Reminders
+   // Reminders
     Route::get('/reminders', [ReminderController::class, 'index']);
+    Route::post('/reminders/generate', [ReminderController::class, 'generate']);
     Route::get('/reminders/upcoming', [ReminderController::class, 'upcoming']);
-
+    Route::patch('/reminders/{reminder}/complete', [ReminderController::class, 'complete']);
+    Route::patch('/reminders/{reminder}/snooze', [ReminderController::class, 'snooze']);
     // Appointments
     Route::get('/appointments', [AppointmentController::class, 'index']);
     Route::get('/appointments/options', [AppointmentController::class, 'options']);

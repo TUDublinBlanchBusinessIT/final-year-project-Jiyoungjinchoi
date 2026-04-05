@@ -1,0 +1,435 @@
+.pfr-premium-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 215, 160, 0.18), transparent 22%),
+    linear-gradient(180deg, #fffaf5 0%, #fffdf9 100%);
+}
+
+.pfr-hero-card {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 20px;
+  background: linear-gradient(135deg, #fff6e7, #fffdf8);
+  border: 1px solid rgba(232, 198, 149, 0.45);
+  border-radius: 28px;
+  padding: 24px;
+  box-shadow: 0 20px 45px rgba(121, 86, 39, 0.08);
+  margin-bottom: 22px;
+}
+
+.pfr-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 233, 198, 0.95);
+  color: #8f5b1b;
+  border: 1px solid rgba(214, 164, 89, 0.25);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.pfr-title {
+  margin: 0;
+  font-size: 2.2rem;
+  line-height: 1.1;
+  color: #2f2418;
+}
+
+.pfr-subtitle {
+  margin: 12px 0 0;
+  max-width: 720px;
+  color: #6b5847;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.pfr-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.pfr-insight-card {
+  align-self: stretch;
+  background: #fff;
+  border-radius: 24px;
+  padding: 22px;
+  border: 1px solid rgba(232, 198, 149, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.pfr-insight-label {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  color: #b2762d;
+  margin-bottom: 10px;
+}
+
+.pfr-insight-text {
+  color: #4d3f33;
+  line-height: 1.7;
+  font-size: 1rem;
+}
+
+.pfr-urgent-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  background: linear-gradient(135deg, #fff9ef, #fff3de);
+  border: 1px solid rgba(232, 198, 149, 0.45);
+  border-radius: 26px;
+  padding: 22px;
+  box-shadow: 0 16px 34px rgba(121, 86, 39, 0.06);
+  margin-bottom: 18px;
+}
+
+.pfr-urgent-kicker {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #b2762d;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.pfr-urgent-title {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #2d241a;
+}
+
+.pfr-urgent-text {
+  margin: 10px 0 0;
+  color: #655546;
+  line-height: 1.6;
+}
+
+.pfr-urgent-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.pfr-urgent-date {
+  display: inline-flex;
+  align-items: center;
+  background: #ffffff;
+  color: #6d5a49;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.pfr-urgent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.pfr-alert {
+  border-radius: 18px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.pfr-alert-error {
+  background: #fff0f0;
+  border: 1px solid #f2c3c3;
+  color: #b63d3d;
+}
+
+.pfr-alert-success {
+  background: #effcf4;
+  border: 1px solid #bde8cc;
+  color: #257a4b;
+}
+
+.pfr-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.pfr-summary-card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 20px;
+  border: 1px solid rgba(232, 198, 149, 0.35);
+  box-shadow: 0 14px 28px rgba(121, 86, 39, 0.06);
+}
+
+.pfr-summary-label {
+  color: #7d6855;
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.pfr-summary-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #2b2219;
+}
+
+.pfr-summary-card-overdue .pfr-summary-value {
+  color: #c14444;
+}
+
+.pfr-summary-card-completed .pfr-summary-value {
+  color: #238257;
+}
+
+.pfr-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.pfr-filter-pill {
+  border: 1px solid rgba(190, 158, 120, 0.3);
+  background: rgba(255, 255, 255, 0.95);
+  color: #5d4d3f;
+  border-radius: 999px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.pfr-filter-pill:hover,
+.pfr-filter-pill.active {
+  background: #2f2418;
+  color: #fff;
+  border-color: #2f2418;
+}
+
+.pfr-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pfr-section-card {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(232, 198, 149, 0.35);
+  border-radius: 26px;
+  padding: 22px;
+  box-shadow: 0 16px 34px rgba(121, 86, 39, 0.05);
+  backdrop-filter: blur(8px);
+}
+
+.pfr-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.pfr-section-kicker {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #b2762d;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.pfr-section-head h2 {
+  margin: 0;
+  color: #2f2418;
+  font-size: 1.35rem;
+}
+
+.pfr-section-count {
+  min-width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff2dd;
+  color: #9a6424;
+  font-weight: 800;
+}
+
+.pfr-reminder-list {
+  display: grid;
+  gap: 16px;
+}
+
+.pfr-reminder-card {
+  background: #fff;
+  border: 1px solid rgba(232, 198, 149, 0.35);
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 10px 24px rgba(121, 86, 39, 0.05);
+}
+
+.pfr-reminder-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.pfr-reminder-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.pfr-reminder-title-row h3 {
+  margin: 0;
+  color: #2d241a;
+  font-size: 1.08rem;
+}
+
+.pfr-inline-icon {
+  margin-right: 4px;
+}
+
+.pfr-reminder-message {
+  margin: 10px 0 0;
+  color: #655546;
+  line-height: 1.6;
+}
+
+.pfr-type-badge,
+.pfr-status-badge,
+.pfr-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 7px 12px;
+  text-transform: capitalize;
+}
+
+.pfr-type-badge {
+  background: #fff4e6;
+  color: #9a6424;
+}
+
+.pfr-type-birthday {
+  background: #fff1f7;
+  color: #b14b7a;
+}
+
+.pfr-type-vaccine {
+  background: #eef6ff;
+  color: #316ea8;
+}
+
+.pfr-type-grooming {
+  background: #eefaf3;
+  color: #2c7c56;
+}
+
+.pfr-priority-badge.high {
+  background: #ffe8e8;
+  color: #bf3f3f;
+}
+
+.pfr-priority-badge.medium {
+  background: #fff3dd;
+  color: #a86911;
+}
+
+.pfr-priority-badge.low {
+  background: #ebf8ef;
+  color: #2a8053;
+}
+
+.pfr-reminder-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pfr-reminder-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: #74604d;
+  font-weight: 600;
+}
+
+.pfr-status-badge {
+  background: #f2f4f7;
+  color: #4f5b67;
+}
+
+.pfr-reminder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pfr-empty,
+.pfr-empty-inline {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px dashed rgba(184, 151, 112, 0.45);
+  color: #6f5d4c;
+  padding: 18px;
+  border-radius: 20px;
+}
+
+@media (max-width: 1100px) {
+  .pfr-hero-card {
+    grid-template-columns: 1fr;
+  }
+
+  .pfr-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pfr-urgent-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pfr-urgent-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .pfr-title {
+    font-size: 1.8rem;
+  }
+
+  .pfr-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pfr-reminder-top,
+  .pfr-reminder-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

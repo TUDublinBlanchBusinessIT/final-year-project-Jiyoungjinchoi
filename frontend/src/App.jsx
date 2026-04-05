@@ -37,6 +37,7 @@ import PremiumSubmitSighting from "./pages/PremiumSubmitSighting";
 import LostReportDetails from "./pages/LostReportDetails";
 import PremiumLostReportDetails from "./pages/PremiumLostReportDetails";
 import PremiumProfile from "./pages/PremiumProfile";
+import PremiumReminders from "./pages/PremiumReminders";
 
 function App() {
   return (
@@ -72,7 +73,7 @@ function App() {
 
         <Route path="/premium/community" element={<PremiumCommunity />} />
         <Route path="/premium/inventory" element={<Inventory />} />
-        <Route path="/premium/reminders" element={<Reminders />} />
+        <Route path="/premium/reminders" element={<PremiumReminders />} />
         <Route path="/premium/profile" element={<PremiumProfile />} />
 
         <Route path="/lostfound" element={<LostFound />} />
