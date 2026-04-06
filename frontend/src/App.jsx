@@ -38,6 +38,7 @@ import LostReportDetails from "./pages/LostReportDetails";
 import PremiumLostReportDetails from "./pages/PremiumLostReportDetails";
 import PremiumProfile from "./pages/PremiumProfile";
 import PremiumReminders from "./pages/PremiumReminders";
+import PremiumInventory from "./pages/PremiumInventory";
 
 function App() {
   return (
@@ -72,7 +73,7 @@ function App() {
         <Route path="/upgrade-premium" element={<UpgradePremium />} />
 
         <Route path="/premium/community" element={<PremiumCommunity />} />
-        <Route path="/premium/inventory" element={<Inventory />} />
+        <Route path="/premium/inventory" element={<PremiumInventory />} />
         <Route path="/premium/reminders" element={<PremiumReminders />} />
         <Route path="/premium/profile" element={<PremiumProfile />} />
 
