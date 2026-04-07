@@ -204,9 +204,18 @@ export default function PremiumLostFound() {
         setLoadingReports(true);
         setReportsError("");
 
+        const token = localStorage.getItem("pawfection_token");
+
+        if (!token) {
+          setReportsError("You are not logged in.");
+          setLoadingReports(false);
+          return;
+        }
+
         const res = await fetch(`${apiBase}/premium/lost-found`, {
           headers: {
             Accept: "application/json",
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -216,7 +225,13 @@ export default function PremiumLostFound() {
           throw new Error(data.message || "Failed to load reports");
         }
 
-        const incomingReports = Array.isArray(data.reports) ? data.reports : [];
+        const incomingReports = Array.isArray(data.reports)
+          ? data.reports
+          : Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data)
+          ? data
+          : [];
 
         const normalisedReports = incomingReports.map((report) => ({
           ...report,
@@ -226,7 +241,7 @@ export default function PremiumLostFound() {
         setReports(normalisedReports);
       } catch (error) {
         console.error("Failed to fetch premium lost & found reports:", error);
-        setReportsError("Unable to load lost and found reports right now.");
+        setReportsError(error.message || "Unable to load lost and found reports right now.");
       } finally {
         setLoadingReports(false);
       }
@@ -259,7 +274,7 @@ export default function PremiumLostFound() {
 
       items = items.filter(
         (item) =>
-          String(item.name || "").toLowerCase().includes(q) ||
+          String(item.name || item.pet_name || "").toLowerCase().includes(q) ||
           String(item.breed || "").toLowerCase().includes(q) ||
           String(
             item.area ||
@@ -377,7 +392,10 @@ export default function PremiumLostFound() {
   }, [spotlightPets, selectedSpotlightIndex]);
 
   useEffect(() => {
-    if (!premiumAlertPets.length) return;
+    if (!premiumAlertPets.length) {
+      setSelectedAlertIndex(0);
+      return;
+    }
 
     if (selectedAlertIndex > premiumAlertPets.length - 1) {
       setSelectedAlertIndex(0);
@@ -428,9 +446,7 @@ export default function PremiumLostFound() {
 
   const handleViewReport = (report) => {
     const targetId = report.type === "sighting" ? report.pet_id : report.id;
-
     if (!targetId) return;
-
     navigate(`/premium/lostfound/view/${targetId}`);
   };
 
@@ -677,15 +693,15 @@ export default function PremiumLostFound() {
                     <div className="premium-lf-popup">
                       <img
                         src={report.resolvedImage}
-                        alt={report.name}
+                        alt={report.name || report.pet_name || "Pet"}
                         onError={(e) => {
                           e.currentTarget.src = getFallbackImageForReport(report);
                         }}
                       />
                       <div className="premium-lf-popup-text">
-                        <strong>{report.name}</strong>
+                        <strong>{report.name || report.pet_name || "Unknown Pet"}</strong>
                         <span>
-                          {report.species} • {report.breed}
+                          {report.species || "Pet"} • {report.breed || "Unknown breed"}
                         </span>
                         <span>
                           {report.area ||
@@ -693,7 +709,7 @@ export default function PremiumLostFound() {
                             report.sighting_location ||
                             "Unknown area"}
                         </span>
-                        <small>{report.status}</small>
+                        <small>{report.status || "Active"}</small>
                         <button
                           type="button"
                           onClick={() => openMapReportModal(report)}
@@ -715,7 +731,7 @@ export default function PremiumLostFound() {
               <div className="premium-lf-spotlight-image-wrap">
                 <img
                   src={activeSpotlight.resolvedImage}
-                  alt={activeSpotlight.name}
+                  alt={activeSpotlight.name || activeSpotlight.pet_name || "Pet"}
                   className="premium-lf-spotlight-image"
                   onError={(e) => {
                     e.currentTarget.src = getFallbackImageForReport(activeSpotlight);
@@ -729,7 +745,11 @@ export default function PremiumLostFound() {
                   <strong>
                     {spotlightPets[
                       (selectedSpotlightIndex + 1) % spotlightPets.length
-                    ]?.name || "Next report"}
+                    ]?.name ||
+                      spotlightPets[
+                        (selectedSpotlightIndex + 1) % spotlightPets.length
+                      ]?.pet_name ||
+                      "Next report"}
                   </strong>
                   <p>needs local sightings</p>
                 </div>
@@ -741,9 +761,9 @@ export default function PremiumLostFound() {
                       : "MISSING PET"}
                   </div>
 
-                  <h3>{activeSpotlight.name}</h3>
+                  <h3>{activeSpotlight.name || activeSpotlight.pet_name || "Unknown Pet"}</h3>
                   <p>
-                    {activeSpotlight.species} • {activeSpotlight.breed} •{" "}
+                    {activeSpotlight.species || "Pet"} • {activeSpotlight.breed || "Unknown breed"} •{" "}
                     {activeSpotlight.area ||
                       activeSpotlight.last_seen_location ||
                       "Unknown area"}
@@ -810,15 +830,15 @@ export default function PremiumLostFound() {
                 >
                   <img
                     src={report.resolvedImage}
-                    alt={report.name}
+                    alt={report.name || report.pet_name || "Pet"}
                     onError={(e) => {
                       e.currentTarget.src = getFallbackImageForReport(report);
                     }}
                   />
                   <div className="premium-lf-report-info">
-                    <h4>{report.name}</h4>
+                    <h4>{report.name || report.pet_name || "Unknown Pet"}</h4>
                     <p>
-                      {report.species} • {report.breed}
+                      {report.species || "Pet"} • {report.breed || "Unknown breed"}
                     </p>
                     <span>
                       {report.area ||
@@ -871,7 +891,7 @@ export default function PremiumLostFound() {
               <div className="premium-lf-alert-image-wrap">
                 <img
                   src={activeAlertPet.resolvedImage}
-                  alt={activeAlertPet.name}
+                  alt={activeAlertPet.name || activeAlertPet.pet_name || "Pet"}
                   className="premium-lf-alert-image"
                   onError={(e) => {
                     e.currentTarget.src = getFallbackImageForReport(activeAlertPet);
@@ -883,9 +903,9 @@ export default function PremiumLostFound() {
               </div>
 
               <div className="premium-lf-alert-content">
-                <h4>{activeAlertPet.name}</h4>
+                <h4>{activeAlertPet.name || activeAlertPet.pet_name || "Unknown Pet"}</h4>
                 <p>
-                  {activeAlertPet.species} • {activeAlertPet.breed}
+                  {activeAlertPet.species || "Pet"} • {activeAlertPet.breed || "Unknown breed"}
                 </p>
                 <span>
                   Last seen:{" "}
@@ -1011,7 +1031,7 @@ export default function PremiumLostFound() {
               <div className="premium-lf-report-modal-image-wrap">
                 <img
                   src={selectedMapReport.resolvedImage}
-                  alt={selectedMapReport.name}
+                  alt={selectedMapReport.name || selectedMapReport.pet_name || "Pet"}
                   className="premium-lf-report-modal-image"
                   onError={(e) => {
                     e.currentTarget.src = getFallbackImageForReport(selectedMapReport);
@@ -1030,7 +1050,7 @@ export default function PremiumLostFound() {
                     : "Lost Report"}
                 </div>
 
-                <h2>{selectedMapReport.name || "Unknown Pet"}</h2>
+                <h2>{selectedMapReport.name || selectedMapReport.pet_name || "Unknown Pet"}</h2>
 
                 <p className="premium-lf-report-modal-subtitle">
                   {selectedMapReport.species || "Pet"} •{" "}

@@ -9,11 +9,19 @@ export default function PremiumSubmitSighting() {
 
   const [userName, setUserName] = useState("Premium User");
   const [submitting, setSubmitting] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const apiBase = "http://127.0.0.1:8000/api";
+  const token = localStorage.getItem("pawfection_token");
 
   const [form, setForm] = useState({
-    sighting_location: "",
+    location: "",
     notes: "",
     photo: null,
+    lat: "",
+    lng: "",
   });
 
   useEffect(() => {
@@ -34,6 +42,13 @@ export default function PremiumSubmitSighting() {
     if (savedName) setUserName(savedName);
   }, []);
 
+  const todayText = new Date().toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   const handleChange = (e) => {
     const { name, value, files } = e.target;
 
@@ -51,88 +66,129 @@ export default function PremiumSubmitSighting() {
     }));
   };
 
-  const useCurrentLocation = () => {
+  const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported on this browser.");
+      setError("Geolocation is not supported on this device.");
       return;
     }
 
+    setGettingLocation(true);
+    setError("");
+    setMessage("");
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
 
         setForm((prev) => ({
           ...prev,
-          sighting_location: `Lat ${latitude.toFixed(5)}, Lng ${longitude.toFixed(5)}`,
+          lat: latitude.toString(),
+          lng: longitude.toString(),
         }));
+
+        setMessage("Current location added.");
+        setGettingLocation(false);
       },
-      () => {
-        alert("Unable to get your current location.");
+      (err) => {
+        console.error("Geolocation error:", err);
+        setError("Could not get your current location.");
+        setGettingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
       }
     );
+  };
+
+  const handleUseTypedLocation = async () => {
+    if (!form.location.trim()) {
+      setError("Please type a location first.");
+      return;
+    }
+
+    try {
+      setError("");
+      setMessage("Looking up typed location...");
+
+      const query = encodeURIComponent(form.location);
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${query}`
+      );
+
+      const data = await res.json();
+
+      if (!Array.isArray(data) || data.length === 0) {
+        setError("Could not find coordinates for the typed location.");
+        setMessage("");
+        return;
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        lat: data[0].lat || "",
+        lng: data[0].lon || "",
+      }));
+
+      setMessage("Typed location converted to coordinates.");
+    } catch (err) {
+      console.error("Typed location error:", err);
+      setError("Failed to use typed location.");
+      setMessage("");
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const token = localStorage.getItem("pawfection_token");
     if (!token) {
-      alert("You must be logged in.");
       navigate("/login");
       return;
     }
 
-    if (!form.sighting_location.trim()) {
-      alert("Location is required.");
+    if (!form.location.trim()) {
+      setError("Location is required.");
       return;
     }
 
     setSubmitting(true);
+    setError("");
+    setMessage("");
 
     try {
-      const body = new FormData();
-      body.append("pet_id", id);
-      body.append("location", form.sighting_location.trim());
+      const formData = new FormData();
+      formData.append("location", form.location);
+      formData.append("notes", form.notes);
 
-      if (form.notes.trim()) {
-        body.append("notes", form.notes.trim());
-      }
+      if (form.lat !== "") formData.append("lat", form.lat);
+      if (form.lng !== "") formData.append("lng", form.lng);
+      if (form.photo) formData.append("photo", form.photo);
 
-      if (form.photo) {
-        body.append("photo", form.photo);
-      }
-
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/lost-pets/${id}/sightings`,
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body,
-        }
-      );
+      const response = await fetch(`${apiBase}/lost-pets/${id}/sightings`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
 
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        console.error("Failed to submit sighting:", data);
-
-        const firstError =
-          data?.message ||
-          (data?.errors && Object.values(data.errors)?.[0]?.[0]) ||
-          "Failed to submit sighting.";
-
-        alert(firstError);
+        setError(data?.message || "Failed to submit sighting.");
         return;
       }
 
-      alert(data?.message || "Sighting submitted successfully.");
-      navigate("/premium/lostfound");
-    } catch (error) {
-      console.error("Submit sighting error:", error);
-      alert("Something went wrong while submitting the sighting.");
+      setMessage("Sighting submitted successfully.");
+      setTimeout(() => {
+        navigate(`/premium/lostfound/view/${id}`);
+      }, 1200);
+    } catch (err) {
+      console.error("Submit sighting error:", err);
+      setError("Something went wrong while submitting the sighting.");
     } finally {
       setSubmitting(false);
     }
@@ -141,42 +197,35 @@ export default function PremiumSubmitSighting() {
   return (
     <div className="premium-sighting-page">
       <div className="premium-lf-topbar">
-        <div className="premium-lf-brand">
-          <img
-            src={PawfectionLogo}
-            alt="Pawfection Logo"
-            className="premium-lf-logo"
-          />
+        <div
+          className="premium-lf-brand"
+          onClick={() => navigate("/premium-dashboard")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              navigate("/premium-dashboard");
+            }
+          }}
+        >
+          <img src={PawfectionLogo} alt="Pawfection" className="premium-lf-logo" />
           <div className="premium-lf-brand-text">
             <h1>Pawfection</h1>
-            <p>PREMIUM LOST &amp; FOUND</p>
+            <p>Premium Lost &amp; Found</p>
           </div>
         </div>
 
         <nav className="premium-lf-nav">
           <Link to="/premium-dashboard">Premium Dashboard</Link>
-          <Link to="/premium-mypets">My Pets</Link>
-          <Link to="/premium-appointments">Appointments</Link>
-          <Link to="/premium-reminders">Reminders</Link>
+          <Link to="/premium-mypets">My Pet</Link>
           <Link to="/premium/lostfound" className="active">
             Lost &amp; Found
           </Link>
-          <Link to="/premium-community">Community</Link>
-          <Link to="/premium-inventory">Inventory</Link>
-          <Link to="/premium/vet-chat">AI Vet Chat</Link>
           <Link to="/premium/profile">Profile</Link>
         </nav>
 
         <div className="premium-lf-userbar">
-          <div className="premium-lf-date">
-            {new Date().toLocaleDateString("en-GB", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </div>
-
+          <div className="premium-lf-date">{todayText}</div>
           <div className="premium-lf-userchip">
             <div className="premium-lf-avatar">
               {userName?.charAt(0)?.toUpperCase() || "P"}
@@ -193,13 +242,13 @@ export default function PremiumSubmitSighting() {
         <span className="premium-sighting-badge">PREMIUM FEATURE</span>
         <h2>Submit Sighting</h2>
         <p>
-          Share where the pet was seen so the owner can be notified quickly and
-          take action faster.
+          Share where the pet was seen so the owner can be notified quickly and take
+          action faster.
         </p>
       </section>
 
       <div className="premium-sighting-grid">
-        <div className="premium-sighting-panel">
+        <section className="premium-sighting-panel">
           <h3>Sighting Form</h3>
           <p className="premium-sighting-sub">
             Location is required. Photo is optional. The pet owner will be notified.
@@ -210,21 +259,54 @@ export default function PremiumSubmitSighting() {
               <label>Location *</label>
               <input
                 type="text"
-                name="sighting_location"
-                value={form.sighting_location}
+                name="location"
+                value={form.location}
                 onChange={handleChange}
                 placeholder="e.g. Tallaght, Dublin"
                 required
               />
             </div>
 
-            <button
-              type="button"
-              className="premium-sighting-location-btn"
-              onClick={useCurrentLocation}
-            >
-              Use My Current Location
-            </button>
+            <div className="premium-sighting-location-actions">
+              <button
+                type="button"
+                className="premium-sighting-location-btn"
+                onClick={handleUseCurrentLocation}
+                disabled={gettingLocation}
+              >
+                {gettingLocation ? "Getting Location..." : "Use My Current Location"}
+              </button>
+
+              <button
+                type="button"
+                className="premium-sighting-location-btn"
+                onClick={handleUseTypedLocation}
+              >
+                Use Typed Location
+              </button>
+            </div>
+
+            <div className="premium-sighting-field">
+              <label>Latitude</label>
+              <input
+                type="text"
+                name="lat"
+                value={form.lat}
+                onChange={handleChange}
+                placeholder="Auto-filled or enter manually"
+              />
+            </div>
+
+            <div className="premium-sighting-field">
+              <label>Longitude</label>
+              <input
+                type="text"
+                name="lng"
+                value={form.lng}
+                onChange={handleChange}
+                placeholder="Auto-filled or enter manually"
+              />
+            </div>
 
             <div className="premium-sighting-field">
               <label>Notes</label>
@@ -244,19 +326,20 @@ export default function PremiumSubmitSighting() {
                 accept="image/*"
                 onChange={handleChange}
               />
-              <small className="premium-sighting-help">
-                A photo is optional but can help identify the pet.
-              </small>
             </div>
+
+            {error && <div className="premium-sighting-message error">{error}</div>}
+            {message && <div className="premium-sighting-message success">{message}</div>}
 
             <div className="premium-sighting-actions">
               <button
                 type="button"
                 className="premium-sighting-cancel-btn"
-                onClick={() => navigate("/premium/lostfound")}
+                onClick={() => navigate(`/premium/lostfound/view/${id}`)}
               >
-                Cancel
+                Back
               </button>
+
               <button
                 type="submit"
                 className="premium-sighting-submit-btn"
@@ -266,9 +349,9 @@ export default function PremiumSubmitSighting() {
               </button>
             </div>
           </form>
-        </div>
+        </section>
 
-        <div className="premium-sighting-side">
+        <aside className="premium-sighting-side">
           <h3>Quick Guide</h3>
           <p className="premium-sighting-sub">
             Tips to make the sighting more useful.
@@ -296,7 +379,7 @@ export default function PremiumSubmitSighting() {
               </div>
             </div>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );

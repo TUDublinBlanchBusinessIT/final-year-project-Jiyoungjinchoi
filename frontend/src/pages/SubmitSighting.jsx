@@ -104,7 +104,11 @@ export default function SubmitSighting() {
         throw new Error(firstError);
       }
 
-      setStatus({ type: "success", message: data.message || "Sighting submitted ✅" });
+      setStatus({
+        type: "success",
+        message: data.message || "Sighting submitted successfully.",
+      });
+
       setTimeout(() => navigate("/lostfound"), 700);
     } catch (err) {
       setStatus({ type: "error", message: err.message || "Failed to fetch" });

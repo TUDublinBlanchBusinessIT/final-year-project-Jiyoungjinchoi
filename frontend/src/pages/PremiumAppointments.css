@@ -1,32 +1,32 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap");
 
 :root {
-  --pmpa-bg: #eef3ff;
-  --pmpa-bg-2: #f8f5ff;
-  --pmpa-bg-3: #fff6fb;
-  --pmpa-card: rgba(255, 255, 255, 0.78);
-  --pmpa-card-strong: rgba(255, 255, 255, 0.92);
-  --pmpa-line: rgba(92, 82, 145, 0.12);
+  --pmpa-bg: #eef2fb;
+  --pmpa-bg-2: #e9eef9;
+  --pmpa-bg-3: #e6ecf8;
+  --pmpa-card: rgba(255, 255, 255, 0.58);
+  --pmpa-card-strong: rgba(255, 255, 255, 0.78);
+  --pmpa-line: rgba(255, 255, 255, 0.82);
 
-  --pmpa-primary: #7c6cf2;
-  --pmpa-primary-2: #a08cff;
+  --pmpa-primary: #7d68f2;
+  --pmpa-primary-2: #9a83ff;
   --pmpa-pink: #f3bfd4;
   --pmpa-pink-2: #ffdbe8;
   --pmpa-blue: #cfe0ff;
   --pmpa-blue-2: #e3edff;
 
-  --pmpa-text: #453a68;
-  --pmpa-text-soft: #746a95;
+  --pmpa-text: #231943;
+  --pmpa-text-soft: #7a7394;
   --pmpa-good: #78c28c;
   --pmpa-warn: #f2b45b;
   --pmpa-mid: #ee8db2;
 
-  --pmpa-shadow-sm: 0 10px 24px rgba(110, 98, 170, 0.08);
-  --pmpa-shadow-md: 0 24px 48px rgba(110, 98, 170, 0.14);
+  --pmpa-shadow-sm: 0 14px 30px rgba(95, 86, 145, 0.08);
+  --pmpa-shadow-md: 0 18px 42px rgba(111, 96, 201, 0.1);
 
-  --pmpa-radius-xl: 32px;
-  --pmpa-radius-lg: 24px;
-  --pmpa-radius-md: 18px;
+  --pmpa-radius-xl: 30px;
+  --pmpa-radius-lg: 28px;
+  --pmpa-radius-md: 20px;
   --pmpa-radius-sm: 14px;
 }
 
@@ -43,9 +43,9 @@ body,
 
 body {
   background:
-    radial-gradient(circle at top left, rgba(207, 224, 255, 0.5), transparent 26%),
-    radial-gradient(circle at top right, rgba(243, 191, 212, 0.34), transparent 22%),
-    linear-gradient(180deg, #edf2ff 0%, #f7f5ff 44%, #fff8fc 100%);
+    radial-gradient(circle at top left, rgba(163, 191, 255, 0.18), transparent 24%),
+    radial-gradient(circle at top right, rgba(196, 183, 255, 0.14), transparent 20%),
+    linear-gradient(180deg, #eef2fb 0%, #e9eef9 55%, #e6ecf8 100%);
   color: var(--pmpa-text);
   font-family: "Nunito", sans-serif;
 }
@@ -65,20 +65,24 @@ h3 {
 
 .pmpa-shell {
   min-height: 100vh;
+  padding: 18px 22px 40px;
 }
 
+/* ---------- Header ---------- */
 .pmpa-site-header {
-  position: sticky;
-  top: 0;
-  z-index: 50;
+  width: 100%;
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) 250px;
-  gap: 18px;
+  grid-template-columns: 240px 1fr 180px;
+  gap: 14px;
   align-items: center;
-  padding: 16px 22px;
-  background: rgba(239, 243, 255, 0.82);
+  padding: 12px 16px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: var(--pmpa-shadow-sm);
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--pmpa-line);
+  -webkit-backdrop-filter: blur(14px);
+  margin-bottom: 18px;
 }
 
 .pmpa-brand {
@@ -86,21 +90,22 @@ h3 {
   align-items: center;
   gap: 12px;
   min-width: 0;
-  padding: 10px 12px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.68);
-  border: 1px solid rgba(92, 82, 145, 0.08);
-  box-shadow: var(--pmpa-shadow-sm);
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: none;
   cursor: pointer;
 }
 
 .pmpa-brand-logo {
-  width: 52px;
-  height: 52px;
+  width: 46px;
+  height: 46px;
   object-fit: contain;
-  padding: 5px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.94);
+  padding: 4px;
+  border-radius: 12px;
+  background: #fff;
+  flex-shrink: 0;
 }
 
 .pmpa-brand-copy {
@@ -108,18 +113,22 @@ h3 {
 }
 
 .pmpa-brand-title {
-  font-size: 28px;
-  line-height: 1;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #21163f;
 }
 
 .pmpa-brand-sub {
-  margin-top: 3px;
+  margin-top: 4px;
   font-family: "Fredoka", sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--pmpa-text-soft);
+  color: #7b7397;
+  line-height: 1.3;
 }
 
 .pmpa-topnav {
@@ -128,13 +137,13 @@ h3 {
   justify-content: center;
   gap: 8px;
   min-width: 0;
-  padding: 10px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.68);
-  border: 1px solid rgba(92, 82, 145, 0.08);
-  box-shadow: var(--pmpa-shadow-sm);
+  padding: 10px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.58);
   overflow-x: auto;
   scrollbar-width: none;
+  box-shadow: none;
+  border: none;
 }
 
 .pmpa-topnav::-webkit-scrollbar {
@@ -144,122 +153,128 @@ h3 {
 .pmpa-topnav-item {
   flex: 0 0 auto;
   text-decoration: none;
-  color: var(--pmpa-text-soft);
-  padding: 10px 14px;
+  color: #51486f;
+  padding: 9px 14px;
   border-radius: 999px;
   font-family: "Fredoka", sans-serif;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 0.8rem;
+  font-weight: 700;
   transition: 0.18s ease;
+  white-space: nowrap;
 }
 
 .pmpa-topnav-item:hover {
-  background: rgba(255, 255, 255, 0.8);
-  color: var(--pmpa-text);
+  background: rgba(127, 108, 242, 0.1);
+  color: #312257;
 }
 
 .pmpa-topnav-item.active {
   color: #fff;
-  background: linear-gradient(135deg, var(--pmpa-primary), var(--pmpa-primary-2));
-  box-shadow: 0 10px 22px rgba(124, 108, 242, 0.25);
+  background: linear-gradient(135deg, #8a73f6 0%, #9d88ff 100%);
+  box-shadow: 0 10px 22px rgba(127, 108, 242, 0.24);
 }
 
 .pmpa-header-side {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-end;
 }
 
-.pmpa-date-pill,
-.pmpa-userchip {
-  background: rgba(255, 255, 255, 0.76);
-  border: 1px solid var(--pmpa-line);
-  box-shadow: var(--pmpa-shadow-sm);
-}
-
 .pmpa-date-pill {
-  padding: 9px 12px;
+  padding: 8px 12px;
   border-radius: 14px;
   font-family: "Fredoka", sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--pmpa-text-soft);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #625b81;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: none;
+  white-space: nowrap;
 }
 
 .pmpa-userchip {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 8px 10px;
+  gap: 10px;
+  padding: 10px 12px;
   border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: none;
 }
 
 .pmpa-avatar {
   width: 36px;
   height: 36px;
-  border-radius: 999px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
   color: white;
   font-family: "Fredoka", sans-serif;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 800;
   background: linear-gradient(135deg, var(--pmpa-primary), #b78cf7);
 }
 
 .pmpa-userchip-name {
   font-family: "Fredoka", sans-serif;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #231943;
+  line-height: 1.15;
 }
 
 .pmpa-userchip-sub {
   font-family: "Fredoka", sans-serif;
-  font-size: 10px;
-  color: var(--pmpa-text-soft);
+  font-size: 0.72rem;
+  color: #7a7394;
+  line-height: 1.15;
 }
 
+/* ---------- Main ---------- */
 .pmpa-main {
-  padding: 22px;
+  padding: 0;
 }
 
+/* ---------- Hero ---------- */
 .pmpa-hero {
   display: grid;
   grid-template-columns: 1.08fr 0.92fr;
   gap: 18px;
   padding: 24px;
   border-radius: 30px;
-  background:
-    radial-gradient(circle at top left, rgba(207, 224, 255, 0.4), transparent 26%),
-    radial-gradient(circle at right, rgba(243, 191, 212, 0.24), transparent 26%),
-    rgba(255, 255, 255, 0.54);
-  border: 1px solid rgba(92, 82, 145, 0.08);
-  box-shadow: var(--pmpa-shadow-sm);
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  box-shadow: var(--pmpa-shadow-md);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .pmpa-kicker,
 .pmpa-card-kicker {
   font-family: "Fredoka", sans-serif;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #7d74a1;
+  color: #5d4bc4;
 }
 
 .pmpa-hero-title {
   margin: 14px 0 0;
-  font-size: clamp(44px, 5vw, 68px);
+  font-size: clamp(2.4rem, 5vw, 4.5rem);
   line-height: 0.95;
-  color: var(--pmpa-text);
+  color: #1f1739;
 }
 
 .pmpa-hero-text {
   max-width: 640px;
   margin: 16px 0 0;
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.8;
-  color: var(--pmpa-text-soft);
+  color: #5d5675;
   font-weight: 700;
 }
 
@@ -274,14 +289,14 @@ h3 {
 .pmpa-selector-label {
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--pmpa-text);
 }
 
 .pmpa-selector {
   padding: 12px 14px;
   border-radius: 14px;
-  border: 1px solid var(--pmpa-line);
+  border: 1px solid rgba(229, 231, 246, 0.95);
   background: rgba(255, 255, 255, 0.9);
   color: var(--pmpa-text);
   outline: none;
@@ -295,13 +310,13 @@ h3 {
 }
 
 .pmpa-btn {
-  padding: 12px 16px;
+  padding: 11px 16px;
   border-radius: 14px;
-  border: 1px solid rgba(92, 82, 145, 0.08);
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--pmpa-text);
+  border: 1px solid rgba(121, 108, 197, 0.14);
+  background: rgba(121, 108, 197, 0.1);
+  color: #443577;
   font-family: "Fredoka", sans-serif;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
   box-shadow: var(--pmpa-shadow-sm);
   transition: 0.18s ease;
@@ -315,7 +330,8 @@ h3 {
 .pmpa-btn-primary {
   border: none;
   color: #fff;
-  background: linear-gradient(135deg, var(--pmpa-primary), var(--pmpa-primary-2));
+  background: linear-gradient(135deg, #7b68ee 0%, #9b84ff 100%);
+  box-shadow: 0 12px 24px rgba(123, 104, 238, 0.24);
 }
 
 .pmpa-btn-small {
@@ -331,6 +347,7 @@ h3 {
   border: 1px solid rgba(177, 75, 103, 0.15);
 }
 
+/* ---------- Messages ---------- */
 .pmpa-form-message {
   margin-top: 14px;
   padding: 12px 14px;
@@ -351,13 +368,15 @@ h3 {
   border: 1px solid rgba(47, 138, 83, 0.14);
 }
 
+/* ---------- Form ---------- */
 .pmpa-form-card {
   margin-top: 18px;
   padding: 18px;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid var(--pmpa-line);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.74);
   box-shadow: var(--pmpa-shadow-sm);
+  backdrop-filter: blur(10px);
 }
 
 .pmpa-form-grid {
@@ -379,7 +398,7 @@ h3 {
 .pmpa-field label {
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--pmpa-text);
 }
 
@@ -389,7 +408,7 @@ h3 {
   width: 100%;
   padding: 12px 14px;
   border-radius: 14px;
-  border: 1px solid var(--pmpa-line);
+  border: 1px solid rgba(229, 231, 246, 0.95);
   background: rgba(255, 255, 255, 0.92);
   color: var(--pmpa-text);
   outline: none;
@@ -410,18 +429,19 @@ h3 {
   gap: 12px;
 }
 
+/* ---------- Hero side card ---------- */
 .pmpa-hero-card {
   overflow: hidden;
   border-radius: 26px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(244,240,255,0.92));
-  border: 1px solid rgba(92, 82, 145, 0.08);
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.82);
   box-shadow: var(--pmpa-shadow-md);
   padding: 20px;
 }
 
 .pmpa-hero-card-top h2 {
   margin: 12px 0 0;
-  font-size: 38px;
+  font-size: 2.3rem;
   color: var(--pmpa-text);
 }
 
@@ -439,7 +459,7 @@ h3 {
   color: var(--pmpa-primary);
   font-family: "Fredoka", sans-serif;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .pmpa-stat-row {
@@ -454,10 +474,10 @@ h3 {
   padding: 10px 12px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.84);
-  border: 1px solid var(--pmpa-line);
+  border: 1px solid rgba(229, 231, 246, 0.95);
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .pmpa-quick-box {
@@ -465,7 +485,7 @@ h3 {
   padding: 14px 16px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(92, 82, 145, 0.1);
+  border: 1px solid rgba(229, 231, 246, 0.95);
 }
 
 .pmpa-quick-box strong {
@@ -473,7 +493,7 @@ h3 {
   color: var(--pmpa-text);
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .pmpa-quick-box span {
@@ -484,6 +504,7 @@ h3 {
   font-weight: 700;
 }
 
+/* ---------- Grid ---------- */
 .pmpa-grid {
   margin-top: 18px;
   display: grid;
@@ -495,7 +516,7 @@ h3 {
   padding: 20px;
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.72);
-  border: 1px solid var(--pmpa-line);
+  border: 1px solid rgba(255, 255, 255, 0.74);
   box-shadow: var(--pmpa-shadow-sm);
   backdrop-filter: blur(10px);
 }
@@ -521,7 +542,7 @@ h3 {
   padding: 16px;
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(243,247,255,0.92));
-  border: 1px solid rgba(92, 82, 145, 0.06);
+  border: 1px solid rgba(229, 231, 246, 0.95);
 }
 
 .pmpa-analytics-box span {
@@ -547,6 +568,7 @@ h3 {
   font-weight: 700;
 }
 
+/* ---------- Timeline ---------- */
 .pmpa-timeline {
   margin-top: 14px;
   display: grid;
@@ -571,7 +593,7 @@ h3 {
   padding: 16px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(92, 82, 145, 0.06);
+  border: 1px solid rgba(229, 231, 246, 0.95);
   width: 100%;
 }
 
@@ -585,7 +607,7 @@ h3 {
 .pmpa-timeline-title {
   font-family: "Fredoka", sans-serif;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--pmpa-text);
 }
 
@@ -621,12 +643,12 @@ h3 {
   gap: 10px;
 }
 
-/* New styles for map + search results */
+/* ---------- Map + search ---------- */
 .pmpa-map-box {
   width: 100%;
   height: 260px;
   border-radius: 18px;
-  border: 1px solid rgba(92, 82, 145, 0.12);
+  border: 1px solid rgba(229, 231, 246, 0.95);
   overflow: hidden;
   background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(243,247,255,0.92));
   box-shadow: var(--pmpa-shadow-sm);
@@ -648,7 +670,7 @@ h3 {
   padding: 14px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.84);
-  border: 1px solid rgba(92, 82, 145, 0.08);
+  border: 1px solid rgba(229, 231, 246, 0.95);
   box-shadow: var(--pmpa-shadow-sm);
 }
 
@@ -662,7 +684,7 @@ h3 {
 .pmpa-search-card-title {
   font-family: "Fredoka", sans-serif;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--pmpa-text);
 }
 
@@ -675,13 +697,14 @@ h3 {
   font-weight: 700;
 }
 
+/* ---------- Responsive ---------- */
 @media (max-width: 1250px) {
   .pmpa-site-header {
     grid-template-columns: 1fr;
   }
 
   .pmpa-header-side {
-    align-items: center;
+    align-items: flex-start;
   }
 
   .pmpa-hero {
@@ -691,7 +714,7 @@ h3 {
 
 @media (max-width: 900px) {
   .pmpa-main {
-    padding: 16px;
+    padding: 0;
   }
 
   .pmpa-grid {
@@ -725,9 +748,9 @@ h3 {
   }
 }
 
-@media (max-width: 640px) {
-  .pmpa-site-header {
-    padding: 14px;
+@media (max-width: 768px) {
+  .pmpa-shell {
+    padding: 16px;
   }
 
   .pmpa-topnav {
@@ -741,5 +764,11 @@ h3 {
 
   .pmpa-hero-title {
     font-size: 42px;
+  }
+
+  .pmpa-date-pill,
+  .pmpa-userchip {
+    width: 100%;
+    justify-content: center;
   }
 }

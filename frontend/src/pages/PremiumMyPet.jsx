@@ -213,6 +213,18 @@ export default function PremiumMyPet() {
     return pets.find((pet) => String(pet.id) === String(selectedPetId)) || pets[0] || null;
   }, [pets, selectedPetId]);
 
+  const isSelectedPetLost = useMemo(() => {
+    if (!selectedPet) return false;
+
+    return (
+      selectedPet?.is_lost === true ||
+      selectedPet?.is_lost === 1 ||
+      String(selectedPet?.lost_status || "").toLowerCase() === "missing" ||
+      String(selectedPet?.status || "").toLowerCase() === "missing pet" ||
+      String(selectedPet?.status || "").toLowerCase() === "missing"
+    );
+  }, [selectedPet]);
+
   const handleSelectPet = (petId) => {
     setSelectedPetId(String(petId));
     setShowPetDetails(false);
@@ -227,6 +239,8 @@ export default function PremiumMyPet() {
 
   const getPetImageSrc = (pet) => {
     if (!pet) return null;
+    if (pet?.display_photo_url) return pet.display_photo_url;
+    if (pet?.lost_photo_url) return pet.lost_photo_url;
     if (pet?.photo_url) return pet.photo_url;
     if (pet?.photo_path) return `http://127.0.0.1:8000/storage/${pet.photo_path}`;
     if (pet?.photo) return `http://127.0.0.1:8000/storage/${pet.photo}`;
@@ -799,6 +813,16 @@ export default function PremiumMyPet() {
               >
                 Add New Pet
               </button>
+
+              {selectedPet && isSelectedPetLost && (
+                <button
+                  className="pmp-btn pmp-btn-primary"
+                  type="button"
+                  onClick={() => navigate(`/premium/pets/${selectedPet.id}/sightings`)}
+                >
+                  View Sightings
+                </button>
+              )}
             </div>
 
             {healthFormError && <div className="pmp-form-message pmp-form-error">{healthFormError}</div>}
@@ -937,6 +961,12 @@ export default function PremiumMyPet() {
                     </div>
                     <div className="pmp-stat-pill">Progress: {reminderProgress}%</div>
                   </div>
+
+                  {selectedPet && isSelectedPetLost && (
+                    <div className="pmp-stat-row" style={{ marginTop: "10px" }}>
+                      <div className="pmp-stat-pill">Lost Pet Active</div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -974,6 +1004,7 @@ export default function PremiumMyPet() {
                     <div><strong>Last Vet Visit</strong><span>{formatDisplayDate(selectedPet?.last_vet_visit)}</span></div>
                     <div><strong>Microchip Number</strong><span>{selectedPet?.microchip_number || "-"}</span></div>
                     <div><strong>Activity Level</strong><span>{selectedPet?.activity_level || "Not added"}</span></div>
+                    <div><strong>Lost Status</strong><span>{isSelectedPetLost ? "Missing Pet" : "Not lost"}</span></div>
                   </div>
                 </div>
 
@@ -1114,6 +1145,16 @@ export default function PremiumMyPet() {
                   >
                     Dashboard
                   </button>
+
+                  {selectedPet && isSelectedPetLost && (
+                    <button
+                      className="pmp-btn pmp-btn-small"
+                      type="button"
+                      onClick={() => navigate(`/premium/pets/${selectedPet.id}/sightings`)}
+                    >
+                      View Sightings
+                    </button>
+                  )}
                 </div>
               </div>
             </aside>
@@ -1369,6 +1410,7 @@ export default function PremiumMyPet() {
               <div><strong>Target Weight:</strong> {targetWeight || "—"}</div>
               <div><strong>Target Activity:</strong> {targetActivity} mins</div>
               <div><strong>Notes:</strong> {selectedPet?.notes || "No health notes added yet."}</div>
+              <div><strong>Lost Status:</strong> {isSelectedPetLost ? "Missing Pet" : "Not lost"}</div>
             </div>
           </article>
 

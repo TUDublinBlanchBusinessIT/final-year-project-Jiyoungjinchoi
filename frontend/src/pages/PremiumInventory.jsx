@@ -694,10 +694,11 @@ export default function PremiumInventory() {
       <main className="pfd-main">
         <section className="pfi-hero-card">
           <div className="pfi-hero-copy">
-            <div className="pfi-kicker">Premium Inventory</div>
-            <h1 className="pfi-title">Smart stock tracking</h1>
+            <div className="pfi-kicker">Pawfection Premium Supplies</div>
+            <h1 className="pfi-title">Inventory</h1>
             <p className="pfi-subtitle">
-              Monitor urgent stock, track usage, and manage pet supplies in one premium workspace.
+              Track urgent stock, monitor usage, and manage pet supplies in one
+              premium workspace.
             </p>
 
             <div className="pfi-hero-actions">
@@ -736,8 +737,9 @@ export default function PremiumInventory() {
                 {categoryIcon(mostUrgentItem.category)} {mostUrgentItem.name}
               </h2>
               <p className="pfi-urgent-text">
-                {mostUrgentItem.category} • Stock: {formatQuantity(mostUrgentItem.current_quantity)}{" "}
-                {mostUrgentItem.unit} • Daily use: {formatQuantity(mostUrgentItem.daily_usage)}{" "}
+                {mostUrgentItem.category} • Stock:{" "}
+                {formatQuantity(mostUrgentItem.current_quantity)} {mostUrgentItem.unit} •
+                Daily use: {formatQuantity(mostUrgentItem.daily_usage)}{" "}
                 {mostUrgentItem.unit}
               </p>
 

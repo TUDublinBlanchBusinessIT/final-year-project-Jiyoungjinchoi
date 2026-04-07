@@ -1,0 +1,132 @@
+.premium-pet-sightings-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(163, 191, 255, 0.18), transparent 24%),
+    radial-gradient(circle at top right, rgba(196, 183, 255, 0.14), transparent 20%),
+    linear-gradient(180deg, #eef2fb 0%, #e9eef9 55%, #e6ecf8 100%);
+  padding: 24px 32px 40px;
+  color: #2f2a42;
+  font-family: Arial, sans-serif;
+}
+
+.pet-sightings-hero,
+.pet-sightings-pet-card,
+.pet-sightings-list-card,
+.pet-sightings-state {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 24px;
+  box-shadow: 0 12px 30px rgba(58, 69, 112, 0.08);
+}
+
+.pet-sightings-hero {
+  margin-top: 22px;
+  padding: 28px;
+}
+
+.pet-sightings-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(123, 97, 255, 0.12);
+  color: #5c47d6;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+.pet-sightings-pet-card {
+  margin-top: 22px;
+  padding: 22px;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 22px;
+  align-items: center;
+}
+
+.pet-sightings-pet-image-wrap,
+.pet-sightings-pet-placeholder {
+  width: 100%;
+  height: 220px;
+  border-radius: 20px;
+}
+
+.pet-sightings-pet-image {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 20px;
+}
+
+.pet-sightings-pet-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(123, 97, 255, 0.08);
+  font-size: 48px;
+}
+
+.pet-sightings-list-card {
+  margin-top: 22px;
+  padding: 22px;
+}
+
+.pet-sightings-list-head {
+  margin-bottom: 18px;
+}
+
+.pet-sightings-list {
+  display: grid;
+  gap: 14px;
+}
+
+.pet-sightings-item {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(227, 222, 255, 0.9);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.pet-sightings-item-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.pet-sightings-image {
+  margin-top: 12px;
+  width: 100%;
+  max-width: 320px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.pet-sightings-btn {
+  margin-top: 14px;
+  border: none;
+  border-radius: 14px;
+  padding: 12px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #7b61ff, #5b8def);
+  color: white;
+}
+
+.pet-sightings-empty {
+  color: #615b74;
+}
+
+.pet-sightings-state {
+  margin-top: 22px;
+  padding: 28px;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .pet-sightings-pet-card {
+    grid-template-columns: 1fr;
+  }
+}

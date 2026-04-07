@@ -39,6 +39,7 @@ import PremiumLostReportDetails from "./pages/PremiumLostReportDetails";
 import PremiumProfile from "./pages/PremiumProfile";
 import PremiumReminders from "./pages/PremiumReminders";
 import PremiumInventory from "./pages/PremiumInventory";
+import PremiumPetSightings from "./pages/PremiumPetSightings";
 
 function App() {
   return (
@@ -97,6 +98,11 @@ function App() {
         <Route
           path="/premium/lostfound/view/:id/sighting"
           element={<PremiumSubmitSighting />}
+        />
+
+        <Route
+          path="/premium/pets/:petId/sightings"
+          element={<PremiumPetSightings />}
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -30,6 +30,7 @@
   box-shadow: 0 10px 24px rgba(58, 69, 112, 0.08);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
 }
 
 .premium-lf-logo {
@@ -291,6 +292,12 @@
   color: #8e84aa;
 }
 
+.premium-sighting-location-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
 .premium-sighting-location-btn {
   width: 100%;
   background: rgba(255, 255, 255, 0.78);
@@ -301,11 +308,17 @@
   border: 1px solid rgba(223, 228, 243, 0.98);
   font-weight: 800;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .premium-sighting-location-btn:hover {
   transform: translateY(-1px);
   background: rgba(245, 242, 255, 0.95);
+}
+
+.premium-sighting-location-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .premium-sighting-actions {
@@ -323,6 +336,7 @@
   font-size: 1rem;
   font-weight: 800;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .premium-sighting-cancel-btn {
@@ -344,6 +358,30 @@
 
 .premium-sighting-submit-btn:hover {
   transform: translateY(-1px);
+}
+
+.premium-sighting-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.premium-sighting-message {
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.premium-sighting-message.success {
+  background: rgba(40, 167, 69, 0.12);
+  color: #1f7a36;
+  border: 1px solid rgba(40, 167, 69, 0.18);
+}
+
+.premium-sighting-message.error {
+  background: rgba(220, 53, 69, 0.12);
+  color: #a12836;
+  border: 1px solid rgba(220, 53, 69, 0.18);
 }
 
 .premium-sighting-guide-list {
@@ -432,6 +470,10 @@
 
   .premium-sighting-hero h2 {
     font-size: 2.2rem;
+  }
+
+  .premium-sighting-location-actions {
+    grid-template-columns: 1fr;
   }
 
   .premium-sighting-actions {
