@@ -16,9 +16,18 @@ use App\Http\Controllers\Api\PremiumLostFoundController;
 use App\Http\Controllers\Api\PremiumPetController;
 use App\Http\Controllers\Api\AiVetChatController;
 use App\Http\Controllers\Api\StripeController;
+use App\Http\Controllers\LostPetController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Public lost pet routes
+Route::get('/lost-pets', [LostPetController::class, 'index']);
+Route::get('/lost-pets/{pet}', [LostPetController::class, 'show']);
+
+// Optional public premium feed
+Route::get('/premium/lost-found', [PremiumLostFoundController::class, 'index']);
+Route::get('/premium/lost-found/{id}', [PremiumLostFoundController::class, 'show']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
@@ -42,12 +51,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pets/{pet}/memorial', [PetController::class, 'markMemorial']);
     Route::delete('/pets/{pet}/memorial', [PetController::class, 'deleteMemorial']);
 
-   // Reminders
+    // Lost Pets
+    Route::post('/lost-pets', [LostPetController::class, 'store']);
+    Route::patch('/lost-pets/{pet}/resolve', [LostPetController::class, 'resolve']);
+
+    // Reminders
     Route::get('/reminders', [ReminderController::class, 'index']);
     Route::post('/reminders/generate', [ReminderController::class, 'generate']);
     Route::get('/reminders/upcoming', [ReminderController::class, 'upcoming']);
     Route::patch('/reminders/{reminder}/complete', [ReminderController::class, 'complete']);
     Route::patch('/reminders/{reminder}/snooze', [ReminderController::class, 'snooze']);
+
     // Appointments
     Route::get('/appointments', [AppointmentController::class, 'index']);
     Route::get('/appointments/options', [AppointmentController::class, 'options']);
@@ -95,7 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // AI Vet Chat
         Route::post('/ai-vet-chat', [AiVetChatController::class, 'chat']);
 
-        // User Story 200 - save and review AI vet chat sessions
+        // AI vet chat sessions
         Route::get('/ai-vet-chat/sessions', [AiVetChatController::class, 'sessions']);
         Route::post('/ai-vet-chat/sessions', [AiVetChatController::class, 'storeSession']);
         Route::put('/ai-vet-chat/sessions/{session}/transcript', [AiVetChatController::class, 'updateTranscript']);
@@ -111,11 +125,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/lost-found/{id}/resolve', [PremiumLostFoundController::class, 'resolve']);
     });
 
-    // Sightings for a lost pet
+    // Sightings
     Route::get('/lost-pets/{pet}/sightings', [SightingController::class, 'index']);
     Route::post('/lost-pets/{pet}/sightings', [SightingController::class, 'store']);
-});
 
-// Optional public premium feed
-Route::get('/premium/lost-found', [PremiumLostFoundController::class, 'index']);
-Route::get('/premium/lost-found/{id}', [PremiumLostFoundController::class, 'show']);
+    // Owner dashboard/profile sightings
+    Route::get('/owner/sightings', [SightingController::class, 'ownerSightings']);
+});
