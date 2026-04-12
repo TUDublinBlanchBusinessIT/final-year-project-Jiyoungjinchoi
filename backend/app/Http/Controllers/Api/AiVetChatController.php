@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class AiVetChatController extends Controller
@@ -184,79 +185,98 @@ PROMPT;
             'instruction' => 'Respond as Pawfection AI Pet Assistant. Use the selected support mode and the pet profile context naturally. For health mode, provide general guidance only and do not diagnose. For non-health modes, provide broader pet support relevant to the chosen topic.',
         ];
 
-        $response = Http::withToken($apiKey)
-            ->withoutVerifying()
-            ->timeout(45)
-            ->post('https://api.openai.com/v1/responses', [
-                'model' => $model,
-                'input' => [
-                    [
-                        'role' => 'system',
-                        'content' => [
-                            [
-                                'type' => 'input_text',
-                                'text' => $systemPrompt,
+        try {
+            $response = Http::withToken($apiKey)
+                ->withoutVerifying() // local testing only
+                ->timeout(45)
+                ->post('https://api.openai.com/v1/responses', [
+                    'model' => $model,
+                    'input' => [
+                        [
+                            'role' => 'system',
+                            'content' => [
+                                [
+                                    'type' => 'input_text',
+                                    'text' => $systemPrompt,
+                                ],
+                            ],
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => [
+                                [
+                                    'type' => 'input_text',
+                                    'text' => json_encode(
+                                        $userPrompt,
+                                        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                                    ),
+                                ],
                             ],
                         ],
                     ],
-                    [
-                        'role' => 'user',
-                        'content' => [
-                            [
-                                'type' => 'input_text',
-                                'text' => json_encode($userPrompt, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-                            ],
-                        ],
-                    ],
-                ],
-                'max_output_tokens' => 700,
-            ]);
+                    'max_output_tokens' => 700,
+                ]);
 
-        if (!$response->successful()) {
-            return response()->json([
-                'message' => 'Failed to get AI response.',
-                'status' => $response->status(),
-                'body' => $response->body(),
-                'json' => $response->json(),
-            ], $response->status());
-        }
+            if (!$response->successful()) {
+                Log::error('OpenAI API request failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'json' => $response->json(),
+                ]);
 
-        $data = $response->json();
+                return response()->json([
+                    'message' => 'Failed to get AI response.',
+                    'status' => $response->status(),
+                ], $response->status());
+            }
 
-        $reply = data_get($data, 'output_text');
+            $data = $response->json();
 
-        if (is_array($reply)) {
-            $reply = implode("\n", array_filter($reply));
-        }
+            $reply = data_get($data, 'output_text');
 
-        if (!$reply) {
-            $output = data_get($data, 'output', []);
+            if (is_array($reply)) {
+                $reply = implode("\n", array_filter($reply));
+            }
 
-            foreach ($output as $item) {
-                $content = $item['content'] ?? [];
+            if (!$reply) {
+                $output = data_get($data, 'output', []);
 
-                foreach ($content as $part) {
-                    if (($part['type'] ?? null) === 'output_text' && !empty($part['text'])) {
-                        $reply = $part['text'];
-                        break 2;
+                foreach ($output as $item) {
+                    $content = $item['content'] ?? [];
+
+                    foreach ($content as $part) {
+                        if (($part['type'] ?? null) === 'output_text' && !empty($part['text'])) {
+                            $reply = $part['text'];
+                            break 2;
+                        }
                     }
                 }
             }
-        }
 
-        if (!$reply) {
-            $reply = 'Sorry, I could not generate a response right now.';
-        }
+            if (!$reply) {
+                $reply = 'Sorry, I could not generate a response right now.';
+            }
 
-        return response()->json([
-            'reply' => $reply,
-            'assistant_name' => 'Pawfection AI Pet Assistant',
-            'disclaimer' => $supportMode === 'Health & Symptoms'
-                ? 'This is AI guidance only and not a substitute for a licensed veterinarian.'
-                : 'This is AI support only and should be used as general pet guidance.',
-            'support_mode' => $supportMode,
-            'session_id' => $validated['session_id'] ?? null,
-        ]);
+            return response()->json([
+                'reply' => $reply,
+                'assistant_name' => 'Pawfection AI Pet Assistant',
+                'disclaimer' => $supportMode === 'Health & Symptoms'
+                    ? 'This is AI guidance only and not a substitute for a licensed veterinarian.'
+                    : 'This is AI support only and should be used as general pet guidance.',
+                'support_mode' => $supportMode,
+                'session_id' => $validated['session_id'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('AI Pet Assistant exception', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'message' => 'The AI assistant could not respond just now. Please try again.',
+            ], 500);
+        }
     }
 
     public function sessions(Request $request)
