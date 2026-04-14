@@ -61,6 +61,14 @@ class AuthController extends Controller
             ], 403);
         }
 
+        // Optional: enforce email verification
+        // if (!$user->hasVerifiedEmail()) {
+        //     Auth::logout();
+        //     return response()->json([
+        //         'message' => 'Please verify your email before logging in.'
+        //     ], 403);
+        // }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $rawRole = strtolower((string) ($user->role ?? ''));

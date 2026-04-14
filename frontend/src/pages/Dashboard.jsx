@@ -319,11 +319,7 @@ export default function Dashboard() {
           role="button"
           tabIndex={0}
         >
-          <img
-            className="pf2-brand-logo"
-            src={PawfectionLogo}
-            alt="Pawfection"
-          />
+          <img className="pf2-brand-logo" src={PawfectionLogo} alt="Pawfection" />
           <div className="pf2-brand-text">
             <div className="pf2-brand-title">Pawfection</div>
             <div className="pf2-brand-sub">Dashboard</div>
@@ -351,9 +347,6 @@ export default function Dashboard() {
           </Link>
           <Link className="pf2-nav-item" to="/inventory">
             Inventory
-          </Link>
-          <Link className="pf2-nav-item" to="/premium-dashboard">
-            Premium My Pet
           </Link>
         </nav>
 
@@ -392,9 +385,7 @@ export default function Dashboard() {
           <div className="pf2-pagehead">
             <div>
               <h1 className="pf2-title">Dashboard</h1>
-              <p className="pf2-subtitle">
-                Overview of your pets and daily tasks.
-              </p>
+              <p className="pf2-subtitle">Overview of your pets and daily tasks.</p>
 
               {!isPremiumUser && hasReachedPetLimit && (
                 <p
@@ -405,8 +396,7 @@ export default function Dashboard() {
                     fontWeight: "600",
                   }}
                 >
-                  You’ve reached the Basic plan limit. Upgrade to Premium to add
-                  more pets.
+                  You’ve reached the Basic plan limit. Upgrade to Premium to add more pets.
                 </p>
               )}
             </div>
@@ -460,13 +450,6 @@ export default function Dashboard() {
                 onClick={() => navigate("/reminders")}
               >
                 View Reminders
-              </button>
-
-              <button
-                className="pf2-btn"
-                onClick={() => navigate("/premium-dashboard")}
-              >
-                Explore Premium
               </button>
             </div>
           </div>
@@ -528,8 +511,7 @@ export default function Dashboard() {
                           <div className="pf2-petmeta">
                             <div className="pf2-petname">{pet.name}</div>
                             <div className="pf2-petdesc">
-                              {pet.breed || pet.species || "Pet"}
-                              {" • "}
+                              {pet.breed || pet.species || "Pet"} {" • "}
                               {pet.age ? `${pet.age} yrs` : "Age n/a"}
                               {pet.weight ? ` • ${pet.weight}kg` : ""}
                             </div>
@@ -603,42 +585,15 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div className="pf2-card">
-              <div className="pf2-cardhead">
-                <h2>Premium My Pet</h2>
-                <button
-                  className="pf2-btn pf2-btn-small"
-                  onClick={() => navigate("/premium-dashboard")}
-                >
-                  Open
-                </button>
-              </div>
-
-              <div className="pf2-empty" style={{ textAlign: "left" }}>
-                Unlock premium pet-care features like AI Vet Chat, extra
-                support, and premium tools.
-                <div style={{ marginTop: "12px" }}>
-                  <button
-                    className="pf2-btn pf2-btn-primary"
-                    onClick={() => navigate("/premium-dashboard")}
-                  >
-                    View Premium Page
-                  </button>
-                </div>
-              </div>
-            </div>
-
             <div className="pf2-card pf2-welcome pf2-span-all">
               <div className="pf2-welcome-title">Welcome to Pawfection</div>
               <div className="pf2-welcome-sub">
-                Pawfection: A smart pet care, lost &amp; found pet and better
-                dog lifestyle 🐶🐱
+                Pawfection: A smart pet care, lost &amp; found pet and better dog lifestyle 🐶🐱
               </div>
               <div className="pf2-welcome-text">
-                The Pawfection is a mobile-friendly application for dog and cat
-                owners in Ireland. The goal of Pawfection is to make it easy for
-                pet owners to use our platform to record, manage, and track
-                essential information related to their pets&apos; health,
+                Pawfection is a mobile-friendly application for dog and cat owners in Ireland.
+                The goal of Pawfection is to make it easy for pet owners to use our platform to
+                record, manage, and track essential information related to their pets&apos; health,
                 well-being, and safety.
               </div>
             </div>

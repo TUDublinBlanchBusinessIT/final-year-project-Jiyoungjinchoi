@@ -9,9 +9,7 @@ const FILTERS = ["All", "Urgent", "Low Stock", "Out of Stock", "Healthy"];
 function formatQuantity(value) {
   const num = Number(value);
   if (Number.isNaN(num)) return value;
-  return Number.isInteger(num)
-    ? String(num)
-    : num.toFixed(2).replace(/\.?0+$/, "");
+  return String(Math.round(num));
 }
 
 function formatDate(iso) {
@@ -60,24 +58,18 @@ function canLogUsage(category) {
   );
 }
 
-function getSliderStep(item) {
-  const stock = Number(item?.current_quantity || 0);
-  const daily = Number(item?.daily_usage || 0);
-
-  if (item?.unit === "tablets" || item?.unit === "pcs") return 1;
-  if (stock < 1 && daily < 1) return 0.01;
-  return 0.01;
+function getSliderStep() {
+  return 1;
 }
 
 function getInitialUsageValue(item) {
-  const stock = Number(item?.current_quantity || 0);
-  const daily = Number(item?.daily_usage || 0);
+  const stock = Math.round(Number(item?.current_quantity || 0));
+  const daily = Math.round(Number(item?.daily_usage || 0));
 
   if (stock <= 0) return "0";
-  if (daily > 0) return String(Math.min(daily, stock));
+  if (daily > 0) return String(Math.min(daily, 5000, stock));
 
-  const step = getSliderStep(item);
-  return String(Math.min(step, stock));
+  return "1";
 }
 
 function getInsightText({ outOfStock, lowStock, healthy, mostUrgent }) {
@@ -261,8 +253,8 @@ export default function PremiumInventory() {
           name: form.name.trim(),
           category: form.category,
           unit: form.unit,
-          current_quantity: Number(form.current_quantity),
-          daily_usage: Number(form.daily_usage),
+          current_quantity: Math.round(Number(form.current_quantity)),
+          daily_usage: Math.round(Number(form.daily_usage)),
           remind_before_days: Number(form.remind_before_days || 7),
         }),
       });
@@ -301,7 +293,7 @@ export default function PremiumInventory() {
     const qty = window.prompt("How much did you add (number)?");
     if (qty === null) return;
 
-    const add = Number(qty);
+    const add = Math.round(Number(qty));
     if (Number.isNaN(add) || add <= 0) return;
 
     setBusyId(id);
@@ -349,7 +341,7 @@ export default function PremiumInventory() {
   const consumeItem = async (id) => {
     if (!token) return navigate("/login");
 
-    const used = Number(usageAmount);
+    const used = Math.round(Number(usageAmount));
 
     if (usageAmount === "" || Number.isNaN(used) || used <= 0) {
       setError("Please choose a valid amount used today.");
@@ -436,8 +428,8 @@ export default function PremiumInventory() {
       name: item.name || "",
       category: item.category || "Food",
       unit: item.unit || "g",
-      current_quantity: item.current_quantity ?? "",
-      daily_usage: item.daily_usage ?? "",
+      current_quantity: Math.round(Number(item.current_quantity ?? 0)),
+      daily_usage: Math.round(Number(item.daily_usage ?? 0)),
       remind_before_days: item.remind_before_days ?? 7,
     });
   };
@@ -476,8 +468,8 @@ export default function PremiumInventory() {
           name: editForm.name.trim(),
           category: editForm.category,
           unit: editForm.unit,
-          current_quantity: Number(editForm.current_quantity),
-          daily_usage: Number(editForm.daily_usage),
+          current_quantity: Math.round(Number(editForm.current_quantity)),
+          daily_usage: Math.round(Number(editForm.daily_usage)),
           remind_before_days: Number(editForm.remind_before_days || 7),
         }),
       });
@@ -853,7 +845,7 @@ export default function PremiumInventory() {
                     name="current_quantity"
                     type="number"
                     min="0"
-                    step="0.01"
+                    step="1"
                     value={form.current_quantity}
                     onChange={onChange}
                     placeholder="e.g., 1200"
@@ -877,7 +869,7 @@ export default function PremiumInventory() {
                     name="daily_usage"
                     type="number"
                     min="0"
-                    step="0.01"
+                    step="1"
                     value={form.daily_usage}
                     onChange={onChange}
                     placeholder="e.g., 50"
@@ -953,10 +945,10 @@ export default function PremiumInventory() {
                       const status = statusInfo(i);
                       const isEditing = editingId === i.id;
                       const isUsing = usageOpenId === i.id;
-                      const stock = Number(i.current_quantity || 0);
+                      const stock = Math.round(Number(i.current_quantity || 0));
                       const sliderStep = getSliderStep(i);
                       const currentUsageValue =
-                        usageOpenId === i.id ? Number(usageAmount || 0) : 0;
+                        usageOpenId === i.id ? Math.round(Number(usageAmount || 0)) : 0;
                       const noStock = stock <= 0;
 
                       return (
@@ -993,7 +985,7 @@ export default function PremiumInventory() {
                                     name="current_quantity"
                                     type="number"
                                     min="0"
-                                    step="0.01"
+                                    step="1"
                                     value={editForm.current_quantity}
                                     onChange={onEditChange}
                                   />
@@ -1020,7 +1012,7 @@ export default function PremiumInventory() {
                                     name="daily_usage"
                                     type="number"
                                     min="0"
-                                    step="0.01"
+                                    step="1"
                                     value={editForm.daily_usage}
                                     onChange={onEditChange}
                                   />
@@ -1164,7 +1156,7 @@ export default function PremiumInventory() {
                                       className="pfi-slider"
                                       type="range"
                                       min="0"
-                                      max={stock}
+                                      max="5000"
                                       step={sliderStep}
                                       value={usageAmount}
                                       onChange={(e) => setUsageAmount(e.target.value)}
@@ -1172,9 +1164,7 @@ export default function PremiumInventory() {
 
                                     <div className="pfi-slider-scale">
                                       <span>0 {i.unit}</span>
-                                      <span>
-                                        {formatQuantity(i.current_quantity)} {i.unit}
-                                      </span>
+                                      <span>5000 {i.unit}</span>
                                     </div>
                                   </div>
                                 </div>

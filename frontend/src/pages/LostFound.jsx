@@ -188,8 +188,7 @@ export default function LostFound() {
   };
 
   const handleReportLostPet = () => {
-    // change this route only if your App.jsx uses a different one
-    navigate("/reportlostpet");
+    navigate("/lostfound/report");
   };
 
   const markResolved = async (reportId) => {

@@ -396,7 +396,7 @@ export default function AdminDashboard() {
             border="1px solid #67e8f9"
             titleColor="#155e75"
             valueColor="#164e63"
-            onClick={() => navigate("/admin/lost-found")}
+            onClick={() => navigate("/admin/lostfound")}
           />
         </div>
 
@@ -423,7 +423,7 @@ export default function AdminDashboard() {
             </h2>
 
             <button
-              onClick={() => navigate("/admin/lost-found")}
+              onClick={() => navigate("/admin/lostfound")}
               style={{
                 border: "none",
                 background: "#111827",

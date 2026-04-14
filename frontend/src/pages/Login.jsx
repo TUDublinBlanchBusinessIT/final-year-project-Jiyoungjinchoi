@@ -66,7 +66,7 @@ export default function Login() {
 
       setTimeout(() => {
         if (role === "admin") {
-          navigate("/admin/dashboard");
+          navigate("/admin-dashboard");
         } else if (normalizedAccountType === "premium") {
           navigate("/premium-dashboard");
         } else {

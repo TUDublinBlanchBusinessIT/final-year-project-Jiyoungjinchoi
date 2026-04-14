@@ -330,7 +330,7 @@ export default function AdminUsers() {
             </button>
 
             <button
-              onClick={() => navigate("/admin/dashboard")}
+              onClick={() => navigate("/admin-dashboard")}
               style={{
                 border: "none",
                 background: "#111827",

@@ -81,20 +81,11 @@ function App() {
         <Route path="/lostfound" element={<LostFound />} />
         <Route path="/lostfound/report" element={<ReportLostPet />} />
         <Route path="/lostfound/view/:id" element={<LostReportDetails />} />
-        <Route
-          path="/lostfound/view/:id/sighting"
-          element={<SubmitSighting />}
-        />
+        <Route path="/lostfound/view/:id/sighting" element={<SubmitSighting />} />
 
         <Route path="/premium/lostfound" element={<PremiumLostFound />} />
-        <Route
-          path="/premium/lostfound/report"
-          element={<PremiumReportLostPet />}
-        />
-        <Route
-          path="/premium/lostfound/view/:id"
-          element={<PremiumLostReportDetails />}
-        />
+        <Route path="/premium/lostfound/report" element={<PremiumReportLostPet />} />
+        <Route path="/premium/lostfound/view/:id" element={<PremiumLostReportDetails />} />
         <Route
           path="/premium/lostfound/view/:id/sighting"
           element={<PremiumSubmitSighting />}
