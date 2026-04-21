@@ -287,15 +287,14 @@
   min-height: 140px;
 }
 
-.premium-sighting-help {
-  font-size: 12px;
-  color: #8e84aa;
-}
-
 .premium-sighting-location-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+.premium-sighting-location-actions-single {
+  grid-template-columns: 1fr;
 }
 
 .premium-sighting-location-btn {
@@ -319,6 +318,15 @@
 .premium-sighting-location-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.premium-sighting-map-box {
+  width: 100%;
+  height: 260px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(223, 228, 243, 0.98);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .premium-sighting-actions {
@@ -483,5 +491,9 @@
   .premium-sighting-cancel-btn,
   .premium-sighting-submit-btn {
     width: 100%;
+  }
+
+  .premium-sighting-map-box {
+    height: 220px;
   }
 }

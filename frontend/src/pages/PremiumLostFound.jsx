@@ -1,83 +1,33 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  Circle,
-  useMap,
-} from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-
 import PawfectionLogo from "../assets/PawfectionLogo.png";
 import "./LostFoundPremium.css";
 
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
-const lostIcon = new L.DivIcon({
-  className: "custom-map-marker lost-marker",
-  html: `<div class="marker-pin marker-lost">🐾</div>`,
-  iconSize: [34, 34],
-  iconAnchor: [17, 34],
-  popupAnchor: [0, -30],
-});
-
-const foundIcon = new L.DivIcon({
-  className: "custom-map-marker found-marker",
-  html: `<div class="marker-pin marker-found">🐾</div>`,
-  iconSize: [34, 34],
-  iconAnchor: [17, 34],
-  popupAnchor: [0, -30],
-});
-
-const sightingIcon = new L.DivIcon({
-  className: "custom-map-marker sighting-marker",
-  html: `<div class="marker-pin marker-sighting">👁</div>`,
-  iconSize: [34, 34],
-  iconAnchor: [17, 34],
-  popupAnchor: [0, -30],
-});
-
-function FitMapToReports({ reports, userLocation }) {
-  const map = useMap();
-
-  useEffect(() => {
-    const points = reports
-      .filter(
-        (report) =>
-          report.lat !== null &&
-          report.lat !== undefined &&
-          report.lng !== null &&
-          report.lng !== undefined
-      )
-      .map((report) => [Number(report.lat), Number(report.lng)]);
-
-    if (userLocation) {
-      points.push([Number(userLocation[0]), Number(userLocation[1])]);
-    }
-
-    if (points.length === 0) {
-      map.setView([53.3498, -6.2603], 11);
+function loadGoogleMapsScript() {
+  return new Promise((resolve, reject) => {
+    if (window.google?.maps) {
+      resolve(window.google);
       return;
     }
 
-    if (points.length === 1) {
-      map.setView(points[0], 12);
+    const existing = document.getElementById("google-maps-script");
+    if (existing) {
+      existing.addEventListener("load", () => resolve(window.google));
+      existing.addEventListener("error", reject);
       return;
     }
 
-    const bounds = L.latLngBounds(points);
-    map.fitBounds(bounds, { padding: [40, 40] });
-  }, [map, reports, userLocation]);
-
-  return null;
+    const script = document.createElement("script");
+    script.id = "google-maps-script";
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve(window.google);
+    script.onerror = () => reject(new Error("Failed to load Google Maps."));
+    document.head.appendChild(script);
+  });
 }
 
 export default function PremiumLostFound() {
@@ -97,9 +47,16 @@ export default function PremiumLostFound() {
   const [reports, setReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(true);
   const [reportsError, setReportsError] = useState("");
+  const [mapsReady, setMapsReady] = useState(false);
 
   const [selectedMapReport, setSelectedMapReport] = useState(null);
   const [showMapReportModal, setShowMapReportModal] = useState(false);
+
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markersRef = useRef([]);
+  const userMarkerRef = useRef(null);
+  const userCircleRef = useRef(null);
 
   const fallbackImages = [
     "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=1200&q=80",
@@ -158,6 +115,22 @@ export default function PremiumLostFound() {
       console.error("Failed to load user name:", error);
       setUserName("User");
       localStorage.setItem("pawfection_account_type", "premium");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (GOOGLE_MAPS_API_KEY) {
+      loadGoogleMapsScript()
+        .then(() => setMapsReady(true))
+        .catch(() => {
+          setReportsError(
+            "Google Maps failed to load. Check your API key, billing, and API restrictions."
+          );
+        });
+    } else {
+      setReportsError(
+        "Google Maps API key is missing. Put VITE_GOOGLE_MAPS_API_KEY in frontend/.env and restart npm run dev."
+      );
     }
   }, []);
 
@@ -276,12 +249,7 @@ export default function PremiumLostFound() {
         (item) =>
           String(item.name || item.pet_name || "").toLowerCase().includes(q) ||
           String(item.breed || "").toLowerCase().includes(q) ||
-          String(
-            item.area ||
-              item.last_seen_location ||
-              item.sighting_location ||
-              ""
-          )
+          String(item.area || item.last_seen_location || item.sighting_location || "")
             .toLowerCase()
             .includes(q) ||
           String(item.species || "").toLowerCase().includes(q)
@@ -438,12 +406,6 @@ export default function PremiumLostFound() {
     );
   };
 
-  const getMarkerIcon = (type) => {
-    if (type === "found") return foundIcon;
-    if (type === "sighting") return sightingIcon;
-    return lostIcon;
-  };
-
   const handleViewReport = (report) => {
     const targetId = report.type === "sighting" ? report.pet_id : report.id;
     if (!targetId) return;
@@ -459,6 +421,144 @@ export default function PremiumLostFound() {
     setSelectedMapReport(null);
     setShowMapReportModal(false);
   };
+
+  const getMarkerStyle = (type) => {
+    if (type === "found") {
+      return {
+        color: "#3bb273",
+        label: "F",
+      };
+    }
+
+    if (type === "sighting") {
+      return {
+        color: "#f39c3d",
+        label: "S",
+      };
+    }
+
+    return {
+      color: "#7c6cff",
+      label: "L",
+    };
+  };
+
+  useEffect(() => {
+    if (!mapsReady || !mapRef.current || !window.google?.maps) return;
+
+    if (!mapInstanceRef.current) {
+      mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
+        center: { lat: 53.3498, lng: -6.2603 },
+        zoom: 11,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+      });
+    }
+
+    const map = mapInstanceRef.current;
+
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
+
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setMap(null);
+      userMarkerRef.current = null;
+    }
+
+    if (userCircleRef.current) {
+      userCircleRef.current.setMap(null);
+      userCircleRef.current = null;
+    }
+
+    const bounds = new window.google.maps.LatLngBounds();
+    let pointCount = 0;
+
+    if (userLocation) {
+      const userPoint = { lat: Number(userLocation[0]), lng: Number(userLocation[1]) };
+
+      userMarkerRef.current = new window.google.maps.Marker({
+        position: userPoint,
+        map,
+        title: "Your Location",
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 9,
+          fillColor: "#2f80ed",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 2,
+        },
+        label: {
+          text: "Y",
+          color: "#ffffff",
+          fontSize: "10px",
+          fontWeight: "700",
+        },
+      });
+
+      userCircleRef.current = new window.google.maps.Circle({
+        map,
+        center: userPoint,
+        radius: 2500,
+        strokeColor: "#7c6cff",
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillColor: "#7c6cff",
+        fillOpacity: 0.1,
+      });
+
+      bounds.extend(userPoint);
+      pointCount += 1;
+    }
+
+    mapMarkers.forEach((report) => {
+      const position = {
+        lat: Number(report.lat),
+        lng: Number(report.lng),
+      };
+
+      const markerStyle = getMarkerStyle(report.type);
+
+      const marker = new window.google.maps.Marker({
+        position,
+        map,
+        title: report.name || report.pet_name || "Pet",
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: markerStyle.color,
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 2,
+        },
+        label: {
+          text: markerStyle.label,
+          color: "#ffffff",
+          fontSize: "11px",
+          fontWeight: "700",
+        },
+      });
+
+      marker.addListener("click", () => {
+        openMapReportModal(report);
+      });
+
+      markersRef.current.push(marker);
+      bounds.extend(position);
+      pointCount += 1;
+    });
+
+    if (pointCount === 0) {
+      map.setCenter({ lat: 53.3498, lng: -6.2603 });
+      map.setZoom(11);
+    } else if (pointCount === 1) {
+      map.setCenter(bounds.getCenter());
+      map.setZoom(12);
+    } else {
+      map.fitBounds(bounds, 60);
+    }
+  }, [mapsReady, mapMarkers, userLocation]);
 
   return (
     <div className="premium-lf-page">
@@ -488,7 +588,7 @@ export default function PremiumLostFound() {
             Lost &amp; Found
           </Link>
           <Link to="/premium/community">Community</Link>
-          <Link to="/premium/inventory">Inventory</Link>
+          <Link to="/premium-inventory">Inventory</Link>
           <Link to="/premium/vet-chat">AI Pet Assistant</Link>
           <Link to="/premium/profile">Profile</Link>
         </nav>
@@ -658,70 +758,7 @@ export default function PremiumLostFound() {
           </div>
 
           <div className="premium-lf-map-wrap">
-            <MapContainer
-              center={[53.3498, -6.2603]}
-              zoom={11}
-              scrollWheelZoom
-              className="premium-lf-map"
-            >
-              <TileLayer
-                attribution="&copy; OpenStreetMap contributors"
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-
-              <FitMapToReports reports={mapMarkers} userLocation={userLocation} />
-
-              {userLocation && (
-                <Circle
-                  center={userLocation}
-                  radius={2500}
-                  pathOptions={{
-                    color: "#7c6cff",
-                    fillColor: "#7c6cff",
-                    fillOpacity: 0.1,
-                  }}
-                />
-              )}
-
-              {mapMarkers.map((report) => (
-                <Marker
-                  key={`${report.type}-${report.id}`}
-                  position={[Number(report.lat), Number(report.lng)]}
-                  icon={getMarkerIcon(report.type)}
-                >
-                  <Popup>
-                    <div className="premium-lf-popup">
-                      <img
-                        src={report.resolvedImage}
-                        alt={report.name || report.pet_name || "Pet"}
-                        onError={(e) => {
-                          e.currentTarget.src = getFallbackImageForReport(report);
-                        }}
-                      />
-                      <div className="premium-lf-popup-text">
-                        <strong>{report.name || report.pet_name || "Unknown Pet"}</strong>
-                        <span>
-                          {report.species || "Pet"} • {report.breed || "Unknown breed"}
-                        </span>
-                        <span>
-                          {report.area ||
-                            report.last_seen_location ||
-                            report.sighting_location ||
-                            "Unknown area"}
-                        </span>
-                        <small>{report.status || "Active"}</small>
-                        <button
-                          type="button"
-                          onClick={() => openMapReportModal(report)}
-                        >
-                          View Report
-                        </button>
-                      </div>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-            </MapContainer>
+            <div ref={mapRef} className="premium-lf-map" />
           </div>
         </div>
 

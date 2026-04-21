@@ -21,6 +21,9 @@ export default function PremiumDashboard() {
   const [upcomingReminders, setUpcomingReminders] = useState([]);
   const [remindersLoading, setRemindersLoading] = useState(false);
 
+  const [ownerReportsWithSightings, setOwnerReportsWithSightings] = useState([]);
+  const [lostReportsLoading, setLostReportsLoading] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState("");
 
   const token = localStorage.getItem("pawfection_token");
@@ -34,6 +37,27 @@ export default function PremiumDashboard() {
     "Premium-only pet tools",
     "Enhanced reminders and guidance",
   ];
+
+  const getStoredUser = () => {
+    try {
+      const savedUser = localStorage.getItem("pawfection_user");
+      if (!savedUser) return null;
+      return JSON.parse(savedUser);
+    } catch {
+      return null;
+    }
+  };
+
+  const getStoredUserId = () => {
+    const userObj = getStoredUser();
+    return (
+      userObj?.id ??
+      userObj?.user_id ??
+      userObj?.data?.id ??
+      userObj?.user?.id ??
+      null
+    );
+  };
 
   const fetchPets = async () => {
     if (!token) {
@@ -136,6 +160,144 @@ export default function PremiumDashboard() {
     }
   };
 
+  const fetchOwnerReportsWithSightings = async (resolvedUserId) => {
+    if (!token || !resolvedUserId) {
+      setOwnerReportsWithSightings([]);
+      return;
+    }
+
+    setLostReportsLoading(true);
+
+    try {
+      const reportsRes = await fetch(`${apiBase}/premium/lost-found`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const reportsData = await reportsRes.json().catch(() => ({}));
+
+      if (!reportsRes.ok) {
+        setOwnerReportsWithSightings([]);
+        return;
+      }
+
+      const rawReports = Array.isArray(reportsData)
+        ? reportsData
+        : Array.isArray(reportsData?.data)
+        ? reportsData.data
+        : Array.isArray(reportsData?.reports)
+        ? reportsData.reports
+        : Array.isArray(reportsData?.lost_reports)
+        ? reportsData.lost_reports
+        : [];
+
+      const lostItems = rawReports.filter(
+        (item) => String(item?.type || "").toLowerCase() === "lost"
+      );
+
+      const sightingItems = rawReports.filter(
+        (item) => String(item?.type || "").toLowerCase() === "sighting"
+      );
+
+      const ownedLostReports = [];
+
+      for (const lostReport of lostItems) {
+        try {
+          const detailRes = await fetch(
+            `${apiBase}/premium/lost-found/${lostReport.id}`,
+            {
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          const detailData = await detailRes.json().catch(() => ({}));
+
+          if (!detailRes.ok) continue;
+
+          const fullReport =
+            detailData?.data || detailData?.report || detailData?.pet || detailData;
+
+          const ownerId =
+            lostReport?.user_id ??
+            lostReport?.owner_id ??
+            lostReport?.pet_owner_id ??
+            lostReport?.created_by ??
+            lostReport?.user?.id ??
+            lostReport?.owner?.id ??
+            lostReport?.pet_owner?.id ??
+            fullReport?.user_id ??
+            fullReport?.owner_id ??
+            fullReport?.pet_owner_id ??
+            fullReport?.created_by ??
+            fullReport?.user?.id ??
+            fullReport?.owner?.id ??
+            fullReport?.pet_owner?.id ??
+            null;
+
+          const ownerName =
+            String(
+              lostReport?.owner_name ??
+                lostReport?.user_name ??
+                lostReport?.user?.name ??
+                lostReport?.owner?.name ??
+                fullReport?.owner_name ??
+                fullReport?.user_name ??
+                fullReport?.user?.name ??
+                fullReport?.owner?.name ??
+                ""
+            )
+              .trim()
+              .toLowerCase();
+
+          const currentName = String(userName || "").trim().toLowerCase();
+
+          const isOwner =
+            (ownerId != null && String(ownerId) === String(resolvedUserId)) ||
+            (ownerName && currentName && ownerName === currentName);
+
+          const relatedSightings = sightingItems.filter((sighting) => {
+            const parentId =
+              sighting?.pet_id ??
+              sighting?.lost_pet_id ??
+              sighting?.report_id ??
+              sighting?.parent_report_id ??
+              sighting?.lost_report_id ??
+              null;
+
+            return parentId != null && String(parentId) === String(lostReport.id);
+          });
+
+          if (isOwner && relatedSightings.length > 0) {
+            ownedLostReports.push({
+              ...fullReport,
+              sightings_count: relatedSightings.length,
+            });
+          }
+        } catch (err) {
+          console.error("Error checking owned lost report:", err);
+        }
+      }
+
+      setOwnerReportsWithSightings(
+        ownedLostReports.sort(
+          (a, b) => (b?.sightings_count || 0) - (a?.sightings_count || 0)
+        )
+      );
+    } catch (err) {
+      console.error("Error loading owner reports with sightings:", err);
+      setOwnerReportsWithSightings([]);
+    } finally {
+      setLostReportsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const savedToken = localStorage.getItem("pawfection_token");
     const savedRole = String(
@@ -155,13 +317,11 @@ export default function PremiumDashboard() {
     setAccountType("premium");
     localStorage.setItem("pawfection_account_type", "premium");
 
+    const resolvedUser = getStoredUser();
+
     try {
-      const savedUser = localStorage.getItem("pawfection_user");
-      if (savedUser) {
-        const userObj = JSON.parse(savedUser);
-        if (userObj?.name && typeof userObj.name === "string") {
-          setUserName(userObj.name);
-        }
+      if (resolvedUser?.name && typeof resolvedUser.name === "string") {
+        setUserName(resolvedUser.name);
       } else {
         const fallbackName =
           localStorage.getItem("pawfection_user_name") ||
@@ -188,6 +348,13 @@ export default function PremiumDashboard() {
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [navigate]);
+
+  useEffect(() => {
+    const resolvedUserId = getStoredUserId();
+    if (resolvedUserId && userName) {
+      fetchOwnerReportsWithSightings(resolvedUserId);
+    }
+  }, [userName]);
 
   const getPetImageSrc = (pet) => {
     if (pet?.photo_url) return pet.photo_url;
@@ -372,6 +539,10 @@ export default function PremiumDashboard() {
 
   const heroReminder = filteredReminders[0] || upcomingReminders[0] || null;
 
+  const firstReportWithSightings = useMemo(() => {
+    return ownerReportsWithSightings.length > 0 ? ownerReportsWithSightings[0] : null;
+  }, [ownerReportsWithSightings]);
+
   return (
     <div className="pfd-shell">
       <header className="pfd-site-header">
@@ -481,21 +652,35 @@ export default function PremiumDashboard() {
               <button className="pfd-btn pfd-btn-primary" onClick={handleVetChat}>
                 {isPremium ? "Open Vet Chat" : "Upgrade for Vet Chat"}
               </button>
+
               <button className="pfd-btn" onClick={handleViewMyPet}>
                 View My Pets
               </button>
+
               <button
                 className="pfd-btn"
                 onClick={() => navigate("/premium/appointments")}
               >
                 Book Appointment
               </button>
+
               <button
                 className="pfd-btn"
                 onClick={() => navigate("/premium/lostfound")}
               >
                 Open Lost &amp; Found
               </button>
+
+              {firstReportWithSightings && (
+                <button
+                  className="pfd-btn"
+                  onClick={() =>
+                    navigate(`/premium/lostfound/view/${firstReportWithSightings.id}`)
+                  }
+                >
+                  View Sightings ({firstReportWithSightings.sightings_count})
+                </button>
+              )}
             </div>
           </div>
 
@@ -651,6 +836,62 @@ export default function PremiumDashboard() {
                 Reminders
               </button>
             </div>
+          </article>
+
+          <article className="pfd-card pfd-span-2">
+            <div className="pfd-card-head">
+              <div>
+                <div className="pfd-card-kicker">Lost &amp; Found</div>
+                <h2>Lost &amp; Found Sightings</h2>
+                <p>Only your own lost reports with sightings appear here.</p>
+              </div>
+              <button
+                className="pfd-btn pfd-btn-small"
+                onClick={() => navigate("/premium/lostfound")}
+              >
+                Open Lost &amp; Found
+              </button>
+            </div>
+
+            {lostReportsLoading && <div className="pfd-empty">Loading sightings…</div>}
+
+            {!lostReportsLoading && ownerReportsWithSightings.length === 0 && (
+              <div className="pfd-empty">No sightings on your reports yet.</div>
+            )}
+
+            {!lostReportsLoading && ownerReportsWithSightings.length > 0 && (
+              <div className="pfd-mini-list">
+                {ownerReportsWithSightings.slice(0, 4).map((report) => (
+                  <div key={report.id} className="pfd-mini-item">
+                    <div className="pfd-mini-item-icon">👀</div>
+                    <div className="pfd-mini-item-body">
+                      <div className="pfd-mini-item-title">
+                        {report.pet_name || report.name || "Lost pet report"}
+                      </div>
+                      <div className="pfd-mini-item-text">
+                        {report.location || report.last_seen_location || "Location not available"}
+                      </div>
+                      <div className="pfd-mini-item-sub">
+                        {report.sightings_count} sighting
+                        {report.sightings_count === 1 ? "" : "s"} • Reported{" "}
+                        {formatDate(
+                          report.reported_lost_at || report.reported_at || report.created_at
+                        )}
+                      </div>
+
+                      <div style={{ marginTop: "10px" }}>
+                        <button
+                          className="pfd-btn pfd-btn-small"
+                          onClick={() => navigate(`/premium/lostfound/view/${report.id}`)}
+                        >
+                          View Sightings ({report.sightings_count})
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </article>
 
           <article className="pfd-card pfd-card-gallery pfd-span-2">

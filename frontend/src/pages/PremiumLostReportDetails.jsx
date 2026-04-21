@@ -8,12 +8,14 @@ export default function PremiumReportDetails() {
   const { id } = useParams();
 
   const [userName, setUserName] = useState("Premium User");
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [report, setReport] = useState(null);
   const [sightings, setSightings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sightingsLoading, setSightingsLoading] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [error, setError] = useState("");
+  const [showSightingsModal, setShowSightingsModal] = useState(false);
 
   const apiBase = "http://127.0.0.1:8000/api";
   const fallbackImage =
@@ -22,11 +24,21 @@ export default function PremiumReportDetails() {
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem("pawfection_user");
+
       if (savedUser) {
         const userObj = JSON.parse(savedUser);
+
         if (userObj?.name) {
           setUserName(userObj.name);
         }
+
+        setCurrentUserId(
+          userObj?.id ??
+            userObj?.user_id ??
+            userObj?.data?.id ??
+            userObj?.user?.id ??
+            null
+        );
       }
     } catch (err) {
       console.error("Failed to read user from localStorage:", err);
@@ -46,6 +58,21 @@ export default function PremiumReportDetails() {
       minute: "2-digit",
     });
   };
+
+  const getOwnerIdFromReport = useCallback((reportData) => {
+    if (!reportData) return null;
+
+    return (
+      reportData.user_id ??
+      reportData.owner_id ??
+      reportData.pet_owner_id ??
+      reportData.created_by ??
+      reportData.user?.id ??
+      reportData.owner?.id ??
+      reportData.pet_owner?.id ??
+      null
+    );
+  }, []);
 
   const loadReport = useCallback(async () => {
     setLoading(true);
@@ -77,7 +104,8 @@ export default function PremiumReportDetails() {
         return;
       }
 
-      setReport(data.data || data.report || data.pet || data);
+      const loadedReport = data.data || data.report || data.pet || data;
+      setReport(loadedReport);
     } catch (err) {
       console.error("Error loading report:", err);
       setError("Something went wrong while loading the report.");
@@ -125,11 +153,30 @@ export default function PremiumReportDetails() {
 
   useEffect(() => {
     loadReport();
-    loadSightings();
-  }, [loadReport, loadSightings]);
+  }, [loadReport]);
+
+  const reportOwnerId = useMemo(
+    () => getOwnerIdFromReport(report),
+    [report, getOwnerIdFromReport]
+  );
+
+  const isOwner = useMemo(() => {
+    if (currentUserId == null || reportOwnerId == null) return false;
+    return String(currentUserId) === String(reportOwnerId);
+  }, [currentUserId, reportOwnerId]);
+
+  useEffect(() => {
+    if (!report) return;
+
+    if (isOwner) {
+      loadSightings();
+    } else {
+      setSightings([]);
+    }
+  }, [report, isOwner, loadSightings]);
 
   const markResolved = async () => {
-    if (!report || resolving) return;
+    if (!report || resolving || !isOwner) return;
 
     setResolving(true);
 
@@ -273,7 +320,7 @@ export default function PremiumReportDetails() {
                     Back
                   </button>
 
-                  {!isResolved && (
+                  {!isOwner && !isResolved && (
                     <button
                       className="premium-report-details-btn-primary"
                       onClick={() =>
@@ -284,20 +331,16 @@ export default function PremiumReportDetails() {
                     </button>
                   )}
 
-                  {hasSightings && (
+                  {isOwner && hasSightings && (
                     <button
                       className="premium-report-details-btn-primary"
-                      onClick={() =>
-                        document
-                          .getElementById("submitted-sightings-section")
-                          ?.scrollIntoView({ behavior: "smooth" })
-                      }
+                      onClick={() => setShowSightingsModal(true)}
                     >
                       View Sightings ({sightings.length})
                     </button>
                   )}
 
-                  {!isResolved && (
+                  {isOwner && !isResolved && (
                     <button
                       className="premium-report-details-btn"
                       onClick={markResolved}
@@ -396,89 +439,163 @@ export default function PremiumReportDetails() {
             </div>
           </div>
 
-          <section
-            id="submitted-sightings-section"
-            style={{
-              marginTop: "24px",
-              background: "rgba(255,255,255,0.72)",
-              border: "1px solid rgba(255,255,255,0.82)",
-              borderRadius: "24px",
-              boxShadow: "0 12px 30px rgba(58,69,112,0.08)",
-              padding: "22px",
-            }}
-          >
-            <div style={{ marginBottom: "16px" }}>
-              <h3 style={{ margin: 0 }}>Submitted Sightings</h3>
-              <p style={{ margin: "6px 0 0", color: "#615b74" }}>
-                Sightings submitted for this lost pet appear here for the owner.
-              </p>
-            </div>
+          {showSightingsModal && isOwner && (
+            <div
+              onClick={() => setShowSightingsModal(false)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(35, 31, 56, 0.38)",
+                backdropFilter: "blur(8px)",
+                WebkitBackdropFilter: "blur(8px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "24px",
+                zIndex: 9999,
+              }}
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  width: "min(1100px, 100%)",
+                  maxHeight: "85vh",
+                  overflowY: "auto",
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,245,255,0.94))",
+                  border: "1px solid rgba(255,255,255,0.85)",
+                  borderRadius: "30px",
+                  boxShadow: "0 30px 80px rgba(49, 39, 90, 0.20)",
+                  padding: "28px",
+                  position: "relative",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowSightingsModal(false)}
+                  style={{
+                    position: "absolute",
+                    top: "18px",
+                    right: "18px",
+                    width: "46px",
+                    height: "46px",
+                    borderRadius: "50%",
+                    border: "none",
+                    cursor: "pointer",
+                    background: "rgba(132, 108, 255, 0.14)",
+                    color: "#6f5cff",
+                    fontSize: "28px",
+                    fontWeight: "700",
+                  }}
+                >
+                  ×
+                </button>
 
-            {sightingsLoading ? (
-              <p>Loading sightings...</p>
-            ) : sightings.length === 0 ? (
-              <p>No sightings submitted yet.</p>
-            ) : (
-              <div style={{ display: "grid", gap: "14px" }}>
-                {sightings.map((sighting) => (
-                  <div
-                    key={sighting.id}
+                <div style={{ marginBottom: "20px", paddingRight: "48px" }}>
+                  <span
                     style={{
-                      background: "rgba(255,255,255,0.9)",
-                      border: "1px solid rgba(227,222,255,0.9)",
-                      borderRadius: "18px",
-                      padding: "16px",
+                      display: "inline-block",
+                      padding: "8px 14px",
+                      borderRadius: "999px",
+                      background: "rgba(132, 108, 255, 0.14)",
+                      color: "#6f5cff",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      marginBottom: "12px",
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                        flexWrap: "wrap",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      <div>
-                        <strong>Location:</strong> {sighting.location || "N/A"}
-                      </div>
-                      <div>
-                        <strong>Submitted:</strong> {formatDate(sighting.created_at)}
-                      </div>
-                    </div>
+                    Sightings
+                  </span>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: "40px",
+                      lineHeight: 1.1,
+                      color: "#221a45",
+                    }}
+                  >
+                    Submitted Sightings
+                  </h3>
+                  <p
+                    style={{
+                      margin: "10px 0 0",
+                      color: "#615b74",
+                      fontSize: "17px",
+                    }}
+                  >
+                    View all sightings submitted for {petName}.
+                  </p>
+                </div>
 
-                    {(sighting.lat !== null || sighting.lng !== null) && (
-                      <p style={{ margin: "8px 0" }}>
-                        <strong>Coordinates:</strong> {sighting.lat ?? "N/A"},{" "}
-                        {sighting.lng ?? "N/A"}
-                      </p>
-                    )}
-
-                    <p style={{ margin: "8px 0" }}>
-                      <strong>Notes:</strong> {sighting.notes || "No notes added."}
-                    </p>
-
-                    {sighting.photo_url && (
-                      <img
-                        src={sighting.photo_url}
-                        alt="Sighting"
+                {sightingsLoading ? (
+                  <p>Loading sightings...</p>
+                ) : sightings.length === 0 ? (
+                  <p>No sightings submitted yet.</p>
+                ) : (
+                  <div style={{ display: "grid", gap: "18px" }}>
+                    {sightings.map((sighting) => (
+                      <div
+                        key={sighting.id}
                         style={{
-                          marginTop: "10px",
-                          width: "100%",
-                          maxWidth: "320px",
-                          borderRadius: "14px",
-                          objectFit: "cover",
+                          background: "rgba(255,255,255,0.94)",
+                          border: "1px solid rgba(227,222,255,0.95)",
+                          borderRadius: "24px",
+                          padding: "20px",
+                          boxShadow: "0 10px 30px rgba(76, 64, 128, 0.08)",
                         }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
-                      />
-                    )}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                            flexWrap: "wrap",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          <div>
+                            <strong>Location:</strong> {sighting.location || "N/A"}
+                          </div>
+                          <div>
+                            <strong>Submitted:</strong> {formatDate(sighting.created_at)}
+                          </div>
+                        </div>
+
+                        {(sighting.lat !== null || sighting.lng !== null) && (
+                          <p style={{ margin: "8px 0" }}>
+                            <strong>Coordinates:</strong> {sighting.lat ?? "N/A"},{" "}
+                            {sighting.lng ?? "N/A"}
+                          </p>
+                        )}
+
+                        <p style={{ margin: "8px 0" }}>
+                          <strong>Notes:</strong> {sighting.notes || "No notes added."}
+                        </p>
+
+                        {sighting.photo_url && (
+                          <img
+                            src={sighting.photo_url}
+                            alt="Sighting"
+                            style={{
+                              marginTop: "12px",
+                              width: "100%",
+                              maxWidth: "340px",
+                              borderRadius: "18px",
+                              objectFit: "cover",
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </section>
+            </div>
+          )}
         </>
       )}
     </div>

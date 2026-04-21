@@ -1,7 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
 import "./PremiumReportLostPet.css";
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+
+function loadGoogleMapsScript() {
+  return new Promise((resolve, reject) => {
+    if (window.google?.maps?.places) {
+      resolve(window.google);
+      return;
+    }
+
+    const existing = document.getElementById("google-maps-script");
+    if (existing) {
+      existing.addEventListener("load", () => resolve(window.google));
+      existing.addEventListener("error", reject);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "google-maps-script";
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve(window.google);
+    script.onerror = () => reject(new Error("Failed to load Google Maps."));
+    document.head.appendChild(script);
+  });
+}
 
 export default function ReportLostPet() {
   const navigate = useNavigate();
@@ -11,7 +38,7 @@ export default function ReportLostPet() {
   const [userName, setUserName] = useState("Premium User");
   const [pets, setPets] = useState([]);
   const [loadingPets, setLoadingPets] = useState(true);
-  const [matchingTypedLocation, setMatchingTypedLocation] = useState(false);
+  const [mapsReady, setMapsReady] = useState(false);
 
   const [selectedPetId, setSelectedPetId] = useState("");
   const [form, setForm] = useState({
@@ -24,11 +51,20 @@ export default function ReportLostPet() {
     priority: false,
     lat: "",
     lng: "",
+    place_id: "",
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  const locationInputRef = useRef(null);
+  const autocompleteRef = useRef(null);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
+  const geocoderRef = useRef(null);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("pawfection_token") || "";
@@ -39,6 +75,21 @@ export default function ReportLostPet() {
       setTimeout(() => {
         navigate("/login");
       }, 1200);
+      return;
+    }
+
+    if (GOOGLE_MAPS_API_KEY) {
+      loadGoogleMapsScript()
+        .then(() => setMapsReady(true))
+        .catch(() => {
+          setError(
+            "Google Maps failed to load. Check your API key, billing, and API restrictions."
+          );
+        });
+    } else {
+      setError(
+        "Google Maps API key is missing. Put VITE_GOOGLE_MAPS_API_KEY in frontend/.env and restart npm run dev."
+      );
     }
   }, [navigate]);
 
@@ -102,6 +153,126 @@ export default function ReportLostPet() {
     fetchPets();
   }, [apiBase, token]);
 
+  useEffect(() => {
+    if (!mapsReady) return;
+    initialiseMap();
+    initialiseAutocomplete();
+  }, [mapsReady]);
+
+  const initialiseMap = () => {
+    if (!mapRef.current || !window.google?.maps) return;
+    if (mapInstanceRef.current) return;
+
+    mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
+      center: { lat: 53.3498, lng: -6.2603 },
+      zoom: 11,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+    });
+
+    geocoderRef.current = new window.google.maps.Geocoder();
+  };
+
+  const attachMarkerDragHandler = () => {
+    if (!markerRef.current) return;
+
+    markerRef.current.addListener("dragend", () => {
+      const draggedPos = markerRef.current.getPosition();
+      const draggedLat = draggedPos?.lat?.();
+      const draggedLng = draggedPos?.lng?.();
+
+      if (draggedLat == null || draggedLng == null) return;
+
+      setForm((prev) => ({
+        ...prev,
+        lat: String(draggedLat),
+        lng: String(draggedLng),
+      }));
+
+      if (geocoderRef.current) {
+        geocoderRef.current.geocode(
+          { location: { lat: draggedLat, lng: draggedLng } },
+          (results, status) => {
+            if (status === "OK" && results?.[0]) {
+              const newAddress = results[0].formatted_address || "";
+              setForm((prev) => ({
+                ...prev,
+                location: newAddress,
+                place_id: results[0].place_id || "",
+              }));
+
+              if (locationInputRef.current) {
+                locationInputRef.current.value = newAddress;
+              }
+            }
+          }
+        );
+      }
+    });
+  };
+
+  const updateMapLocation = (lat, lng, title = "") => {
+    if (!mapInstanceRef.current || lat === "" || lng === "") return;
+
+    const position = { lat: Number(lat), lng: Number(lng) };
+    mapInstanceRef.current.setCenter(position);
+    mapInstanceRef.current.setZoom(16);
+
+    if (markerRef.current) {
+      markerRef.current.setMap(null);
+    }
+
+    markerRef.current = new window.google.maps.Marker({
+      position,
+      map: mapInstanceRef.current,
+      title,
+      draggable: true,
+    });
+
+    attachMarkerDragHandler();
+  };
+
+  const initialiseAutocomplete = () => {
+    if (!locationInputRef.current || !window.google?.maps?.places) return;
+    if (autocompleteRef.current) return;
+
+    const autocomplete = new window.google.maps.places.Autocomplete(
+      locationInputRef.current,
+      {
+        fields: ["place_id", "name", "formatted_address", "geometry"],
+        componentRestrictions: { country: "ie" },
+      }
+    );
+
+    autocomplete.addListener("place_changed", () => {
+      const place = autocomplete.getPlace();
+
+      const address = place?.formatted_address || place?.name || "";
+      const placeId = place?.place_id || "";
+      const lat = place?.geometry?.location?.lat?.() ?? "";
+      const lng = place?.geometry?.location?.lng?.() ?? "";
+
+      setForm((prev) => ({
+        ...prev,
+        location: address,
+        place_id: placeId,
+        lat: lat !== "" ? String(lat) : "",
+        lng: lng !== "" ? String(lng) : "",
+      }));
+
+      if (locationInputRef.current) {
+        locationInputRef.current.value = address;
+      }
+
+      updateMapLocation(lat, lng, address);
+      setMessage("Location selected successfully.");
+      setError("");
+    });
+
+    autocompleteRef.current = autocomplete;
+  };
+
   const handlePetChange = (petId) => {
     setSelectedPetId(petId);
 
@@ -128,96 +299,78 @@ export default function ReportLostPet() {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    setForm((prev) => {
-      const updated = {
-        ...prev,
-        [name]: type === "checkbox" ? checked : value,
-      };
-
-      if (name === "location") {
-        updated.lat = "";
-        updated.lng = "";
-      }
-
-      return updated;
-    });
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported on this device.");
+      setError("Geolocation is not supported on this device.");
       return;
     }
+
+    if (!window.google?.maps) {
+      setError("Google Maps is not ready yet.");
+      return;
+    }
+
+    setGettingLocation(true);
+    setError("");
+    setMessage("");
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const lat = position.coords.latitude.toFixed(6);
-        const lng = position.coords.longitude.toFixed(6);
+        const lat = Number(position.coords.latitude);
+        const lng = Number(position.coords.longitude);
 
-        setForm((prev) => ({
-          ...prev,
-          location: `Lat ${lat}, Lng ${lng}`,
-          lat,
-          lng,
-        }));
+        const setLocationValues = (addressText, placeId = "") => {
+          setForm((prev) => ({
+            ...prev,
+            location: addressText,
+            lat: String(lat),
+            lng: String(lng),
+            place_id: placeId,
+          }));
 
-        setMessage("Current location captured successfully.");
-        setError("");
+          if (locationInputRef.current) {
+            locationInputRef.current.value = addressText;
+          }
+
+          updateMapLocation(lat, lng, addressText);
+          setMessage("Current location captured successfully.");
+          setGettingLocation(false);
+        };
+
+        if (geocoderRef.current) {
+          geocoderRef.current.geocode(
+            { location: { lat, lng } },
+            (results, status) => {
+              if (status === "OK" && results?.[0]) {
+                setLocationValues(
+                  results[0].formatted_address || `Lat ${lat}, Lng ${lng}`,
+                  results[0].place_id || ""
+                );
+              } else {
+                setLocationValues(`Lat ${lat.toFixed(6)}, Lng ${lng.toFixed(6)}`);
+              }
+            }
+          );
+        } else {
+          setLocationValues(`Lat ${lat.toFixed(6)}, Lng ${lng.toFixed(6)}`);
+        }
       },
       () => {
-        alert("Unable to get your location. Please allow location access.");
+        setError("Unable to get your location. Please allow location access.");
+        setGettingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
       }
     );
-  };
-
-  const handleUseTypedLocation = async () => {
-    const typedLocation = form.location.trim();
-
-    if (!typedLocation) {
-      setError("Please type a location first.");
-      setMessage("");
-      return;
-    }
-
-    try {
-      setMatchingTypedLocation(true);
-      setError("");
-      setMessage("");
-
-      const query = new URLSearchParams({
-        q: typedLocation,
-        format: "jsonv2",
-        limit: "1",
-      }).toString();
-
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?${query}`, {
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      const data = await response.json().catch(() => []);
-
-      if (!response.ok || !Array.isArray(data) || data.length === 0) {
-        throw new Error("Could not match that typed location.");
-      }
-
-      const match = data[0];
-
-      setForm((prev) => ({
-        ...prev,
-        location: typedLocation,
-        lat: match.lat,
-        lng: match.lon,
-      }));
-
-      setMessage("Typed location matched successfully.");
-    } catch (err) {
-      setError(err.message || "Failed to match typed location.");
-      setMessage("");
-    } finally {
-      setMatchingTypedLocation(false);
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -234,7 +387,7 @@ export default function ReportLostPet() {
     }
 
     if (!form.location.trim()) {
-      setError("Please enter where your pet was last seen.");
+      setError("Please select where your pet was last seen.");
       return;
     }
 
@@ -350,7 +503,7 @@ export default function ReportLostPet() {
         <h2>Report Lost Pet</h2>
         <p>
           Select an existing pet profile, auto-fill the key details, and add the
-          lost report information for faster reporting.
+          lost report information with Google Maps for faster, cleaner reporting.
         </p>
       </section>
 
@@ -424,55 +577,49 @@ export default function ReportLostPet() {
           </div>
 
           <div className="premium-report-field">
-            <label>Where was your pet last seen?</label>
+            <label>Where was your pet last seen? *</label>
             <input
+              ref={locationInputRef}
               type="text"
-              name="location"
-              value={form.location}
-              onChange={handleChange}
-              placeholder="e.g. Kerry, Cabra, Dublin or O'Connell Street"
+              placeholder="Search area, road, park, or landmark"
+              autoComplete="off"
             />
           </div>
 
-          <div className="premium-report-row">
+          <div className="premium-report-row premium-report-row-single">
             <button
               type="button"
               className="premium-report-location-btn"
               onClick={handleUseMyLocation}
+              disabled={gettingLocation}
             >
-              Use My Current Location
-            </button>
-
-            <button
-              type="button"
-              className="premium-report-location-btn"
-              onClick={handleUseTypedLocation}
-              disabled={matchingTypedLocation}
-            >
-              {matchingTypedLocation ? "Matching Location..." : "Use Typed Location"}
+              {gettingLocation ? "Getting Location..." : "Use My Current Location"}
             </button>
           </div>
 
-          <div className="premium-report-row">
-            <div className="premium-report-field">
-              <label>Latitude</label>
-              <input
-                type="text"
-                value={form.lat}
-                readOnly
-                placeholder="Auto-filled"
-              />
-            </div>
+          <div className="premium-report-field">
+            <label>Map Preview</label>
+            <div
+              ref={mapRef}
+              style={{
+                width: "100%",
+                height: "260px",
+                borderRadius: "14px",
+                overflow: "hidden",
+                border: "1px solid rgba(223, 228, 243, 0.98)",
+                background: "rgba(255, 255, 255, 0.82)",
+              }}
+            />
+          </div>
 
-            <div className="premium-report-field">
-              <label>Longitude</label>
-              <input
-                type="text"
-                value={form.lng}
-                readOnly
-                placeholder="Auto-filled"
-              />
-            </div>
+          <div className="premium-report-field">
+            <label>Selected Address</label>
+            <input
+              type="text"
+              value={form.location}
+              readOnly
+              placeholder="Selected location will appear here"
+            />
           </div>
 
           <div className="premium-report-field">
