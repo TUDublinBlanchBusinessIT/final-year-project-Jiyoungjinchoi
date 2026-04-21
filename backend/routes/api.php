@@ -11,12 +11,14 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\LikeController;
+use App\Http\Controllers\LostPetController;
+
 use App\Http\Controllers\Api\SightingController;
 use App\Http\Controllers\Api\PremiumLostFoundController;
 use App\Http\Controllers\Api\PremiumPetController;
 use App\Http\Controllers\Api\AiVetChatController;
 use App\Http\Controllers\Api\StripeController;
-use App\Http\Controllers\LostPetController;
+use App\Http\Controllers\Api\AdminController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -131,4 +133,22 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Owner dashboard/profile sightings
     Route::get('/owner/sightings', [SightingController::class, 'ownerSightings']);
+
+    // Admin routes
+    Route::prefix('admin')->group(function () {
+        Route::get('/dashboard', [AdminController::class, 'dashboard']);
+        Route::get('/lost-pets', [AdminController::class, 'lostPets']);
+        Route::patch('/lost-pets/{id}/approve', [AdminController::class, 'approveLostPet']);
+        Route::patch('/lost-pets/{id}/hide', [AdminController::class, 'hideLostPet']);
+
+        Route::get('/users', [AdminController::class, 'users']);
+        Route::patch('/users/{id}/ban', [AdminController::class, 'banUser']);
+        Route::patch('/users/{id}/unban', [AdminController::class, 'unbanUser']);
+        Route::patch('/users/{id}/upgrade', [AdminController::class, 'upgradeUser']);
+        Route::patch('/users/{id}/downgrade', [AdminController::class, 'downgradeUser']);
+
+        Route::get('/reported-posts', [AdminController::class, 'reportedPosts']);
+        Route::patch('/posts/{id}/approve', [AdminController::class, 'approvePost']);
+        Route::patch('/posts/{id}/hide', [AdminController::class, 'hidePost']);
+    });
 });

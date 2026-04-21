@@ -7,6 +7,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const [userName, setUserName] = useState("User");
+  const [userPlan, setUserPlan] = useState("basic");
 
   const [pets, setPets] = useState([]);
   const [petsLoading, setPetsLoading] = useState(false);
@@ -125,9 +126,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     const savedToken = localStorage.getItem("pawfection_token");
-    const savedRole = String(localStorage.getItem("pawfection_role") || "").toLowerCase();
-    const savedAccountType = String(
-      localStorage.getItem("pawfection_account_type") || ""
+    const savedRole = String(
+      localStorage.getItem("pawfection_role") || ""
     ).toLowerCase();
 
     if (!savedToken) {
@@ -140,27 +140,40 @@ export default function Dashboard() {
       return;
     }
 
-    if (savedAccountType === "premium") {
-      navigate("/premium-dashboard");
-      return;
-    }
-
     try {
       const savedUser = localStorage.getItem("pawfection_user");
+
       if (savedUser) {
         const userObj = JSON.parse(savedUser);
+
         if (userObj?.name && typeof userObj.name === "string") {
           setUserName(userObj.name);
+        } else if (userObj?.username && typeof userObj.username === "string") {
+          setUserName(userObj.username);
         }
+
+        const plan =
+          userObj?.account_type ||
+          userObj?.plan ||
+          userObj?.subscription_type ||
+          "basic";
+
+        setUserPlan(String(plan).toLowerCase());
       } else {
         const fallbackName =
           localStorage.getItem("pawfection_user_name") ||
           localStorage.getItem("user_name") ||
           localStorage.getItem("name");
-        if (fallbackName) setUserName(fallbackName);
+
+        if (fallbackName) {
+          setUserName(fallbackName);
+        }
+
+        setUserPlan("basic");
       }
     } catch {
       setUserName("User");
+      setUserPlan("basic");
     }
 
     fetchPets();
@@ -180,7 +193,9 @@ export default function Dashboard() {
 
   const getPetImageSrc = (pet) => {
     if (pet?.photo_url) return pet.photo_url;
-    if (pet?.photo_path) return `http://127.0.0.1:8000/storage/${pet.photo_path}`;
+    if (pet?.photo_path) {
+      return `http://127.0.0.1:8000/storage/${pet.photo_path}`;
+    }
     if (pet?.photo) return `http://127.0.0.1:8000/storage/${pet.photo}`;
     return null;
   };
@@ -191,7 +206,9 @@ export default function Dashboard() {
       return;
     }
 
-    const ok = window.confirm(`Delete ${petName || "this pet"}? This cannot be undone.`);
+    const ok = window.confirm(
+      `Delete ${petName || "this pet"}? This cannot be undone.`
+    );
     if (!ok) return;
 
     setDeletingId(petId);
@@ -226,6 +243,13 @@ export default function Dashboard() {
     }
   };
 
+  const isPremiumUser = userPlan === "premium";
+  const hasReachedPetLimit = !isPremiumUser && pets.length >= 1;
+
+  const handleUpgradeClick = () => {
+    navigate("/profile?tab=subscription");
+  };
+
   const upcomingAppointmentsCount = useMemo(() => {
     const now = new Date();
     return (appointments || []).filter((a) => {
@@ -244,7 +268,13 @@ export default function Dashboard() {
   const stats = useMemo(() => {
     const petCount = pets?.length || 0;
     return [
-      { label: "Pets", value: String(petCount), sub: "Registered", tone: "blue", icon: "🐾" },
+      {
+        label: "Pets",
+        value: String(petCount),
+        sub: "Registered",
+        tone: "blue",
+        icon: "🐾",
+      },
       {
         label: "Appointments",
         value: apptsLoading ? "…" : String(upcomingAppointmentsCount),
@@ -260,19 +290,35 @@ export default function Dashboard() {
         icon: "⏰",
       },
     ];
-  }, [pets, upcomingAppointmentsCount, apptsLoading, activeReminderCount, remindersLoading]);
+  }, [
+    pets,
+    upcomingAppointmentsCount,
+    apptsLoading,
+    activeReminderCount,
+    remindersLoading,
+  ]);
 
   const formatDate = (iso) => {
     if (!iso) return "—";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleDateString("en-IE", { year: "numeric", month: "short", day: "2-digit" });
+
+    return d.toLocaleDateString("en-IE", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
   };
 
   return (
     <div className="pf2-shell">
       <aside className="pf2-sidebar">
-        <div className="pf2-brand" onClick={() => navigate("/dashboard")} role="button">
+        <div
+          className="pf2-brand"
+          onClick={() => navigate("/dashboard")}
+          role="button"
+          tabIndex={0}
+        >
           <img className="pf2-brand-logo" src={PawfectionLogo} alt="Pawfection" />
           <div className="pf2-brand-text">
             <div className="pf2-brand-title">Pawfection</div>
@@ -281,18 +327,34 @@ export default function Dashboard() {
         </div>
 
         <nav className="pf2-nav">
-          <Link className="pf2-nav-item active" to="/dashboard">Dashboard</Link>
-          <Link className="pf2-nav-item" to="/mypets">My Pets</Link>
-          <Link className="pf2-nav-item" to="/appointments">Appointments</Link>
-          <Link className="pf2-nav-item" to="/reminders">Reminders</Link>
-          <Link className="pf2-nav-item" to="/lostfound">Lost &amp; Found</Link>
-          <Link className="pf2-nav-item" to="/community">Community</Link>
-          <Link className="pf2-nav-item" to="/inventory">Inventory</Link>
-          <Link className="pf2-nav-item" to="/premium-dashboard">Premium My Pet</Link>
+          <Link className="pf2-nav-item active" to="/dashboard">
+            Dashboard
+          </Link>
+          <Link className="pf2-nav-item" to="/mypets">
+            My Pets
+          </Link>
+          <Link className="pf2-nav-item" to="/appointments">
+            Appointments
+          </Link>
+          <Link className="pf2-nav-item" to="/reminders">
+            Reminders
+          </Link>
+          <Link className="pf2-nav-item" to="/lostfound">
+            Lost &amp; Found
+          </Link>
+          <Link className="pf2-nav-item" to="/community">
+            Community
+          </Link>
+          <Link className="pf2-nav-item" to="/inventory">
+            Inventory
+          </Link>
         </nav>
 
         <div className="pf2-sidebar-footer">
-          <button className="pf2-btn pf2-btn-ghost" onClick={() => navigate("/profile")}>
+          <button
+            className="pf2-btn pf2-btn-ghost"
+            onClick={() => navigate("/profile")}
+          >
             View Profile
           </button>
         </div>
@@ -306,10 +368,14 @@ export default function Dashboard() {
 
           <div className="pf2-topbar-right">
             <div className="pf2-userchip" title={userName}>
-              <div className="pf2-avatar">{(userName?.[0] || "U").toUpperCase()}</div>
+              <div className="pf2-avatar">
+                {(userName?.[0] || "U").toUpperCase()}
+              </div>
               <div className="pf2-userchip-text">
                 <div className="pf2-userchip-name">{userName}</div>
-                <div className="pf2-userchip-sub">Standard User</div>
+                <div className="pf2-userchip-sub">
+                  {isPremiumUser ? "Premium User" : "Basic User"}
+                </div>
               </div>
             </div>
           </div>
@@ -320,20 +386,70 @@ export default function Dashboard() {
             <div>
               <h1 className="pf2-title">Dashboard</h1>
               <p className="pf2-subtitle">Overview of your pets and daily tasks.</p>
+
+              {!isPremiumUser && hasReachedPetLimit && (
+                <p
+                  className="pf2-subtitle"
+                  style={{
+                    color: "#c45b5b",
+                    marginTop: "6px",
+                    fontWeight: "600",
+                  }}
+                >
+                  You’ve reached the Basic plan limit. Upgrade to Premium to add more pets.
+                </p>
+              )}
             </div>
 
-            <div className="pf2-actions">
-              <button className="pf2-btn pf2-btn-primary" onClick={() => navigate("/pets/create")}>
-                + Add Pet
-              </button>
-              <button className="pf2-btn" onClick={() => navigate("/appointments/book")}>
+            <div
+              className="pf2-actions"
+              style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
+            >
+              {hasReachedPetLimit ? (
+                <>
+                  <button
+                    className="pf2-btn pf2-btn-primary"
+                    disabled
+                    title="Basic users can only add 1 pet"
+                    style={{ opacity: 0.6, cursor: "not-allowed" }}
+                  >
+                    + Add Pet
+                  </button>
+
+                  <button
+                    className="pf2-btn"
+                    onClick={handleUpgradeClick}
+                    style={{
+                      background: "linear-gradient(135deg, #8b6ff7, #c084fc)",
+                      color: "#fff",
+                      border: "none",
+                      boxShadow: "0 8px 20px rgba(139, 111, 247, 0.25)",
+                    }}
+                  >
+                    Unlock Premium
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="pf2-btn pf2-btn-primary"
+                  onClick={() => navigate("/pets/create")}
+                >
+                  + Add Pet
+                </button>
+              )}
+
+              <button
+                className="pf2-btn"
+                onClick={() => navigate("/appointments/book")}
+              >
                 Book Appointment
               </button>
-              <button className="pf2-btn" onClick={() => navigate("/reminders")}>
+
+              <button
+                className="pf2-btn"
+                onClick={() => navigate("/reminders")}
+              >
                 View Reminders
-              </button>
-              <button className="pf2-btn" onClick={() => navigate("/premium-dashboard")}>
-                Explore Premium
               </button>
             </div>
           </div>
@@ -343,7 +459,9 @@ export default function Dashboard() {
               <div key={s.label} className={`pf2-stat pf2-${s.tone}`}>
                 <div className="pf2-stat-top">
                   <div className="pf2-stat-label">{s.label}</div>
-                  <div className={`pf2-stat-icon pf2-icon-${s.tone}`}>{s.icon}</div>
+                  <div className={`pf2-stat-icon pf2-icon-${s.tone}`}>
+                    {s.icon}
+                  </div>
                 </div>
 
                 <div className="pf2-stat-value">{s.value}</div>
@@ -356,13 +474,18 @@ export default function Dashboard() {
             <div className="pf2-card pf2-span-2">
               <div className="pf2-cardhead">
                 <h2>My Pets</h2>
-                <button className="pf2-btn pf2-btn-small" onClick={() => navigate("/mypets")}>
+                <button
+                  className="pf2-btn pf2-btn-small"
+                  onClick={() => navigate("/mypets")}
+                >
                   View All
                 </button>
               </div>
 
               {petsLoading && <div className="pf2-empty">Loading pets…</div>}
-              {!petsLoading && petsError && <div className="pf2-empty">{petsError}</div>}
+              {!petsLoading && petsError && (
+                <div className="pf2-empty">{petsError}</div>
+              )}
               {!petsLoading && !petsError && pets.length === 0 && (
                 <div className="pf2-empty">
                   No pets yet. Click <b>+ Add Pet</b> to create one.
@@ -378,14 +501,17 @@ export default function Dashboard() {
                       <div key={pet.id} className="pf2-petrow">
                         <div className="pf2-petleft">
                           <div className="pf2-petimg">
-                            {imgSrc ? <img src={imgSrc} alt={pet.name} /> : <span>🐾</span>}
+                            {imgSrc ? (
+                              <img src={imgSrc} alt={pet.name} />
+                            ) : (
+                              <span>🐾</span>
+                            )}
                           </div>
 
                           <div className="pf2-petmeta">
                             <div className="pf2-petname">{pet.name}</div>
                             <div className="pf2-petdesc">
-                              {pet.breed || pet.species || "Pet"}
-                              {" • "}
+                              {pet.breed || pet.species || "Pet"} {" • "}
                               {pet.age ? `${pet.age} yrs` : "Age n/a"}
                               {pet.weight ? ` • ${pet.weight}kg` : ""}
                             </div>
@@ -418,17 +544,20 @@ export default function Dashboard() {
             <div className="pf2-card">
               <div className="pf2-cardhead">
                 <h2>Upcoming Reminders</h2>
-                <button className="pf2-btn pf2-btn-small" onClick={() => navigate("/reminders")}>
+                <button
+                  className="pf2-btn pf2-btn-small"
+                  onClick={() => navigate("/reminders")}
+                >
                   View All
                 </button>
               </div>
 
-              {remindersLoading && <div className="pf2-empty">Loading reminders…</div>}
+              {remindersLoading && (
+                <div className="pf2-empty">Loading reminders…</div>
+              )}
 
               {!remindersLoading && upcomingReminders.length === 0 && (
-                <div className="pf2-empty">
-                  No upcoming reminders.
-                </div>
+                <div className="pf2-empty">No upcoming reminders.</div>
               )}
 
               {!remindersLoading && upcomingReminders.length > 0 && (
@@ -442,8 +571,12 @@ export default function Dashboard() {
 
                         <div className="pf2-petmeta">
                           <div className="pf2-petname">{r.title}</div>
-                          <div className="pf2-petdesc">{r.message || "Reminder"}</div>
-                          <div className="pf2-petdesc">Due: {formatDate(r.reminder_date)}</div>
+                          <div className="pf2-petdesc">
+                            {r.message || "Reminder"}
+                          </div>
+                          <div className="pf2-petdesc">
+                            Due: {formatDate(r.reminder_date)}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -452,40 +585,16 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div className="pf2-card">
-              <div className="pf2-cardhead">
-                <h2>Premium My Pet</h2>
-                <button
-                  className="pf2-btn pf2-btn-small"
-                  onClick={() => navigate("/premium-dashboard")}
-                >
-                  Open
-                </button>
-              </div>
-
-              <div className="pf2-empty" style={{ textAlign: "left" }}>
-                Unlock premium pet-care features like AI Vet Chat, extra support, and premium tools.
-                <div style={{ marginTop: "12px" }}>
-                  <button
-                    className="pf2-btn pf2-btn-primary"
-                    onClick={() => navigate("/premium-dashboard")}
-                  >
-                    View Premium Page
-                  </button>
-                </div>
-              </div>
-            </div>
-
             <div className="pf2-card pf2-welcome pf2-span-all">
               <div className="pf2-welcome-title">Welcome to Pawfection</div>
               <div className="pf2-welcome-sub">
                 Pawfection: A smart pet care, lost &amp; found pet and better dog lifestyle 🐶🐱
               </div>
               <div className="pf2-welcome-text">
-                The Pawfection is a mobile-friendly application for dog and cat owners in
-                Ireland. The goal of Pawfection is to make it easy for pet owners to use
-                our platform to record, manage, and track essential information related to
-                their pets&apos; health, well-being, and safety.
+                Pawfection is a mobile-friendly application for dog and cat owners in Ireland.
+                The goal of Pawfection is to make it easy for pet owners to use our platform to
+                record, manage, and track essential information related to their pets&apos; health,
+                well-being, and safety.
               </div>
             </div>
           </section>

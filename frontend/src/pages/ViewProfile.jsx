@@ -58,12 +58,24 @@ export default function ViewProfile() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const paymentStatus = params.get("payment");
+    const tabParam = params.get("tab");
+
+    if (
+      tabParam === "profile" ||
+      tabParam === "subscription" ||
+      tabParam === "settings" ||
+      tabParam === "rainbow"
+    ) {
+      setActiveTab(tabParam);
+    }
 
     if (paymentStatus === "success") {
+      setActiveTab("subscription");
       syncSubscriptionStatus("Payment successful. Your premium plan is now active.");
     }
 
     if (paymentStatus === "cancelled") {
+      setActiveTab("subscription");
       setCancelMessage("Payment was cancelled. You are still on the Basic plan.");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -167,7 +179,7 @@ export default function ViewProfile() {
         throw new Error(data?.message || "Failed to load pets.");
       }
 
-      setPets(Array.isArray(data) ? data : []);
+      setPets(Array.isArray(data) ? data : data?.pets || []);
     } catch (error) {
       console.error(error.message);
     } finally {
@@ -210,6 +222,11 @@ export default function ViewProfile() {
 
     return "Active";
   }, [isPremium, user.subscription_started_at]);
+
+  const changeTab = (tabName) => {
+    setActiveTab(tabName);
+    navigate(`/profile?tab=${tabName}`, { replace: true });
+  };
 
   const handleUpgrade = async () => {
     setUpgradeLoading(true);
@@ -985,30 +1002,28 @@ export default function ViewProfile() {
         <div className="profile-tabs">
           <button
             className={activeTab === "profile" ? "tab-btn active" : "tab-btn"}
-            onClick={() => setActiveTab("profile")}
+            onClick={() => changeTab("profile")}
           >
             My Profile
           </button>
 
           <button
-            className={
-              activeTab === "subscription" ? "tab-btn active" : "tab-btn"
-            }
-            onClick={() => setActiveTab("subscription")}
+            className={activeTab === "subscription" ? "tab-btn active" : "tab-btn"}
+            onClick={() => changeTab("subscription")}
           >
             Subscription
           </button>
 
           <button
             className={activeTab === "settings" ? "tab-btn active" : "tab-btn"}
-            onClick={() => setActiveTab("settings")}
+            onClick={() => changeTab("settings")}
           >
             Settings
           </button>
 
           <button
             className={activeTab === "rainbow" ? "tab-btn active" : "tab-btn"}
-            onClick={() => setActiveTab("rainbow")}
+            onClick={() => changeTab("rainbow")}
           >
             Crossed the Rainbow Bridge 🌈🐾
           </button>

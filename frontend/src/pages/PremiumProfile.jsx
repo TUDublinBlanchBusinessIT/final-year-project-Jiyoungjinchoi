@@ -113,6 +113,18 @@ export default function PremiumProfile() {
     }
   };
 
+  const hasMemorialData = (pet) => {
+    if (!pet) return false;
+
+    return (
+      String(pet?.status || "").toLowerCase() === "memorial" ||
+      Boolean(pet?.memorial_message) ||
+      Boolean(pet?.memorial_photo_url) ||
+      Boolean(pet?.memorial_theme) ||
+      Boolean(pet?.memorial_visibility)
+    );
+  };
+
   const fetchPets = async () => {
     if (!token) return;
 
@@ -139,7 +151,7 @@ export default function PremiumProfile() {
       setPets(petList);
 
       if (petList.length > 0) {
-        setSelectedPetId(String(petList[0].id));
+        setSelectedPetId((prev) => prev || String(petList[0].id));
       }
     } catch {
       setPets([]);
@@ -150,20 +162,39 @@ export default function PremiumProfile() {
   };
 
   const activePets = useMemo(() => {
-    return pets.filter((pet) => String(pet?.status || "").toLowerCase() !== "memorial");
+    return pets.filter((pet) => !hasMemorialData(pet));
   }, [pets]);
 
   const memorialPets = useMemo(() => {
-    return pets.filter((pet) => String(pet?.status || "").toLowerCase() === "memorial");
+    return pets.filter((pet) => hasMemorialData(pet));
   }, [pets]);
 
   const selectedPet = useMemo(() => {
     return (
-      activePets.find((pet) => String(pet.id) === String(selectedPetId)) ||
-      activePets[0] ||
+      pets.find((pet) => String(pet.id) === String(selectedPetId)) ||
+      pets[0] ||
       null
     );
-  }, [activePets, selectedPetId]);
+  }, [pets, selectedPetId]);
+
+  useEffect(() => {
+    if (!selectedPet) {
+      setMemorialForm({
+        memorial_message: "",
+        memorial_photo_url: "",
+        memorial_theme: "rainbow",
+        memorial_visibility: "private",
+      });
+      return;
+    }
+
+    setMemorialForm({
+      memorial_message: selectedPet.memorial_message || "",
+      memorial_photo_url: selectedPet.memorial_photo_url || "",
+      memorial_theme: selectedPet.memorial_theme || "rainbow",
+      memorial_visibility: selectedPet.memorial_visibility || "private",
+    });
+  }, [selectedPetId, selectedPet]);
 
   const monthlyPrice = "€4.99";
 
@@ -507,6 +538,34 @@ export default function PremiumProfile() {
         throw new Error(data?.message || "Failed to save memorial customisation.");
       }
 
+      const updatedPet = data?.pet || data?.data || data?.updated_pet || null;
+
+      if (updatedPet && updatedPet.id) {
+        setPets((prev) =>
+          prev.map((pet) =>
+            String(pet.id) === String(updatedPet.id)
+              ? { ...pet, ...updatedPet }
+              : pet
+          )
+        );
+      } else {
+        setPets((prev) =>
+          prev.map((pet) =>
+            String(pet.id) === String(selectedPetId)
+              ? {
+                  ...pet,
+                  memorial_message: memorialForm.memorial_message,
+                  memorial_photo_url: memorialForm.memorial_photo_url,
+                  memorial_theme: memorialForm.memorial_theme,
+                  memorial_visibility: memorialForm.memorial_visibility,
+                  status: pet.status || "memorial",
+                }
+              : pet
+          )
+        );
+      }
+
+      await fetchPets();
       setMemorialMessage("Premium memorial details saved successfully.");
     } catch (error) {
       setMemorialMessage(
@@ -639,9 +698,7 @@ export default function PremiumProfile() {
                       </div>
 
                       <div className="ppp-pet-mini-status">
-                        {String(pet?.status || "").toLowerCase() === "memorial"
-                          ? "Memorial"
-                          : "Active"}
+                        {hasMemorialData(pet) ? "Memorial" : "Active"}
                       </div>
                     </div>
                   ))
@@ -766,8 +823,8 @@ export default function PremiumProfile() {
           <div className="ppp-card-kicker">Premium Memorial</div>
           <h3>Customise Rainbow Bridge</h3>
 
-          {activePets.length === 0 ? (
-            <div className="ppp-empty">No active pets available for memorial customisation.</div>
+          {pets.length === 0 ? (
+            <div className="ppp-empty">No pets available for memorial customisation.</div>
           ) : (
             <>
               <div className="ppp-field">
@@ -777,7 +834,7 @@ export default function PremiumProfile() {
                   onChange={(e) => setSelectedPetId(e.target.value)}
                 >
                   <option value="">Select a pet</option>
-                  {activePets.map((pet) => (
+                  {pets.map((pet) => (
                     <option key={pet.id} value={pet.id}>
                       {pet.name} {pet.breed ? `• ${pet.breed}` : ""}
                     </option>
@@ -892,7 +949,9 @@ export default function PremiumProfile() {
               {memorialPets.map((pet) => (
                 <div key={pet.id} className="ppp-memorial-item">
                   <div className="ppp-memorial-item-photo">
-                    {getPetImageSrc(pet) ? (
+                    {pet.memorial_photo_url ? (
+                      <img src={pet.memorial_photo_url} alt={pet.name} />
+                    ) : getPetImageSrc(pet) ? (
                       <img src={getPetImageSrc(pet)} alt={pet.name} />
                     ) : (
                       <span>🐾</span>
@@ -902,6 +961,10 @@ export default function PremiumProfile() {
                   <div className="ppp-memorial-item-name">{pet.name}</div>
                   <div className="ppp-memorial-item-text">
                     {pet.memorial_message || "Forever loved and never forgotten."}
+                  </div>
+                  <div className="ppp-memorial-item-text">
+                    Theme: {pet.memorial_theme || "rainbow"} •{" "}
+                    {pet.memorial_visibility || "private"}
                   </div>
                 </div>
               ))}
