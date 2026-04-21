@@ -16,7 +16,7 @@ class PremiumLostFoundController extends Controller
             ->where('is_lost', true)
             ->latest()
             ->get()
-            ->map(function ($pet) {
+            ->map(function ($pet) use ($request) {
                 $lostPhotoUrl = $this->makeImageUrl($pet->lost_photo_path ?? null);
                 $profilePhotoUrl = $this->makeImageUrl($pet->photo_path ?? null);
 
@@ -25,6 +25,11 @@ class PremiumLostFoundController extends Controller
                     'pet_id' => $pet->id,
                     'type' => 'lost',
                     'priority' => (bool) ($pet->is_priority ?? false),
+
+                    // IMPORTANT: owner fields for frontend checks
+                    'user_id' => $pet->user_id,
+                    'owner_id' => $pet->user_id,
+                    'is_owner' => $request->user() ? ((int) $pet->user_id === (int) $request->user()->id) : false,
 
                     'name' => $pet->name ?? 'Unknown Pet',
                     'pet_name' => $pet->name ?? 'Unknown Pet',
@@ -109,6 +114,11 @@ class PremiumLostFoundController extends Controller
                 return [
                     'id' => $sighting->id,
                     'pet_id' => $sighting->pet_id ?? null,
+
+                    // extra aliases to make frontend matching easier
+                    'parent_report_id' => $sighting->pet_id ?? null,
+                    'lost_report_id' => $sighting->pet_id ?? null,
+
                     'type' => 'sighting',
                     'priority' => false,
 
@@ -190,6 +200,8 @@ class PremiumLostFoundController extends Controller
             'message' => 'Lost pet report created successfully.',
             'data' => [
                 'id' => $pet->id,
+                'user_id' => $pet->user_id,
+                'owner_id' => $pet->user_id,
                 'name' => $pet->name,
                 'species' => $pet->species,
                 'breed' => $pet->breed,
@@ -206,7 +218,7 @@ class PremiumLostFoundController extends Controller
         ], 201);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $pet = LostPet::find($id);
 
@@ -227,6 +239,8 @@ class PremiumLostFoundController extends Controller
                 return [
                     'id' => $sighting->id,
                     'pet_id' => $sighting->pet_id,
+                    'parent_report_id' => $sighting->pet_id,
+                    'lost_report_id' => $sighting->pet_id,
                     'location' => $sighting->location,
                     'lat' => $sighting->lat !== null ? (float) $sighting->lat : null,
                     'lng' => $sighting->lng !== null ? (float) $sighting->lng : null,
@@ -244,8 +258,14 @@ class PremiumLostFoundController extends Controller
         return response()->json([
             'data' => [
                 'id' => $pet->id,
+                'pet_id' => $pet->id,
                 'type' => 'lost',
                 'priority' => (bool) ($pet->is_priority ?? false),
+
+                // IMPORTANT: owner fields for frontend checks
+                'user_id' => $pet->user_id,
+                'owner_id' => $pet->user_id,
+                'is_owner' => $request->user() ? ((int) $pet->user_id === (int) $request->user()->id) : false,
 
                 'name' => $pet->name ?? 'Unknown Pet',
                 'pet_name' => $pet->name ?? 'Unknown Pet',
