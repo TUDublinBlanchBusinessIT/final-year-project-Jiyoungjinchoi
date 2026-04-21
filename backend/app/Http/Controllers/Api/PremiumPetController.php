@@ -173,87 +173,109 @@ class PremiumPetController extends Controller
 
     protected function buildRecommendations(Pet $pet): array
     {
-        $recommendations = [];
-
-        $breed = strtolower($pet->breed ?? '');
+        $species = strtolower(trim((string) ($pet->species ?? '')));
+        $breed = strtolower(trim((string) ($pet->breed ?? '')));
         $age = (float) ($pet->age ?? 0);
         $weight = (float) ($pet->weight ?? 0);
+        $activityLevel = strtolower(trim((string) ($pet->activity_level ?? '')));
+
+        $exerciseTitle = 'Exercise Recommendation';
+        $feedingTitle = 'Feeding Advice';
+        $healthTitle = 'Health Tip';
+        $careTitle = 'Care Recommendation';
+
+        $exerciseMessage = 'Aim for regular daily movement and keep activity consistent.';
+        $feedingMessage = 'Use measured portions and monitor weight trends regularly.';
+        $healthMessage = 'Keep regular check-ups, monitor appetite, and track any behaviour changes.';
+        $careMessage = 'Keep vaccination, grooming, and check-up records updated for better premium insights.';
+
+        if ($species === 'dog') {
+            $exerciseMessage = 'Aim for 45–60 minutes of daily walks and active play.';
+            $healthTitle = 'Dog Health Tip';
+            $healthMessage = 'Monitor joints, dental care, hydration, and healthy body condition.';
+        } elseif ($species === 'cat') {
+            $exerciseMessage = 'Aim for 20–30 minutes of indoor interactive play each day.';
+            $healthTitle = 'Cat Health Tip';
+            $healthMessage = 'Monitor hydration, litter habits, dental health, and weight changes.';
+        }
+
+        if (
+            str_contains($breed, 'golden') ||
+            str_contains($breed, 'labrador') ||
+            str_contains($breed, 'husky') ||
+            str_contains($breed, 'collie')
+        ) {
+            $exerciseMessage = 'Aim for 60–90 minutes of exercise and active play each day.';
+            $healthTitle = 'Breed Health Tip';
+            $healthMessage = 'Monitor joints, skin health, and body weight over time.';
+        }
 
         if (str_contains($breed, 'dachshund')) {
-            $recommendations[] = [
-                'type' => 'exercise',
-                'title' => 'Exercise Recommendation',
-                'message' => 'Aim for 45–60 minutes of gentle daily exercise and avoid excessive jumping.',
-            ];
-            $recommendations[] = [
-                'type' => 'health',
-                'title' => 'Breed Health Tip',
-                'message' => 'Monitor back strain and weight carefully.',
-            ];
+            $exerciseMessage = 'Aim for 45–60 minutes of gentle daily exercise and avoid excessive jumping.';
+            $healthTitle = 'Breed Health Tip';
+            $healthMessage = 'Monitor back strain and weight carefully.';
         }
 
-        if (str_contains($breed, 'golden')) {
-            $recommendations[] = [
-                'type' => 'exercise',
-                'title' => 'Exercise Recommendation',
-                'message' => 'Aim for 60–90 minutes of exercise and active play each day.',
-            ];
-            $recommendations[] = [
-                'type' => 'health',
-                'title' => 'Breed Health Tip',
-                'message' => 'Monitor joints, skin health, and body weight over time.',
-            ];
+        if (
+            str_contains($breed, 'bulldog') ||
+            str_contains($breed, 'pug') ||
+            str_contains($breed, 'shih tzu')
+        ) {
+            $exerciseMessage = 'Keep exercise gentle and shorter, especially in warm weather.';
+            $healthTitle = 'Breed Health Tip';
+            $healthMessage = 'Watch breathing, heat tolerance, and skin folds carefully.';
         }
 
-        if (str_contains($breed, 'bulldog')) {
-            $recommendations[] = [
-                'type' => 'health',
-                'title' => 'Breed Health Tip',
-                'message' => 'Watch breathing, heat tolerance, and skin folds carefully.',
-            ];
-        }
-
-        if (str_contains($breed, 'ragdoll')) {
-            $recommendations[] = [
-                'type' => 'care',
-                'title' => 'Breed Care Tip',
-                'message' => 'Keep an eye on grooming, weight, and regular indoor activity.',
-            ];
+        if (str_contains($breed, 'ragdoll') || str_contains($breed, 'persian')) {
+            $healthTitle = 'Breed Care Tip';
+            $healthMessage = 'Keep an eye on grooming, weight, coat condition, and regular indoor activity.';
         }
 
         if ($age >= 8) {
-            $recommendations[] = [
-                'type' => 'age',
-                'title' => 'Senior Care Tip',
-                'message' => 'Consider more frequent check-ups and lower-impact exercise.',
-            ];
-        }
-
-        if ($age > 0 && $age <= 1) {
-            $recommendations[] = [
-                'type' => 'age',
-                'title' => 'Young Pet Tip',
-                'message' => 'Frequent short play sessions and routine development are ideal.',
-            ];
+            $careTitle = 'Senior Care Tip';
+            $careMessage = 'Consider more frequent check-ups, softer routines, and lower-impact exercise.';
+        } elseif ($age > 0 && $age <= 1) {
+            $careTitle = 'Young Pet Tip';
+            $careMessage = 'Frequent short play sessions and routine development are ideal at this age.';
+            $feedingMessage = 'Smaller regular meals and steady growth monitoring are recommended for younger pets.';
         }
 
         if ($weight > 0) {
-            $recommendations[] = [
+            if ($species === 'dog' && $weight >= 35) {
+                $feedingMessage = 'Use measured portions, avoid overfeeding, and monitor joints and body weight closely.';
+            } elseif ($species === 'cat' && $weight >= 6) {
+                $feedingMessage = 'Use measured portions and encourage daily play to help maintain a healthy weight.';
+            }
+        }
+
+        if ($activityLevel === 'low') {
+            $exerciseMessage = 'Increase activity gradually with short daily sessions and a consistent routine.';
+        } elseif ($activityLevel === 'high') {
+            $careMessage = 'Support energy levels with hydration, structured exercise, and enough recovery time.';
+        }
+
+        return [
+            [
+                'type' => 'exercise',
+                'title' => $exerciseTitle,
+                'message' => $exerciseMessage,
+            ],
+            [
                 'type' => 'feeding',
-                'title' => 'Feeding Advice',
-                'message' => 'Use measured portions and monitor weight trends regularly.',
-            ];
-        }
-
-        if (empty($recommendations)) {
-            $recommendations[] = [
-                'type' => 'general',
-                'title' => 'General Pet Advice',
-                'message' => 'Keep reminders, health logs, and pet profile details updated for better premium insights.',
-            ];
-        }
-
-        return $recommendations;
+                'title' => $feedingTitle,
+                'message' => $feedingMessage,
+            ],
+            [
+                'type' => 'health',
+                'title' => $healthTitle,
+                'message' => $healthMessage,
+            ],
+            [
+                'type' => 'care',
+                'title' => $careTitle,
+                'message' => $careMessage,
+            ],
+        ];
     }
 
     protected function buildAlerts($pet, $healthLogs, $reminders): array
