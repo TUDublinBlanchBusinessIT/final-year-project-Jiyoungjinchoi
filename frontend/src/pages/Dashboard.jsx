@@ -440,7 +440,7 @@ export default function Dashboard() {
 
               <button
                 className="pf2-btn"
-                onClick={() => navigate("/appointments/book")}
+                onClick={() => navigate("/appointments")}
               >
                 Book Appointment
               </button>
