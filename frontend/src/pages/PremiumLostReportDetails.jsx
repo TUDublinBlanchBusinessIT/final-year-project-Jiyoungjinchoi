@@ -240,16 +240,16 @@ export default function PremiumReportDetails() {
         <nav className="premium-lf-nav-shell">
           <div className="premium-lf-nav">
             <Link to="/premium-dashboard">Premium Dashboard</Link>
-            <Link to="/mypets">My Pets</Link>
-            <Link to="/appointments">Appointments</Link>
-            <Link to="/reminders">Reminders</Link>
+            <Link to="/premium-mypets">My Pets</Link>
+            <Link to="/premium/appointments">Appointments</Link>
+            <Link to="/premium/reminders">Reminders</Link>
             <Link to="/premium/lostfound" className="active">
               Lost &amp; Found
             </Link>
-            <Link to="/community">Community</Link>
-            <Link to="/inventory">Inventory</Link>
-            <Link to="/premium">AI Pet Assistant</Link>
-            <Link to="/profile">Profile</Link>
+            <Link to="/premium/community">Community</Link>
+            <Link to="/premium/inventory">Inventory</Link>
+            <Link to="/premium/vet-chat">AI Pet Assistant</Link>
+            <Link to="/premium/profile">Profile</Link>
           </div>
         </nav>
 
@@ -461,7 +461,8 @@ export default function PremiumReportDetails() {
                   width: "min(1100px, 100%)",
                   maxHeight: "85vh",
                   overflowY: "auto",
-                  background: "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,245,255,0.94))",
+                  background:
+                    "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,245,255,0.94))",
                   border: "1px solid rgba(255,255,255,0.85)",
                   borderRadius: "30px",
                   boxShadow: "0 30px 80px rgba(49, 39, 90, 0.20)",

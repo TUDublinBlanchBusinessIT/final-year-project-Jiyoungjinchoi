@@ -171,6 +171,7 @@ export default function PremiumMyPet() {
     if (!token || !petId) return;
 
     setRecommendationsLoading(true);
+
     try {
       const res = await fetch(`${apiBase}/premium/pets/${petId}/recommendations`, {
         headers: {
@@ -179,8 +180,22 @@ export default function PremiumMyPet() {
         },
       });
 
-      const data = await res.json().catch(() => ([]));
-      setRecommendations(Array.isArray(data) ? data : []);
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setRecommendations([]);
+        return;
+      }
+
+      const recommendationList = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data?.recommendations)
+        ? data.recommendations
+        : [];
+
+      setRecommendations(recommendationList);
     } catch {
       setRecommendations([]);
     } finally {
@@ -201,7 +216,7 @@ export default function PremiumMyPet() {
       });
 
       const data = await res.json().catch(() => ([]));
-      setAlerts(Array.isArray(data) ? data : []);
+      setAlerts(Array.isArray(data) ? data : data?.data || []);
     } catch {
       setAlerts([]);
     } finally {
@@ -344,20 +359,20 @@ export default function PremiumMyPet() {
   const targetWeight = useMemo(() => {
     return Number(
       selectedPet?.target_weight ||
-      selectedPet?.ideal_weight ||
-      selectedPet?.healthy_weight ||
-      selectedPet?.recommended_weight ||
-      selectedPet?.weight ||
-      0
+        selectedPet?.ideal_weight ||
+        selectedPet?.healthy_weight ||
+        selectedPet?.recommended_weight ||
+        selectedPet?.weight ||
+        0
     );
   }, [selectedPet]);
 
   const targetActivity = useMemo(() => {
     return Number(
       selectedPet?.target_activity_minutes ||
-      selectedPet?.ideal_activity_minutes ||
-      selectedPet?.daily_activity_goal ||
-      60
+        selectedPet?.ideal_activity_minutes ||
+        selectedPet?.daily_activity_goal ||
+        60
     );
   }, [selectedPet]);
 
@@ -641,43 +656,49 @@ export default function PremiumMyPet() {
   };
 
   const recommendationCards = useMemo(() => {
-    if (!recommendations.length) return [];
-
-    const findByTitle = (matchText) =>
-      recommendations.find((item) =>
-        String(item?.title || "").toLowerCase().includes(matchText)
-      );
-
-    const exercise = findByTitle("exercise");
-    const feeding = findByTitle("feeding");
-    const breedHealth =
-      findByTitle("breed") || findByTitle("health") || findByTitle("care");
-    const ageTip = findByTitle("senior") || findByTitle("young") || findByTitle("age");
-
-    return [
+    const defaultCards = [
       {
         icon: "🏃",
-        title: exercise?.title || "Exercise Recommendation",
-        text: exercise?.message || "No exercise recommendation available yet.",
+        title: "Exercise Recommendation",
+        text: "No exercise recommendation available yet.",
       },
       {
         icon: "🥣",
-        title: feeding?.title || "Feeding Advice",
-        text: feeding?.message || "No feeding advice available yet.",
+        title: "Feeding Advice",
+        text: "Use measured portions and monitor weight trends regularly.",
       },
       {
         icon: "🩺",
-        title: breedHealth?.title || "Breed Health Tip",
-        text: breedHealth?.message || "No breed-based tip available yet.",
+        title: "Breed Health Tip",
+        text: "No breed-based tip available yet.",
       },
       {
         icon: "⏰",
-        title: ageTip?.title || "Care Recommendation",
+        title: "Care Recommendation",
         text:
-          ageTip?.message ||
           "Keep vaccination, grooming, and check-up records up to date for better insights.",
       },
     ];
+
+    if (!recommendations.length) {
+      return defaultCards;
+    }
+
+    return defaultCards.map((card, index) => {
+      const recommendation = recommendations[index];
+
+      if (!recommendation) return card;
+
+      return {
+        icon: card.icon,
+        title: recommendation.title || card.title,
+        text:
+          recommendation.message ||
+          recommendation.text ||
+          recommendation.description ||
+          card.text,
+      };
+    });
   }, [recommendations]);
 
   const visibleAlerts = useMemo(() => {
