@@ -23,6 +23,9 @@ use App\Http\Controllers\Api\AdminController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// Public Stripe success route
+Route::get('/stripe/success', [StripeController::class, 'success']);
+
 // Public lost pet routes
 Route::get('/lost-pets', [LostPetController::class, 'index']);
 Route::get('/lost-pets/{pet}', [LostPetController::class, 'show']);

@@ -32,7 +32,7 @@ return [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
-        'price_premium_monthly' => env('STRIPE_PRICE_PREMIUM_MONTHLY'),
+        'price_id' => env('STRIPE_PRICE_ID'),
     ],
 
 ];

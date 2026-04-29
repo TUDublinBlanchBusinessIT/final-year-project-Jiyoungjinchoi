@@ -13,9 +13,13 @@ class PetController extends Controller
 {
     public function index()
     {
-        $pets = Auth::user()->pets->map(function ($pet) {
-            return $this->formatPet($pet);
-        });
+        $pets = Pet::where('user_id', Auth::id())
+            ->latest()
+            ->get()
+            ->map(function ($pet) {
+                return $this->formatPet($pet);
+            })
+            ->values();
 
         return response()->json($pets, 200);
     }
