@@ -77,27 +77,27 @@ h4 {
 }
 
 .pfd-shell::before {
-  width: 360px;
-  height: 170px;
-  left: -90px;
-  top: 280px;
+  width: 220px;
+  height: 105px;
+  left: -40px;
+  top: 330px;
   background:
-    radial-gradient(circle at 18% 55%, rgba(255, 255, 255, 0.78) 0 30%, transparent 31%),
-    radial-gradient(circle at 45% 35%, rgba(255, 255, 255, 0.64) 0 34%, transparent 35%),
-    radial-gradient(circle at 72% 58%, rgba(255, 255, 255, 0.52) 0 31%, transparent 32%);
-  opacity: 0.56;
+    radial-gradient(circle at 18% 55%, rgba(255, 255, 255, 0.9) 0 26%, transparent 27%),
+    radial-gradient(circle at 45% 35%, rgba(255, 255, 255, 0.82) 0 30%, transparent 31%),
+    radial-gradient(circle at 72% 58%, rgba(255, 255, 255, 0.76) 0 27%, transparent 28%);
+  opacity: 0.42;
 }
 
 .pfd-shell::after {
-  width: 430px;
-  height: 205px;
-  right: -130px;
-  top: 355px;
+  width: 260px;
+  height: 120px;
+  right: -55px;
+  top: 420px;
   background:
-    radial-gradient(circle at 20% 60%, rgba(255, 255, 255, 0.74) 0 31%, transparent 32%),
-    radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.58) 0 35%, transparent 36%),
-    radial-gradient(circle at 80% 64%, rgba(255, 255, 255, 0.44) 0 30%, transparent 31%);
-  opacity: 0.5;
+    radial-gradient(circle at 20% 60%, rgba(255, 255, 255, 0.88) 0 27%, transparent 28%),
+    radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.8) 0 31%, transparent 32%),
+    radial-gradient(circle at 80% 64%, rgba(255, 255, 255, 0.72) 0 26%, transparent 27%);
+  opacity: 0.38;
 }
 
 .pfd-main {
@@ -537,6 +537,7 @@ h4 {
   min-height: 360px;
   object-fit: cover;
   display: block;
+  animation: pfdPetFade 0.55s ease both;
 }
 
 .pfd-feature-overlay {
@@ -601,6 +602,32 @@ h4 {
 .pfd-photo-empty small {
   font-weight: 700;
   opacity: 0.86;
+}
+
+.pfd-pet-dots {
+  position: absolute;
+  right: 24px;
+  bottom: 22px;
+  z-index: 8;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.pfd-pet-dots button,
+.pfd-small-pet-dots button {
+  width: 9px;
+  height: 9px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.pfd-pet-dots button.active {
+  width: 28px;
+  background: #ffffff;
 }
 
 /* Overview cards */
@@ -737,6 +764,7 @@ h4 {
   grid-template-columns: 116px 1fr;
   gap: 15px;
   align-items: center;
+  animation: pfdPetFade 0.45s ease both;
 }
 
 .pfd-small-pet-img {
@@ -760,6 +788,10 @@ h4 {
   object-fit: cover;
 }
 
+.pfd-small-pet-content {
+  min-width: 0;
+}
+
 .pfd-inline-actions {
   margin-top: 12px;
   display: flex;
@@ -767,58 +799,98 @@ h4 {
   flex-wrap: wrap;
 }
 
+.pfd-small-pet-dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.pfd-small-pet-dots button {
+  background: rgba(125, 104, 242, 0.22);
+}
+
+.pfd-small-pet-dots button.active {
+  width: 24px;
+  background: #8b6ff5;
+}
+
 /* Auto cloud slider */
 
 .pfd-auto-section {
   position: relative;
   margin-top: 18px;
-  padding: 26px 28px 26px;
+  padding: 24px;
   border-radius: 34px;
   background:
-    radial-gradient(circle at 8% 20%, rgba(255, 255, 255, 0.9), transparent 24%),
-    radial-gradient(circle at 88% 12%, rgba(154, 131, 255, 0.16), transparent 28%),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.82) 0%, rgba(238, 240, 255, 0.9) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.82);
+    radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.95), transparent 30%),
+    radial-gradient(circle at 80% 40%, rgba(154, 131, 255, 0.16), transparent 30%),
+    linear-gradient(135deg, rgba(244, 250, 255, 0.9), rgba(244, 238, 255, 0.86));
+  border: 1px solid rgba(255, 255, 255, 0.78);
   box-shadow: var(--pfd-shadow);
   overflow: hidden;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
 
+.pfd-auto-section::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 58px;
+  background:
+    radial-gradient(circle at 10% 100%, rgba(255, 255, 255, 0.68) 0 24%, transparent 25%),
+    radial-gradient(circle at 28% 100%, rgba(255, 255, 255, 0.58) 0 25%, transparent 26%),
+    radial-gradient(circle at 48% 100%, rgba(255, 255, 255, 0.64) 0 24%, transparent 25%),
+    radial-gradient(circle at 68% 100%, rgba(255, 255, 255, 0.56) 0 25%, transparent 26%),
+    radial-gradient(circle at 86% 100%, rgba(255, 255, 255, 0.66) 0 24%, transparent 25%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .pfd-auto-head {
   position: relative;
-  z-index: 5;
+  z-index: 2;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 18px;
+}
+
+.pfd-auto-head h2 {
+  margin: 6px 0 0;
+  font-size: 2rem;
+  line-height: 1.05;
+  color: var(--pfd-text);
 }
 
 .pfd-auto-pill {
   flex: 0 0 auto;
-  padding: 12px 18px;
+  padding: 10px 14px;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--pfd-purple) 0%, var(--pfd-purple-2) 100%);
+  background: linear-gradient(135deg, var(--pfd-purple), var(--pfd-purple-2));
   color: white;
   font-family: "Fredoka", sans-serif;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   font-weight: 800;
   box-shadow: var(--pfd-purple-shadow);
 }
 
 .pfd-slider-mask {
   position: relative;
-  z-index: 4;
+  width: 100%;
   overflow: hidden;
-  margin-top: 12px;
-  padding: 34px 0 10px;
+  padding: 34px 8px 24px;
+  margin: -18px -8px 0;
 }
 
 .pfd-slider-track {
+  position: relative;
+  z-index: 2;
   display: flex;
   width: max-content;
-  animation: pfdSlide 34s linear infinite;
+  animation: pfdSlide 36s linear infinite;
 }
 
 .pfd-slider-mask:hover .pfd-slider-track {
@@ -827,8 +899,8 @@ h4 {
 
 .pfd-slider-group {
   display: flex;
-  gap: 18px;
-  padding-right: 18px;
+  gap: 14px;
+  padding-right: 14px;
 }
 
 .pfd-slide-card {
@@ -836,58 +908,56 @@ h4 {
   -webkit-appearance: none;
   position: relative;
   overflow: visible;
-  width: 286px;
-  min-width: 286px;
-  min-height: 228px;
-  padding: 78px 22px 26px;
-  border-radius: 34px;
-  border: 1px solid rgba(125, 104, 242, 0.12);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.9));
-  color: var(--pfd-text);
+  width: 300px;
+  flex: 0 0 300px;
+  min-height: 148px;
+  margin-top: 18px;
+  padding: 48px 22px 22px;
   text-align: center;
+  border: 1px solid rgba(125, 104, 242, 0.12);
+  border-radius: 48px 52px 42px 46px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.9));
+  color: var(--pfd-text);
   cursor: pointer;
   box-shadow:
-    0 18px 34px rgba(43, 29, 87, 0.08),
+    0 22px 45px rgba(43, 29, 87, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  transform: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: 0.2s ease;
 }
 
-.pfd-slide-card::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  top: -48px;
-  left: -6px;
-  width: 122px;
-  height: 122px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow:
-    68px 12px 0 0 rgba(255, 255, 255, 0.94),
-    142px 32px 0 0 rgba(255, 255, 255, 0.94);
-  pointer-events: none;
-}
-
+.pfd-slide-card::before,
 .pfd-slide-card::after {
   content: "";
   position: absolute;
   z-index: 0;
-  left: 18px;
-  right: 18px;
-  top: -2px;
-  height: 82px;
+  background: inherit;
+  border: 1px solid rgba(125, 104, 242, 0.08);
+  box-shadow: inherit;
+}
+
+.pfd-slide-card::before {
+  width: 92px;
+  height: 92px;
+  top: -34px;
+  left: 58px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.94);
-  pointer-events: none;
+}
+
+.pfd-slide-card::after {
+  width: 122px;
+  height: 122px;
+  top: -46px;
+  right: 52px;
+  border-radius: 999px;
 }
 
 .pfd-slide-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
   box-shadow:
-    0 26px 42px rgba(43, 29, 87, 0.12),
+    0 26px 60px rgba(43, 29, 87, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  border-color: rgba(125, 104, 242, 0.24);
 }
 
 .pfd-slide-card > span,
@@ -895,48 +965,48 @@ h4 {
 .pfd-slide-card > p,
 .pfd-slide-card > small {
   position: relative;
-  z-index: 3;
+  z-index: 2;
 }
 
 .pfd-slide-card > span {
-  width: 58px;
-  height: 58px;
-  margin: -24px auto 12px;
+  width: 54px;
+  height: 54px;
+  margin: -34px auto 8px;
   border-radius: 20px;
   display: grid;
   place-items: center;
-  font-size: 1.35rem;
   background:
-    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.86), transparent 32%),
-    linear-gradient(135deg, rgba(125, 104, 242, 0.16), rgba(154, 131, 255, 0.28));
-  box-shadow: 0 12px 24px rgba(125, 104, 242, 0.12);
+    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.9), transparent 32%),
+    linear-gradient(135deg, rgba(125, 104, 242, 0.2), rgba(154, 131, 255, 0.3));
+  box-shadow: 0 14px 25px rgba(125, 104, 242, 0.16);
+  font-size: 1.25rem;
 }
 
 .pfd-slide-card strong {
   display: block;
-  margin-top: 2px;
+  margin-top: 14px;
   font-family: "Fredoka", sans-serif;
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: var(--pfd-text);
 }
 
 .pfd-slide-card p {
-  max-width: 230px;
-  margin: 10px auto 0;
-  color: var(--pfd-soft);
-  font-size: 0.9rem;
+  max-width: 235px;
+  margin: 8px auto 0;
+  font-size: 0.84rem;
   line-height: 1.55;
-  font-weight: 800;
+  color: var(--pfd-soft);
+  font-weight: 700;
 }
 
 .pfd-slide-card small {
-  display: inline-block;
-  margin-top: 16px;
-  color: #7867ff;
+  display: inline-flex;
+  margin-top: 14px;
   font-family: "Fredoka", sans-serif;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   font-weight: 800;
+  color: var(--pfd-purple);
 }
 
 .pfd-slide-card small::after {
@@ -945,19 +1015,19 @@ h4 {
 
 .pfd-slider-dots {
   position: relative;
-  z-index: 5;
+  z-index: 2;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 7px;
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 .pfd-slider-dots span {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: rgba(125, 104, 242, 0.24);
+  background: rgba(125, 104, 242, 0.22);
 }
 
 .pfd-slider-dots span.active {
@@ -972,6 +1042,18 @@ h4 {
 
   to {
     transform: translateX(-50%);
+  }
+}
+
+@keyframes pfdPetFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -1011,6 +1093,13 @@ h4 {
   .pfd-feature-photo img,
   .pfd-photo-empty {
     min-height: 330px;
+  }
+}
+
+@media (max-width: 900px) {
+  .pfd-slide-card {
+    width: 250px;
+    flex-basis: 250px;
   }
 }
 
@@ -1062,78 +1151,12 @@ h4 {
     flex-direction: column;
   }
 
+  .pfd-auto-head h2 {
+    font-size: 1.6rem;
+  }
+
   .pfd-slide-card {
-    width: 240px;
-    min-width: 240px;
-  }
-}
-.pfd-feature-photo {
-  position: relative;
-  overflow: hidden;
-}
-
-.pfd-feature-photo img {
-  animation: pfdPetFade 0.55s ease both;
-}
-
-.pfd-pet-dots {
-  position: absolute;
-  right: 24px;
-  bottom: 22px;
-  z-index: 8;
-  display: flex;
-  gap: 7px;
-  align-items: center;
-}
-
-.pfd-pet-dots button,
-.pfd-small-pet-dots button {
-  width: 9px;
-  height: 9px;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.65);
-  cursor: pointer;
-  transition: 0.25s ease;
-}
-
-.pfd-pet-dots button.active {
-  width: 28px;
-  background: #ffffff;
-}
-
-.pfd-small-pet {
-  animation: pfdPetFade 0.45s ease both;
-}
-
-.pfd-small-pet-content {
-  min-width: 0;
-}
-
-.pfd-small-pet-dots {
-  display: flex;
-  gap: 6px;
-  margin-top: 12px;
-  align-items: center;
-}
-
-.pfd-small-pet-dots button {
-  background: rgba(125, 104, 242, 0.22);
-}
-
-.pfd-small-pet-dots button.active {
-  width: 24px;
-  background: #8b6ff5;
-}
-
-@keyframes pfdPetFade {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.985);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+    width: 230px;
+    flex-basis: 230px;
   }
 }
