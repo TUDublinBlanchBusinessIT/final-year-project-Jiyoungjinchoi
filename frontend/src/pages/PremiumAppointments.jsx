@@ -134,6 +134,7 @@ export default function PremiumAppointments() {
     } else {
       setError("Google Maps API key is missing. Put VITE_GOOGLE_MAPS_API_KEY in frontend/.env and restart npm run dev.");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, token, role]);
 
   useEffect(() => {
@@ -141,6 +142,7 @@ export default function PremiumAppointments() {
       initialiseCreateAutocomplete();
       initialiseCreateMap();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapsReady, showForm]);
 
   useEffect(() => {
@@ -148,6 +150,7 @@ export default function PremiumAppointments() {
       initialiseEditAutocomplete();
       initialiseEditMap();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapsReady, editingId]);
 
   const getGreeting = () => {
@@ -184,6 +187,7 @@ export default function PremiumAppointments() {
     if (!token) return;
 
     setLoadingPets(true);
+
     try {
       const res = await fetch(`${apiBase}/pets`, {
         headers: authHeaders,
@@ -676,6 +680,72 @@ export default function PremiumAppointments() {
     ).length;
   }, [appointments]);
 
+  const appointmentSliderItems = useMemo(() => {
+    return [
+      {
+        icon: "📅",
+        title: "Create Appointment",
+        text: "Book a premium vet or grooming visit with clinic search and map preview.",
+        action: "Create booking",
+        onClick: () => {
+          setShowForm(true);
+          setEditingId(null);
+          setError("");
+          setSuccess("");
+        },
+      },
+      {
+        icon: "🐾",
+        title: "Selected Pet",
+        text: selectedPet
+          ? `${selectedPet.name} is currently selected for appointment planning.`
+          : "Choose a pet before booking a new appointment.",
+        action: "Manage pets",
+        onClick: () => navigate("/premium-mypets"),
+      },
+      {
+        icon: "🩺",
+        title: "Vet Visits",
+        text: `${vetAppointments} vet appointment${vetAppointments === 1 ? "" : "s"} saved in your premium schedule.`,
+        action: "View vet care",
+        onClick: () => {
+          setSearchTerm("vet");
+          document.querySelector(".pmpa-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+      {
+        icon: "✂️",
+        title: "Grooming",
+        text: `${groomerAppointments} grooming appointment${groomerAppointments === 1 ? "" : "s"} saved.`,
+        action: "View grooming",
+        onClick: () => {
+          setSearchTerm("groomer");
+          document.querySelector(".pmpa-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+      {
+        icon: "⚠️",
+        title: "Urgent Bookings",
+        text:
+          urgentAppointments > 0
+            ? `${urgentAppointments} urgent appointment${urgentAppointments === 1 ? "" : "s"} need attention.`
+            : "No urgent appointments right now.",
+        action: "Check urgent",
+        onClick: () => {
+          setSearchTerm("urgent");
+          document.querySelector(".pmpa-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+      {
+        icon: "🗺️",
+        title: "Location Search",
+        text: "Use Google Maps search to save exact clinic or grooming locations.",
+        action: "Open form",
+        onClick: () => setShowForm(true),
+      },
+    ];
+  }, [selectedPet, vetAppointments, groomerAppointments, urgentAppointments, navigate]);
+
   const openMap = (appt) => {
     const query = encodeURIComponent(appt?.clinic_name || appt?.address || "");
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, "_blank");
@@ -979,6 +1049,46 @@ export default function PremiumAppointments() {
               <strong>PREMIUM BENEFIT</strong>
               <span>Location search, cleaner scheduling, and better appointment visibility.</span>
             </div>
+          </div>
+        </section>
+
+        <section className="pmpa-auto-section">
+          <div className="pmpa-auto-head">
+            <div>
+              <div className="pmpa-card-kicker">Premium appointment shortcuts</div>
+              <h2>Your bookings, clinics, and care visits sliding automatically</h2>
+            </div>
+
+            <div className="pmpa-auto-pill">Auto sliding ✨</div>
+          </div>
+
+          <div className="pmpa-slider-mask">
+            <div className="pmpa-slider-track">
+              {[0, 1].map((groupIndex) => (
+                <div className="pmpa-slider-group" key={groupIndex}>
+                  {appointmentSliderItems.map((item, index) => (
+                    <button
+                      key={`${groupIndex}-${index}`}
+                      type="button"
+                      className="pmpa-slide-card"
+                      onClick={item.onClick}
+                    >
+                      <span>{item.icon}</span>
+                      <strong>{item.title}</strong>
+                      <p>{item.text}</p>
+                      <small>{item.action}</small>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="pmpa-slider-dots">
+            <span></span>
+            <span className="active"></span>
+            <span></span>
+            <span></span>
           </div>
         </section>
 

@@ -1,29 +1,36 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Fredoka:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap");
 
 :root {
-  --pvc-bg: #eef3ff;
-  --pvc-bg-2: #f8f5ff;
-  --pvc-bg-3: #fff6fb;
-  --pvc-card: rgba(255, 255, 255, 0.78);
-  --pvc-card-strong: rgba(255, 255, 255, 0.92);
-  --pvc-line: rgba(92, 82, 145, 0.12);
+  --pvc-teal: #35c3a8;
+  --pvc-blue-main: #2fa8df;
 
-  --pvc-primary: #7c6cf2;
-  --pvc-primary-2: #a08cff;
+  --pvc-primary: #7d68f2;
+  --pvc-primary-2: #9a83ff;
+  --pvc-purple-soft: #efeaff;
+  --pvc-purple-light: #f7f3ff;
+  --pvc-purple-dark: #2b1d57;
+
   --pvc-pink: #f3bfd4;
   --pvc-pink-2: #ffdbe8;
   --pvc-blue: #cfe0ff;
   --pvc-blue-2: #e3edff;
 
-  --pvc-text: #453a68;
-  --pvc-text-soft: #746a95;
+  --pvc-text: #21163f;
+  --pvc-text-soft: #706b88;
+  --pvc-muted: #8a84a0;
+
   --pvc-good: #78c28c;
   --pvc-warn: #f2b45b;
   --pvc-mid: #ee8db2;
 
-  --pvc-shadow-sm: 0 10px 24px rgba(110, 98, 170, 0.08);
-  --pvc-shadow-md: 0 24px 48px rgba(110, 98, 170, 0.14);
-  --pvc-shadow-lg: 0 30px 60px rgba(110, 98, 170, 0.16);
+  --pvc-card: rgba(255, 255, 255, 0.82);
+  --pvc-card-strong: rgba(255, 255, 255, 0.92);
+  --pvc-line: rgba(125, 104, 242, 0.14);
+
+  --pvc-shadow-sm: 0 14px 30px rgba(43, 29, 87, 0.08);
+  --pvc-shadow-md: 0 22px 55px rgba(43, 29, 87, 0.12);
+  --pvc-shadow-lg: 0 30px 60px rgba(43, 29, 87, 0.16);
+  --pvc-purple-shadow: 0 14px 30px rgba(125, 104, 242, 0.22);
 }
 
 * {
@@ -31,13 +38,20 @@
 }
 
 html,
-body {
+body,
+#root {
   margin: 0;
-  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  color: var(--pvc-text);
+  font-family: "Nunito", sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(207, 224, 255, 0.46), transparent 28%),
-    radial-gradient(circle at top right, rgba(243, 191, 212, 0.32), transparent 22%),
-    linear-gradient(180deg, #edf2ff 0%, #f7f5ff 46%, #fff8fc 100%);
+    radial-gradient(circle at 8% 8%, rgba(154, 131, 255, 0.28), transparent 28%),
+    radial-gradient(circle at 92% 4%, rgba(53, 195, 168, 0.34), transparent 26%),
+    radial-gradient(circle at 50% 95%, rgba(47, 168, 223, 0.24), transparent 32%),
+    linear-gradient(135deg, #c5f3ec 0%, #ccecff 48%, #d8d2ff 100%);
 }
 
 button,
@@ -53,10 +67,18 @@ h3 {
   font-family: "DM Serif Display", serif;
 }
 
+/* ---------- Page shell ---------- */
+
 .pvc-shell {
   min-height: 100vh;
+  padding: 18px 22px 40px;
   color: var(--pvc-text);
   font-family: "Nunito", sans-serif;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(154, 131, 255, 0.28), transparent 28%),
+    radial-gradient(circle at 92% 4%, rgba(53, 195, 168, 0.34), transparent 26%),
+    radial-gradient(circle at 50% 95%, rgba(47, 168, 223, 0.24), transparent 32%),
+    linear-gradient(135deg, #c5f3ec 0%, #ccecff 48%, #d8d2ff 100%);
 }
 
 .pvc-loading-screen {
@@ -66,23 +88,29 @@ h3 {
   font-family: "Fredoka", sans-serif;
   color: var(--pvc-text);
   background:
-    radial-gradient(circle at top left, rgba(207, 224, 255, 0.5), transparent 26%),
-    radial-gradient(circle at top right, rgba(243, 191, 212, 0.34), transparent 22%),
-    linear-gradient(180deg, #edf2ff 0%, #f7f5ff 44%, #fff8fc 100%);
+    radial-gradient(circle at 8% 8%, rgba(154, 131, 255, 0.28), transparent 28%),
+    radial-gradient(circle at 92% 4%, rgba(53, 195, 168, 0.34), transparent 26%),
+    radial-gradient(circle at 50% 95%, rgba(47, 168, 223, 0.24), transparent 32%),
+    linear-gradient(135deg, #c5f3ec 0%, #ccecff 48%, #d8d2ff 100%);
 }
 
+/* ---------- Top navigation ---------- */
+
 .pvc-site-header {
-  position: sticky;
-  top: 0;
-  z-index: 50;
+  max-width: 1540px;
+  margin: 0 auto 22px;
+  width: 100%;
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) 250px;
-  gap: 18px;
+  grid-template-columns: 245px 1fr 230px;
+  gap: 14px;
   align-items: center;
-  padding: 16px 22px;
-  background: rgba(239, 243, 255, 0.82);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--pvc-line);
+  padding: 14px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  box-shadow: 0 14px 30px rgba(43, 29, 87, 0.1);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .pvc-brand {
@@ -90,27 +118,28 @@ h3 {
   align-items: center;
   gap: 12px;
   min-width: 0;
-  padding: 10px 12px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.68);
-  border: 1px solid rgba(92, 82, 145, 0.08);
-  box-shadow: var(--pvc-shadow-sm);
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(125, 104, 242, 0.12);
+  box-shadow: none;
   cursor: pointer;
   transition: 0.18s ease;
 }
 
 .pvc-brand:hover {
   transform: translateY(-1px);
-  box-shadow: var(--pvc-shadow-md);
+  box-shadow: var(--pvc-shadow-sm);
 }
 
 .pvc-brand-logo {
-  width: 52px;
-  height: 52px;
+  width: 46px;
+  height: 46px;
   object-fit: contain;
-  padding: 5px;
+  padding: 4px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.94);
+  background: #ffffff;
+  flex-shrink: 0;
 }
 
 .pvc-brand-copy {
@@ -118,31 +147,36 @@ h3 {
 }
 
 .pvc-brand-title {
-  font-size: 28px;
-  line-height: 1;
+  font-family: "Fredoka", sans-serif;
+  font-size: 1rem;
+  line-height: 1.1;
+  font-weight: 700;
+  color: var(--pvc-text);
 }
 
 .pvc-brand-sub {
   margin-top: 3px;
   font-family: "Fredoka", sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--pvc-text-soft);
+  color: var(--pvc-primary);
+  line-height: 1.25;
 }
 
 .pvc-topnav {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   padding: 10px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.68);
-  border: 1px solid rgba(92, 82, 145, 0.08);
-  box-shadow: var(--pvc-shadow-sm);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.66);
+  border: none;
+  box-shadow: none;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -154,121 +188,137 @@ h3 {
 .pvc-topnav-item {
   flex: 0 0 auto;
   text-decoration: none;
-  color: var(--pvc-text-soft);
+  color: #4c426a;
   padding: 10px 14px;
   border-radius: 999px;
   font-family: "Fredoka", sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  transition: 0.18s ease;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  transition: all 0.2s ease;
 }
 
 .pvc-topnav-item:hover {
-  background: rgba(255, 255, 255, 0.8);
-  color: var(--pvc-text);
+  background: var(--pvc-purple-soft);
+  color: var(--pvc-purple-dark);
 }
 
 .pvc-topnav-item.active {
-  color: #fff;
-  background: linear-gradient(135deg, var(--pvc-primary), var(--pvc-primary-2));
-  box-shadow: 0 10px 22px rgba(124, 108, 242, 0.25);
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--pvc-primary) 0%, var(--pvc-primary-2) 100%);
+  box-shadow: var(--pvc-purple-shadow);
 }
 
 .pvc-header-side {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-end;
 }
 
 .pvc-date-pill,
 .pvc-userchip {
-  background: rgba(255, 255, 255, 0.76);
-  border: 1px solid var(--pvc-line);
-  box-shadow: var(--pvc-shadow-sm);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(125, 104, 242, 0.14);
+  box-shadow: none;
 }
 
 .pvc-date-pill {
-  padding: 9px 12px;
-  border-radius: 14px;
+  padding: 8px 12px;
+  border-radius: 999px;
   font-family: "Fredoka", sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--pvc-text-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--pvc-purple-dark);
+  white-space: nowrap;
 }
 
 .pvc-userchip {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 8px 10px;
-  border-radius: 16px;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 18px;
 }
 
 .pvc-avatar {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 999px;
   display: grid;
   place-items: center;
   color: white;
   font-family: "Fredoka", sans-serif;
-  font-weight: 600;
-  background: linear-gradient(135deg, var(--pvc-primary), #b78cf7);
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--pvc-primary), var(--pvc-primary-2));
+  flex-shrink: 0;
 }
 
 .pvc-userchip-name {
   font-family: "Fredoka", sans-serif;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--pvc-text);
+  line-height: 1.1;
 }
 
 .pvc-userchip-sub {
+  margin-top: 2px;
   font-family: "Fredoka", sans-serif;
-  font-size: 10px;
+  font-size: 0.72rem;
   color: var(--pvc-text-soft);
+  line-height: 1.1;
 }
 
+/* ---------- Main ---------- */
+
 .pvc-main {
-  padding: 22px;
+  max-width: 1540px;
+  margin: 0 auto;
+  padding: 0;
 }
+
+/* ---------- Hero ---------- */
 
 .pvc-hero {
   display: grid;
   grid-template-columns: 1.08fr 0.92fr;
-  gap: 18px;
-  padding: 24px;
-  border-radius: 30px;
+  gap: 22px;
+  padding: 30px;
+  border-radius: 34px;
   background:
-    radial-gradient(circle at top left, rgba(207, 224, 255, 0.4), transparent 26%),
-    radial-gradient(circle at right, rgba(243, 191, 212, 0.24), transparent 26%),
-    rgba(255, 255, 255, 0.54);
-  border: 1px solid rgba(92, 82, 145, 0.08);
-  box-shadow: var(--pvc-shadow-sm);
+    radial-gradient(circle at top left, rgba(154, 131, 255, 0.1), transparent 34%),
+    rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  box-shadow: var(--pvc-shadow-md);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .pvc-kicker,
 .pvc-card-kicker {
   font-family: "Fredoka", sans-serif;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 0.74rem;
+  font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #7d74a1;
+  color: var(--pvc-primary);
 }
 
 .pvc-hero-title {
   margin: 14px 0 0;
-  font-size: clamp(44px, 5vw, 68px);
-  line-height: 0.95;
+  font-size: clamp(2.7rem, 5vw, 4.8rem);
+  line-height: 0.96;
   color: var(--pvc-text);
 }
 
 .pvc-hero-text {
-  max-width: 620px;
-  margin: 16px 0 0;
-  font-size: 16px;
-  line-height: 1.8;
+  max-width: 660px;
+  margin: 18px 0 0;
+  font-size: 1rem;
+  line-height: 1.75;
   color: var(--pvc-text-soft);
   font-weight: 700;
 }
@@ -284,41 +334,45 @@ h3 {
 .pvc-selector-label {
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--pvc-text);
 }
 
 .pvc-selector {
   padding: 12px 14px;
   border-radius: 14px;
-  border: 1px solid var(--pvc-line);
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(125, 104, 242, 0.14);
+  background: rgba(255, 255, 255, 0.92);
   color: var(--pvc-text);
   outline: none;
+  font-weight: 700;
 }
 
 .pvc-hero-actions {
-  margin-top: 18px;
+  margin-top: 20px;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
 }
 
+/* ---------- Buttons ---------- */
+
 .pvc-btn {
   padding: 12px 16px;
   border-radius: 14px;
-  border: 1px solid rgba(92, 82, 145, 0.08);
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--pvc-text);
+  border: 1px solid rgba(125, 104, 242, 0.18);
+  background: var(--pvc-purple-soft);
+  color: var(--pvc-purple-dark);
   font-family: "Fredoka", sans-serif;
-  font-weight: 500;
+  font-weight: 800;
   cursor: pointer;
   box-shadow: var(--pvc-shadow-sm);
-  transition: 0.18s ease;
+  transition: all 0.2s ease;
 }
 
 .pvc-btn:hover {
   transform: translateY(-2px);
+  background: rgba(125, 104, 242, 0.16);
   box-shadow: var(--pvc-shadow-md);
 }
 
@@ -331,8 +385,9 @@ h3 {
 
 .pvc-btn-primary {
   border: none;
-  color: #fff;
+  color: #ffffff;
   background: linear-gradient(135deg, var(--pvc-primary), var(--pvc-primary-2));
+  box-shadow: var(--pvc-purple-shadow);
 }
 
 .pvc-btn-small {
@@ -348,30 +403,38 @@ h3 {
   border: 1px solid rgba(177, 75, 103, 0.15);
 }
 
+/* ---------- Hero pet card ---------- */
+
 .pvc-hero-card {
   overflow: hidden;
-  border-radius: 26px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(244,240,255,0.92));
-  border: 1px solid rgba(92, 82, 145, 0.08);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top left, rgba(154, 131, 255, 0.08), transparent 34%),
+    rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(125, 104, 242, 0.12);
   box-shadow: var(--pvc-shadow-md);
+  align-self: stretch;
 }
 
 .pvc-hero-photo {
-  height: 290px;
+  width: 100%;
+  height: 360px;
   overflow: hidden;
   background: linear-gradient(180deg, #dbe6ff, #f8d8e5);
+  border-radius: 30px 30px 0 0;
 }
 
 .pvc-hero-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center center;
   display: block;
 }
 
 .pvc-photo-empty {
   height: 100%;
-  min-height: 290px;
+  min-height: 300px;
   display: grid;
   place-items: center;
   text-align: center;
@@ -381,18 +444,18 @@ h3 {
 }
 
 .pvc-hero-meta {
-  padding: 18px;
+  padding: 22px;
 }
 
 .pvc-premium-badge {
   display: inline-flex;
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(124, 108, 242, 0.12);
+  background: var(--pvc-purple-soft);
   color: var(--pvc-primary);
   font-family: "Fredoka", sans-serif;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .pvc-premium-badge.locked {
@@ -401,8 +464,8 @@ h3 {
 }
 
 .pvc-hero-meta h2 {
-  margin: 12px 0 0;
-  font-size: 38px;
+  margin: 14px 0 0;
+  font-size: 2.4rem;
   color: var(--pvc-text);
 }
 
@@ -422,12 +485,15 @@ h3 {
 .pvc-stat-pill {
   padding: 10px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.84);
-  border: 1px solid var(--pvc-line);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(125, 104, 242, 0.14);
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
+  color: var(--pvc-purple-dark);
 }
+
+/* ---------- Layout sections ---------- */
 
 .pvc-pet-details-wrap {
   margin-top: 18px;
@@ -444,12 +510,15 @@ h3 {
 }
 
 .pvc-card {
-  padding: 20px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid var(--pvc-line);
+  padding: 22px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(154, 131, 255, 0.08), transparent 34%),
+    rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.76);
   box-shadow: var(--pvc-shadow-sm);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .pvc-card-wide {
@@ -469,8 +538,8 @@ h3 {
   gap: 10px 14px;
   padding: 16px;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.84), rgba(247,242,255,0.92));
-  border: 1px solid rgba(92, 82, 145, 0.06);
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(125, 104, 242, 0.12);
   color: var(--pvc-text-soft);
   font-weight: 700;
 }
@@ -478,8 +547,10 @@ h3 {
 .pvc-context-box div {
   padding: 10px 12px;
   border-radius: 14px;
-  background: rgba(255,255,255,0.62);
+  background: rgba(255, 255, 255, 0.72);
 }
+
+/* ---------- Alerts ---------- */
 
 .pvc-alert-item {
   margin-top: 14px;
@@ -501,7 +572,7 @@ h3 {
 .pvc-alert-title {
   font-family: "Fredoka", sans-serif;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 800;
   color: var(--pvc-text);
 }
 
@@ -513,12 +584,14 @@ h3 {
   font-weight: 700;
 }
 
+/* ---------- Quick boxes ---------- */
+
 .pvc-quick-box {
   margin-top: 14px;
   padding: 14px 16px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(92, 82, 145, 0.1);
+  border: 1px solid rgba(125, 104, 242, 0.12);
 }
 
 .pvc-quick-box strong {
@@ -526,7 +599,7 @@ h3 {
   color: var(--pvc-text);
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .pvc-quick-box span {
@@ -537,6 +610,8 @@ h3 {
   font-weight: 700;
   line-height: 1.7;
 }
+
+/* ---------- Intake form ---------- */
 
 .pvc-intake-form {
   margin-top: 16px;
@@ -559,7 +634,7 @@ h3 {
 .pvc-field label {
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--pvc-text);
 }
 
@@ -569,7 +644,7 @@ h3 {
   width: 100%;
   padding: 12px 14px;
   border-radius: 14px;
-  border: 1px solid var(--pvc-line);
+  border: 1px solid rgba(125, 104, 242, 0.14);
   background: rgba(255, 255, 255, 0.92);
   color: var(--pvc-text);
   outline: none;
@@ -581,7 +656,7 @@ h3 {
 }
 
 .pvc-field input[readonly] {
-  background: rgba(244, 240, 255, 0.95);
+  background: var(--pvc-purple-light);
   color: var(--pvc-text-soft);
   font-weight: 700;
 }
@@ -603,12 +678,12 @@ h3 {
 .pvc-chip {
   padding: 10px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(92, 82, 145, 0.12);
+  border: 1px solid rgba(125, 104, 242, 0.14);
   background: rgba(255, 255, 255, 0.92);
   color: var(--pvc-text-soft);
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: 0.18s ease;
 }
@@ -616,13 +691,14 @@ h3 {
 .pvc-chip:hover {
   transform: translateY(-1px);
   color: var(--pvc-text);
+  background: var(--pvc-purple-soft);
 }
 
 .pvc-chip.active {
   background: linear-gradient(135deg, var(--pvc-primary), var(--pvc-primary-2));
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 10px 22px rgba(124, 108, 242, 0.22);
+  box-shadow: var(--pvc-purple-shadow);
 }
 
 .pvc-preview-grid {
@@ -635,7 +711,7 @@ h3 {
   padding: 10px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(92, 82, 145, 0.08);
+  border: 1px solid rgba(125, 104, 242, 0.12);
 }
 
 .pvc-preview-card img {
@@ -674,6 +750,8 @@ h3 {
   justify-content: flex-start;
 }
 
+/* ---------- Summary ---------- */
+
 .pvc-summary-top {
   margin-top: 14px;
   display: flex;
@@ -686,7 +764,7 @@ h3 {
   border-radius: 999px;
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .pvc-summary-good,
@@ -710,6 +788,8 @@ h3 {
   border: 1px solid rgba(124, 108, 242, 0.18);
 }
 
+/* ---------- AI box ---------- */
+
 .pvc-ai-box {
   margin-top: 16px;
   display: grid;
@@ -720,13 +800,13 @@ h3 {
   padding: 14px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.84);
-  border: 1px solid rgba(92, 82, 145, 0.08);
+  border: 1px solid rgba(125, 104, 242, 0.12);
 }
 
 .pvc-ai-title {
   font-family: "Fredoka", sans-serif;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 800;
   color: var(--pvc-text);
 }
 
@@ -748,8 +828,8 @@ h3 {
 .pvc-ai-list-item {
   padding: 12px 14px;
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(244,240,255,0.9));
-  border: 1px solid rgba(92, 82, 145, 0.08);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(125, 104, 242, 0.12);
   color: var(--pvc-text-soft);
   font-size: 13px;
   line-height: 1.6;
@@ -774,6 +854,8 @@ button.pvc-ai-list-item:hover {
   font-weight: 700;
 }
 
+/* ---------- Insights ---------- */
+
 .pvc-insight-list {
   margin-top: 14px;
   display: grid;
@@ -786,7 +868,7 @@ button.pvc-ai-list-item:hover {
   padding: 14px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(92, 82, 145, 0.06);
+  border: 1px solid rgba(125, 104, 242, 0.12);
 }
 
 .pvc-insight-icon {
@@ -795,7 +877,7 @@ button.pvc-ai-list-item:hover {
   border-radius: 14px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, rgba(207,224,255,0.7), rgba(243,191,212,0.35));
+  background: linear-gradient(135deg, rgba(125, 104, 242, 0.16), rgba(154, 131, 255, 0.2));
   font-size: 21px;
   flex-shrink: 0;
 }
@@ -803,7 +885,7 @@ button.pvc-ai-list-item:hover {
 .pvc-insight-title {
   font-family: "Fredoka", sans-serif;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 800;
   color: var(--pvc-text);
 }
 
@@ -815,6 +897,8 @@ button.pvc-ai-list-item:hover {
   line-height: 1.6;
   font-weight: 700;
 }
+
+/* ---------- Chat ---------- */
 
 .pvc-chat-shell {
   margin-top: 16px;
@@ -836,7 +920,7 @@ button.pvc-ai-list-item:hover {
   border-radius: 999px;
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .pvc-status-text {
@@ -851,8 +935,8 @@ button.pvc-ai-list-item:hover {
   overflow-y: auto;
   padding: 18px;
   border-radius: 22px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(244,240,255,0.9));
-  border: 1px solid rgba(92, 82, 145, 0.08);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(125, 104, 242, 0.12);
   display: grid;
   gap: 14px;
 }
@@ -892,7 +976,7 @@ button.pvc-ai-list-item:hover {
 
 .pvc-msg-vet {
   background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(92, 82, 145, 0.08);
+  border: 1px solid rgba(125, 104, 242, 0.12);
 }
 
 .pvc-msg-ai {
@@ -902,7 +986,7 @@ button.pvc-ai-list-item:hover {
 
 .pvc-msg-system {
   background: rgba(207, 224, 255, 0.42);
-  border: 1px solid rgba(92, 82, 145, 0.08);
+  border: 1px solid rgba(125, 104, 242, 0.12);
 }
 
 .pvc-msg-meta {
@@ -921,7 +1005,7 @@ button.pvc-ai-list-item:hover {
 
 .pvc-msg-meta strong {
   font-family: "Fredoka", sans-serif;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .pvc-msg-meta span {
@@ -960,14 +1044,14 @@ button.pvc-ai-list-item:hover {
   padding: 16px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.84);
-  border: 1px solid rgba(92, 82, 145, 0.08);
+  border: 1px solid rgba(125, 104, 242, 0.12);
 }
 
 .pvc-chat-composer textarea {
   width: 100%;
   padding: 12px 14px;
   border-radius: 14px;
-  border: 1px solid var(--pvc-line);
+  border: 1px solid rgba(125, 104, 242, 0.14);
   background: rgba(255, 255, 255, 0.92);
   color: var(--pvc-text);
   outline: none;
@@ -992,13 +1076,14 @@ button.pvc-ai-list-item:hover {
   justify-content: center;
   padding: 10px 14px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(92, 82, 145, 0.08);
-  color: var(--pvc-text);
+  background: var(--pvc-purple-soft);
+  border: 1px solid rgba(125, 104, 242, 0.18);
+  color: var(--pvc-purple-dark);
   font-family: "Fredoka", sans-serif;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800;
   cursor: pointer;
+  box-shadow: var(--pvc-shadow-sm);
 }
 
 .pvc-upload-btn.disabled {
@@ -1018,7 +1103,7 @@ button.pvc-ai-list-item:hover {
   height: 80px;
   border-radius: 14px;
   overflow: hidden;
-  border: 1px solid rgba(92, 82, 145, 0.08);
+  border: 1px solid rgba(125, 104, 242, 0.12);
 }
 
 .pvc-composer-preview img {
@@ -1027,6 +1112,8 @@ button.pvc-ai-list-item:hover {
   object-fit: cover;
   display: block;
 }
+
+/* ---------- Form messages ---------- */
 
 .pvc-form-message {
   margin-top: 14px;
@@ -1047,6 +1134,8 @@ button.pvc-ai-list-item:hover {
   color: #2f8a53;
   border: 1px solid rgba(47, 138, 83, 0.14);
 }
+
+/* ---------- Locked card ---------- */
 
 .pvc-locked-wrap {
   margin-top: 18px;
@@ -1074,6 +1163,8 @@ button.pvc-ai-list-item:hover {
   gap: 12px;
 }
 
+/* ---------- History ---------- */
+
 .pvc-history-list {
   display: grid;
   gap: 12px;
@@ -1083,7 +1174,7 @@ button.pvc-ai-list-item:hover {
 .pvc-history-item {
   width: 100%;
   text-align: left;
-  border: 1px solid rgba(92, 82, 145, 0.1);
+  border: 1px solid rgba(125, 104, 242, 0.12);
   background: rgba(255, 255, 255, 0.86);
   color: var(--pvc-text);
   border-radius: 18px;
@@ -1100,7 +1191,7 @@ button.pvc-ai-list-item:hover {
 
 .pvc-history-item.active {
   border-color: rgba(124, 108, 242, 0.28);
-  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,240,255,0.96));
+  background: var(--pvc-purple-light);
 }
 
 .pvc-history-top {
@@ -1135,7 +1226,7 @@ button.pvc-ai-list-item:hover {
   padding: 12px 14px;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(92, 82, 145, 0.08);
+  border: 1px solid rgba(125, 104, 242, 0.12);
   font-size: 0.92rem;
   color: var(--pvc-text-soft);
   font-weight: 700;
@@ -1178,23 +1269,35 @@ button.pvc-ai-list-item:hover {
   padding: 12px 14px;
   border-radius: 14px;
   background: rgba(207, 224, 255, 0.38);
-  border: 1px solid rgba(92, 82, 145, 0.08);
+  border: 1px solid rgba(125, 104, 242, 0.12);
   color: var(--pvc-text-soft);
   font-size: 0.92rem;
   font-weight: 700;
 }
 
-@media (max-width: 1250px) {
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1380px) {
   .pvc-site-header {
     grid-template-columns: 1fr;
   }
 
+  .pvc-topnav {
+    justify-content: flex-start;
+  }
+
   .pvc-header-side {
-    align-items: center;
+    align-items: flex-start;
+    flex-direction: row;
+    justify-content: space-between;
   }
 
   .pvc-hero {
     grid-template-columns: 1fr;
+  }
+
+  .pvc-hero-photo {
+    height: 420px;
   }
 }
 
@@ -1209,8 +1312,18 @@ button.pvc-ai-list-item:hover {
 }
 
 @media (max-width: 900px) {
-  .pvc-main {
-    padding: 16px;
+  .pvc-shell {
+    padding: 14px;
+  }
+
+  .pvc-site-header,
+  .pvc-hero,
+  .pvc-card {
+    border-radius: 24px;
+  }
+
+  .pvc-hero {
+    padding: 20px;
   }
 
   .pvc-grid {
@@ -1229,6 +1342,7 @@ button.pvc-ai-list-item:hover {
   .pvc-composer-actions,
   .pvc-locked-actions {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .pvc-btn {
@@ -1248,13 +1362,13 @@ button.pvc-ai-list-item:hover {
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .pvc-hero-photo {
+    height: 340px;
+  }
 }
 
 @media (max-width: 640px) {
-  .pvc-site-header {
-    padding: 14px;
-  }
-
   .pvc-topnav {
     justify-content: flex-start;
   }
@@ -1262,6 +1376,17 @@ button.pvc-ai-list-item:hover {
   .pvc-topnav-item {
     font-size: 12px;
     padding: 10px 12px;
+  }
+
+  .pvc-date-pill,
+  .pvc-userchip {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pvc-header-side {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .pvc-hero-title {
@@ -1274,5 +1399,427 @@ button.pvc-ai-list-item:hover {
 
   .pvc-card h3 {
     font-size: 24px;
+  }
+
+  .pvc-hero-photo {
+    height: 280px;
+  }
+}
+/* =========================================================
+   VET CHAT PAGE FIX — MATCH PREMIUM APPOINTMENT/COMMUNITY STYLE
+   Paste this at the VERY BOTTOM of PremiumVetChat.css
+========================================================= */
+
+.pvc-shell {
+  position: relative;
+  min-height: 100vh;
+  padding: 20px 24px 44px;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 10% 8%, rgba(125, 104, 242, 0.2), transparent 28%),
+    radial-gradient(circle at 88% 6%, rgba(53, 195, 168, 0.24), transparent 28%),
+    radial-gradient(circle at 50% 95%, rgba(47, 168, 223, 0.2), transparent 30%),
+    linear-gradient(135deg, #b9f1e6 0%, #bfe7fb 52%, #ddd2ff 100%);
+}
+
+.pvc-shell::before,
+.pvc-shell::after {
+  content: "";
+  position: fixed;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 999px;
+  filter: blur(2px);
+}
+
+.pvc-shell::before {
+  width: 220px;
+  height: 105px;
+  left: -40px;
+  top: 330px;
+  background:
+    radial-gradient(circle at 18% 55%, rgba(255, 255, 255, 0.9) 0 26%, transparent 27%),
+    radial-gradient(circle at 45% 35%, rgba(255, 255, 255, 0.82) 0 30%, transparent 31%),
+    radial-gradient(circle at 72% 58%, rgba(255, 255, 255, 0.76) 0 27%, transparent 28%);
+  opacity: 0.42;
+}
+
+.pvc-shell::after {
+  width: 260px;
+  height: 120px;
+  right: -55px;
+  top: 420px;
+  background:
+    radial-gradient(circle at 20% 60%, rgba(255, 255, 255, 0.88) 0 27%, transparent 28%),
+    radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.8) 0 31%, transparent 32%),
+    radial-gradient(circle at 80% 64%, rgba(255, 255, 255, 0.72) 0 26%, transparent 27%);
+  opacity: 0.38;
+}
+
+.pvc-main {
+  position: relative;
+  z-index: 1;
+  max-width: 1540px;
+  margin: 0 auto;
+}
+
+/* Header match appointment/community pages */
+.pvc-site-header {
+  position: relative;
+  z-index: 2;
+  max-width: 1540px;
+  margin: 0 auto 22px;
+  display: grid;
+  grid-template-columns: 245px 1fr 230px;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 34px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.42)),
+    radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.95), transparent 35%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 30px 80px rgba(43, 29, 87, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.pvc-brand,
+.pvc-topnav,
+.pvc-date-pill,
+.pvc-userchip {
+  box-shadow:
+    0 14px 35px rgba(43, 29, 87, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.pvc-brand {
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.pvc-topnav {
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.pvc-date-pill,
+.pvc-userchip {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* Hero match appointment style */
+.pvc-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 430px;
+  display: grid;
+  grid-template-columns: 1.08fr 0.92fr;
+  gap: 22px;
+  padding: 28px;
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 11% 87%, rgba(125, 104, 242, 0.12), transparent 22%),
+    radial-gradient(circle at 92% 15%, rgba(154, 131, 255, 0.15), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(247, 252, 255, 0.78));
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow: var(--pvc-shadow-md);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.pvc-hero::before {
+  content: "🤖";
+  position: absolute;
+  left: -8px;
+  bottom: 54px;
+  width: 82px;
+  height: 82px;
+  display: grid;
+  place-items: center;
+  border-radius: 28px;
+  color: rgba(125, 104, 242, 0.14);
+  font-size: 48px;
+  background: rgba(255, 255, 255, 0.32);
+  transform: rotate(-10deg);
+}
+
+.pvc-hero::after {
+  content: "♡  ✦  ♡";
+  position: absolute;
+  right: 44px;
+  bottom: 38px;
+  color: rgba(125, 104, 242, 0.24);
+  font-family: "Fredoka", sans-serif;
+  font-size: 24px;
+  letter-spacing: 16px;
+}
+
+.pvc-hero-copy,
+.pvc-hero-card {
+  position: relative;
+  z-index: 2;
+}
+
+.pvc-hero-title {
+  margin: 14px 0 0;
+  font-size: clamp(2.7rem, 5vw, 4.8rem);
+  line-height: 0.96;
+  color: var(--pvc-text);
+  letter-spacing: -0.035em;
+  text-shadow: 0 8px 28px rgba(43, 29, 87, 0.08);
+}
+
+.pvc-hero-title::after {
+  content: " ✨";
+  font-family: "Fredoka", sans-serif;
+  font-size: 0.48em;
+  vertical-align: top;
+  color: #f5b94d;
+}
+
+.pvc-hero-card {
+  overflow: hidden;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top left, rgba(154, 131, 255, 0.1), transparent 34%),
+    rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(125, 104, 242, 0.14);
+  box-shadow: var(--pvc-shadow-md);
+}
+
+.pvc-hero-photo {
+  border-radius: 30px 30px 0 0;
+}
+
+.pvc-hero-meta {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+/* Buttons cleaner */
+.pvc-btn {
+  border-radius: 14px;
+  font-family: "Fredoka", sans-serif;
+  font-weight: 800;
+}
+
+.pvc-btn-primary {
+  border: none;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--pvc-primary), var(--pvc-primary-2));
+  box-shadow: var(--pvc-purple-shadow);
+}
+
+/* Form messages match premium pages */
+.pvc-form-message {
+  border-radius: 16px;
+  font-weight: 800;
+}
+
+.pvc-form-error {
+  background: rgba(255, 226, 230, 0.9);
+  color: #b14b67;
+  border: 1px solid rgba(177, 75, 103, 0.15);
+}
+
+.pvc-form-success {
+  background: rgba(227, 247, 233, 0.95);
+  color: #267b71;
+  border: 1px solid rgba(53, 195, 168, 0.18);
+}
+
+/* Premium cards cleaner */
+.pvc-pet-details-wrap,
+.pvc-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.pvc-card {
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(154, 131, 255, 0.1), transparent 34%),
+    rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: var(--pvc-shadow-sm);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.pvc-card h3 {
+  font-size: 30px;
+}
+
+.pvc-context-box,
+.pvc-ai-section,
+.pvc-insight-item,
+.pvc-chat-window,
+.pvc-chat-composer,
+.pvc-session-meta-bar,
+.pvc-history-item {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(125, 104, 242, 0.12);
+  box-shadow: var(--pvc-shadow-sm);
+}
+
+/* Chat area softer */
+.pvc-chat-shell {
+  border-radius: 24px;
+}
+
+.pvc-chat-window {
+  border-radius: 24px;
+}
+
+.pvc-msg-bubble {
+  border-radius: 20px;
+}
+
+.pvc-msg-user {
+  background: linear-gradient(135deg, var(--pvc-primary), var(--pvc-primary-2));
+  color: #fff;
+  box-shadow: var(--pvc-purple-shadow);
+}
+
+.pvc-msg-ai {
+  background:
+    radial-gradient(circle at top left, rgba(154, 131, 255, 0.1), transparent 34%),
+    rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(125, 104, 242, 0.14);
+}
+
+.pvc-msg-system {
+  background: rgba(235, 240, 255, 0.95);
+  border: 1px solid rgba(125, 104, 242, 0.14);
+}
+
+/* Inputs match the rest */
+.pvc-field input,
+.pvc-field textarea,
+.pvc-selector,
+.pvc-chat-composer textarea {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.pvc-chip,
+.pvc-ai-list-item,
+.pvc-upload-btn {
+  font-family: "Fredoka", sans-serif;
+  font-weight: 800;
+}
+
+/* Pet photo card nicer */
+.pvc-photo-empty {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.9), transparent 32%),
+    linear-gradient(135deg, rgba(239, 234, 255, 0.95), rgba(227, 247, 250, 0.95));
+  color: var(--pvc-text-soft);
+}
+
+/* Rating stars a bit cleaner */
+.pvc-star-btn {
+  text-shadow: 0 8px 22px rgba(242, 180, 91, 0.22);
+}
+
+/* Responsive repair */
+@media (max-width: 1380px) {
+  .pvc-site-header {
+    grid-template-columns: 1fr;
+  }
+
+  .pvc-topnav {
+    justify-content: flex-start;
+  }
+
+  .pvc-header-side {
+    align-items: flex-start;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .pvc-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .pvc-hero-photo {
+    height: 420px;
+  }
+}
+
+@media (max-width: 980px) {
+  .pvc-pet-details-wrap {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .pvc-shell {
+    padding: 14px;
+  }
+
+  .pvc-site-header,
+  .pvc-hero,
+  .pvc-card,
+  .pvc-hero-card {
+    border-radius: 24px;
+  }
+
+  .pvc-hero {
+    padding: 20px;
+  }
+
+  .pvc-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pvc-card-wide {
+    grid-column: auto;
+  }
+
+  .pvc-hero-title {
+    font-size: 42px;
+  }
+
+  .pvc-hero-actions,
+  .pvc-composer-actions,
+  .pvc-locked-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pvc-btn {
+    width: 100%;
+  }
+
+  .pvc-btn-small {
+    width: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .pvc-header-side {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pvc-date-pill,
+  .pvc-userchip {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pvc-topnav-item {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+
+  .pvc-hero-title {
+    font-size: 38px;
+  }
+
+  .pvc-hero-photo {
+    height: 280px;
   }
 }

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
-import "./PremiumDashboard.css";
 import "./PremiumReminders.css";
 
 const FILTERS = ["All", "Today", "Upcoming", "Overdue", "Completed"];
@@ -10,6 +9,7 @@ function formatDate(iso) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
+
   return d.toLocaleDateString("en-IE", {
     year: "numeric",
     month: "short",
@@ -30,6 +30,8 @@ function typeLabel(type) {
   if (t === "birthday") return "Birthday";
   if (t === "vaccine") return "Vaccination";
   if (t === "grooming") return "Grooming";
+  if (t === "medication") return "Medication";
+  if (t === "checkup") return "Check-up";
   return type || "Reminder";
 }
 
@@ -38,6 +40,8 @@ function typeIcon(type) {
   if (t === "birthday") return "🎂";
   if (t === "vaccine") return "💉";
   if (t === "grooming") return "🧼";
+  if (t === "medication") return "💊";
+  if (t === "checkup") return "🩺";
   return "🐾";
 }
 
@@ -47,8 +51,10 @@ function getPriority(reminder) {
 
   if (status === "completed") return "low";
   if (type === "vaccine") return "high";
+  if (type === "medication") return "high";
   if (type === "grooming") return "medium";
   if (type === "birthday") return "medium";
+  if (type === "checkup") return "medium";
   return "low";
 }
 
@@ -60,19 +66,18 @@ function getSuggestionText({ overdue, today, upcoming, completed, mostUrgent }) 
   }
 
   if (today.length > 0) {
-    const firstToday = today[0];
-    return `${typeIcon(firstToday?.type)} You have ${today.length} reminder${
-      today.length > 1 ? "s" : ""
+    return `You have ${today.length} reminder${
+      today.length === 1 ? "" : "s"
     } due today. Completing them early will keep your pet care routine smooth.`;
   }
 
   if (upcoming.length >= 3) {
-    return `Your upcoming care schedule is getting busy. Planning ahead now will help you stay organised this week.`;
+    return "Your upcoming care schedule is getting busy. Planning ahead now will help you stay organised this week.";
   }
 
   if (completed.length > 0) {
     return `Great progress — you’ve already completed ${completed.length} reminder${
-      completed.length > 1 ? "s" : ""
+      completed.length === 1 ? "" : "s"
     }.`;
   }
 
@@ -83,6 +88,7 @@ export default function PremiumReminders() {
   const navigate = useNavigate();
 
   const token = localStorage.getItem("pawfection_token");
+  const role = String(localStorage.getItem("pawfection_role") || "").toLowerCase();
   const apiBase = "http://127.0.0.1:8000/api";
 
   const [userName, setUserName] = useState("User");
@@ -92,6 +98,8 @@ export default function PremiumReminders() {
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [working, setWorking] = useState(false);
+  const [busyId, setBusyId] = useState(null);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -102,29 +110,57 @@ export default function PremiumReminders() {
     };
   }, [token]);
 
-  const loadUserName = () => {
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    if (role === "admin") {
+      navigate("/admin-dashboard");
+      return;
+    }
+
+    localStorage.setItem("pawfection_account_type", "premium");
+
     try {
       const savedUser = localStorage.getItem("pawfection_user");
       if (savedUser) {
         const userObj = JSON.parse(savedUser);
-        if (userObj?.name && typeof userObj.name === "string") {
+        if (userObj?.name) {
           setUserName(userObj.name);
-          return;
         }
-      }
+      } else {
+        const fallbackName =
+          localStorage.getItem("pawfection_user_name") ||
+          localStorage.getItem("user_name") ||
+          localStorage.getItem("name");
 
-      const fallbackName =
-        localStorage.getItem("pawfection_user_name") ||
-        localStorage.getItem("user_name") ||
-        localStorage.getItem("name");
-
-      if (fallbackName) {
-        setUserName(fallbackName);
+        if (fallbackName) setUserName(fallbackName);
       }
     } catch {
       setUserName("User");
     }
+
+    fetchReminders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, token, role]);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
   };
+
+  const todayText = useMemo(() => {
+    return new Date().toLocaleDateString("en-IE", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }, []);
 
   const fetchReminders = async () => {
     if (!token) {
@@ -147,9 +183,11 @@ export default function PremiumReminders() {
       if (!res.ok) {
         setError(data?.message || "Failed to load reminders.");
         setReminders([]);
-      } else {
-        setReminders(Array.isArray(data) ? data : []);
+        return;
       }
+
+      const list = Array.isArray(data) ? data : data?.data || data?.reminders || [];
+      setReminders(Array.isArray(list) ? list : []);
     } catch {
       setError("Server error. Is your backend running?");
       setReminders([]);
@@ -178,10 +216,11 @@ export default function PremiumReminders() {
 
       if (!res.ok) {
         setError(data?.message || "Failed to generate reminders.");
-      } else {
-        setSuccess(`Reminders generated! Newly created: ${data?.created ?? 0}`);
-        await fetchReminders();
+        return;
       }
+
+      setSuccess(`Reminders generated! Newly created: ${data?.created ?? 0}`);
+      await fetchReminders();
     } catch {
       setError("Server error. Is your backend running?");
     } finally {
@@ -195,6 +234,7 @@ export default function PremiumReminders() {
       return;
     }
 
+    setBusyId(id);
     setError("");
     setSuccess("");
 
@@ -208,12 +248,15 @@ export default function PremiumReminders() {
 
       if (!res.ok) {
         setError(data?.message || "Failed to mark reminder as done.");
-      } else {
-        setSuccess("Reminder marked as completed!");
-        await fetchReminders();
+        return;
       }
+
+      setSuccess("Reminder marked as completed!");
+      await fetchReminders();
     } catch {
       setError("Server error. Is your backend running?");
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -223,6 +266,7 @@ export default function PremiumReminders() {
       return;
     }
 
+    setBusyId(id);
     setError("");
     setSuccess("");
 
@@ -240,36 +284,17 @@ export default function PremiumReminders() {
 
       if (!res.ok) {
         setError(data?.message || "Failed to snooze reminder.");
-      } else {
-        setSuccess(`Reminder snoozed by ${days} day(s)!`);
-        await fetchReminders();
+        return;
       }
+
+      setSuccess(`Reminder snoozed by ${days} day(s)!`);
+      await fetchReminders();
     } catch {
       setError("Server error. Is your backend running?");
+    } finally {
+      setBusyId(null);
     }
   };
-
-  useEffect(() => {
-    const savedToken = localStorage.getItem("pawfection_token");
-    const savedRole = String(
-      localStorage.getItem("pawfection_role") || ""
-    ).toLowerCase();
-
-    if (!savedToken) {
-      navigate("/login");
-      return;
-    }
-
-    if (savedRole === "admin") {
-      navigate("/admin-dashboard");
-      return;
-    }
-
-    localStorage.setItem("pawfection_account_type", "premium");
-    loadUserName();
-    fetchReminders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const groupedReminders = useMemo(() => {
     const todayDate = new Date();
@@ -320,18 +345,9 @@ export default function PremiumReminders() {
   }, [reminders]);
 
   const mostUrgentReminder = useMemo(() => {
-    if (groupedReminders.overdue.length > 0) {
-      return groupedReminders.overdue[0];
-    }
-
-    if (groupedReminders.today.length > 0) {
-      return groupedReminders.today[0];
-    }
-
-    if (groupedReminders.upcoming.length > 0) {
-      return groupedReminders.upcoming[0];
-    }
-
+    if (groupedReminders.overdue.length > 0) return groupedReminders.overdue[0];
+    if (groupedReminders.today.length > 0) return groupedReminders.today[0];
+    if (groupedReminders.upcoming.length > 0) return groupedReminders.upcoming[0];
     return null;
   }, [groupedReminders]);
 
@@ -341,8 +357,10 @@ export default function PremiumReminders() {
     if (!q) return groupedReminders;
 
     const matchesSearch = (r) => {
-      const hay =
-        `${r?.title || ""} ${r?.message || ""} ${r?.type || ""} ${r?.status || ""}`.toLowerCase();
+      const hay = `${r?.title || ""} ${r?.message || ""} ${r?.type || ""} ${
+        r?.status || ""
+      } ${formatDate(r?.reminder_date)}`.toLowerCase();
+
       return hay.includes(q);
     };
 
@@ -385,28 +403,109 @@ export default function PremiumReminders() {
       upcoming: groupedReminders.upcoming.length,
       overdue: groupedReminders.overdue.length,
       completed: groupedReminders.completed.length,
+      total: reminders.length,
     };
-  }, [groupedReminders]);
+  }, [groupedReminders, reminders]);
+
+  const filteredCount = useMemo(() => {
+    return (
+      searchedGroupedReminders.overdue.length +
+      searchedGroupedReminders.today.length +
+      searchedGroupedReminders.upcoming.length +
+      searchedGroupedReminders.completed.length
+    );
+  }, [searchedGroupedReminders]);
 
   const insightText = getSuggestionText({
     ...groupedReminders,
     mostUrgent: mostUrgentReminder,
   });
 
-  const todayText = useMemo(() => {
-    return new Date().toLocaleDateString("en-IE", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  }, []);
+  const reminderSliderItems = useMemo(() => {
+    return [
+      {
+        icon: "✨",
+        title: "Generate Reminders",
+        text: "Create automatic care reminders based on your pet details and premium care plan.",
+        action: working ? "Generating" : "Generate now",
+        onClick: generateReminders,
+      },
+      {
+        icon: "📅",
+        title: "Due Today",
+        text:
+          heroStats.today > 0
+            ? `${heroStats.today} reminder${heroStats.today === 1 ? "" : "s"} due today.`
+            : "No reminders due today. Your routine looks calm.",
+        action: "View today",
+        onClick: () => {
+          setFilter("Today");
+          document.querySelector(".pfr-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+      {
+        icon: "⚠️",
+        title: "Overdue Care",
+        text:
+          heroStats.overdue > 0
+            ? `${heroStats.overdue} overdue reminder${
+                heroStats.overdue === 1 ? "" : "s"
+              } need attention.`
+            : "No overdue reminders right now.",
+        action: "Check overdue",
+        onClick: () => {
+          setFilter("Overdue");
+          document.querySelector(".pfr-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+      {
+        icon: "🗓️",
+        title: "Upcoming Plan",
+        text:
+          heroStats.upcoming > 0
+            ? `${heroStats.upcoming} upcoming reminder${
+                heroStats.upcoming === 1 ? "" : "s"
+              } planned.`
+            : "No upcoming reminders yet.",
+        action: "View upcoming",
+        onClick: () => {
+          setFilter("Upcoming");
+          document.querySelector(".pfr-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+      {
+        icon: "✅",
+        title: "Completed Tasks",
+        text:
+          heroStats.completed > 0
+            ? `${heroStats.completed} completed reminder${
+                heroStats.completed === 1 ? "" : "s"
+              }.`
+            : "Completed reminders will appear here.",
+        action: "View completed",
+        onClick: () => {
+          setFilter("Completed");
+          document.querySelector(".pfr-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+      {
+        icon: "🔎",
+        title: "Smart Search",
+        text: "Search reminders by title, type, status, date, or message to find tasks faster.",
+        action: "Search",
+        onClick: () => {
+          document.querySelector(".pfr-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heroStats, working]);
 
   return (
-    <div className="pfd-shell pfr-premium-shell">
-      <header className="pfd-site-header">
+    <div className="pfr-shell">
+      <header className="pfr-site-header">
         <div
-          className="pfd-brand"
+          className="pfr-brand"
           onClick={() => navigate("/premium-dashboard")}
           role="button"
           tabIndex={0}
@@ -414,280 +513,456 @@ export default function PremiumReminders() {
             if (e.key === "Enter" || e.key === " ") navigate("/premium-dashboard");
           }}
         >
-          <img className="pfd-brand-logo" src={PawfectionLogo} alt="Pawfection" />
-          <div className="pfd-brand-copy">
-            <div className="pfd-brand-title">Pawfection</div>
-            <div className="pfd-brand-sub">Premium Reminders</div>
+          <img className="pfr-brand-logo" src={PawfectionLogo} alt="Pawfection" />
+          <div className="pfr-brand-copy">
+            <div className="pfr-brand-title">Pawfection</div>
+            <div className="pfr-brand-sub">Premium Reminders</div>
           </div>
         </div>
 
-        <nav className="pfd-topnav">
-          <Link className="pfd-topnav-item" to="/premium-dashboard">
+        <nav className="pfr-topnav">
+          <Link className="pfr-topnav-item" to="/premium-dashboard">
             Premium Dashboard
           </Link>
-          <Link className="pfd-topnav-item" to="/premium-mypets">
-            My Pets
+          <Link className="pfr-topnav-item" to="/premium-mypets">
+            My Pet
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/appointments">
+          <Link className="pfr-topnav-item" to="/premium/appointments">
             Appointments
           </Link>
-          <Link className="pfd-topnav-item active" to="/premium/reminders">
+          <Link className="pfr-topnav-item active" to="/premium/reminders">
             Reminders
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/lostfound">
+          <Link className="pfr-topnav-item" to="/premium/lostfound">
             Lost &amp; Found
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/community">
+          <Link className="pfr-topnav-item" to="/premium/community">
             Community
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/inventory">
+          <Link className="pfr-topnav-item" to="/premium/inventory">
             Inventory
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/vet-chat">
+          <Link className="pfr-topnav-item" to="/premium/vet-chat">
             AI Pet Assistant
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/profile">
+          <Link className="pfr-topnav-item" to="/premium/profile">
             Profile
           </Link>
         </nav>
 
-        <div className="pfd-header-side">
-          <div className="pfd-header-meta">
-            <div className="pfd-date-pill">{todayText}</div>
-
-            <div className="pfd-userchip" title={userName}>
-              <div className="pfd-avatar">{(userName?.[0] || "U").toUpperCase()}</div>
-              <div className="pfd-userchip-text">
-                <div className="pfd-userchip-name">{userName}</div>
-                <div className="pfd-userchip-sub">Premium User</div>
-              </div>
+        <div className="pfr-header-side">
+          <div className="pfr-date-pill">{todayText}</div>
+          <div className="pfr-userchip">
+            <div className="pfr-avatar">{(userName?.[0] || "U").toUpperCase()}</div>
+            <div>
+              <div className="pfr-userchip-name">{userName}</div>
+              <div className="pfr-userchip-sub">Premium User</div>
             </div>
-          </div>
-
-          <div className="pfd-search">
-            <input
-              type="text"
-              placeholder="Search reminders..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
           </div>
         </div>
       </header>
 
-      <main className="pfd-main">
-        <section className="pfr-hero-card">
+      <main className="pfr-main">
+        <section className="pfr-hero">
           <div className="pfr-hero-copy">
-            <div className="pfr-kicker">Premium Reminders</div>
-            <h1 className="pfr-title">Smart pet care planning</h1>
-            <p className="pfr-subtitle">
-              View overdue, today, upcoming, and completed reminders in one organised premium space.
+            <div className="pfr-kicker">Pawfection Premium Care</div>
+            <h1 className="pfr-hero-title">
+              {getGreeting()}, {userName}
+            </h1>
+            <p className="pfr-hero-text">
+              Manage pet care reminders in a polished premium space. Track overdue,
+              today, upcoming, and completed tasks with smart reminders for vaccines,
+              grooming, birthdays, check-ups, and medication.
             </p>
+
+            <div className="pfr-selector-wrap">
+              <label htmlFor="reminderFocusSelect" className="pfr-selector-label">
+                Reminder Focus
+              </label>
+              <select
+                id="reminderFocusSelect"
+                className="pfr-selector"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              >
+                {FILTERS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div className="pfr-hero-actions">
               <button
-                className="pfd-btn pfd-btn-primary"
+                className="pfr-btn pfr-btn-primary"
+                type="button"
                 onClick={generateReminders}
                 disabled={working}
               >
-                {working ? "Generating..." : "+ Generate Reminders"}
+                {working ? "Generating..." : "Generate Reminders"}
               </button>
 
               <button
-                className="pfd-btn"
+                className="pfr-btn"
+                type="button"
                 onClick={fetchReminders}
                 disabled={loading}
               >
-                {loading ? "Refreshing..." : "Refresh"}
+                {loading ? "Refreshing..." : "Refresh Reminders"}
+              </button>
+
+              <button
+                className="pfr-btn"
+                type="button"
+                onClick={() => navigate("/premium-dashboard")}
+              >
+                Back to Dashboard
               </button>
             </div>
+
+            {error && <div className="pfr-form-message pfr-form-error">{error}</div>}
+            {success && <div className="pfr-form-message pfr-form-success">{success}</div>}
           </div>
 
-          <div className="pfr-insight-card">
-            <div className="pfr-insight-label">Smart Insight</div>
-            <div className="pfr-insight-text">{insightText}</div>
+          <div className="pfr-hero-card">
+            <div className="pfr-hero-card-top">
+              <div className="pfr-premium-badge">Premium Active</div>
+              <h2>Care Reminders</h2>
+              <p>Smart planning for your pet care routine</p>
+            </div>
+
+            <div className="pfr-stat-row">
+              <div className="pfr-stat-pill">Total: {heroStats.total}</div>
+              <div className="pfr-stat-pill">Today: {heroStats.today}</div>
+              <div className="pfr-stat-pill">Upcoming: {heroStats.upcoming}</div>
+              <div className="pfr-stat-pill">Overdue: {heroStats.overdue}</div>
+            </div>
+
+            <div className="pfr-quick-box">
+              <strong>SMART INSIGHT</strong>
+              <span>{insightText}</span>
+            </div>
+
+            <div className="pfr-quick-box">
+              <strong>MOST URGENT</strong>
+              <span>
+                {mostUrgentReminder
+                  ? `${typeIcon(mostUrgentReminder.type)} ${
+                      mostUrgentReminder.title || "Reminder"
+                    } • Due ${formatDate(mostUrgentReminder.reminder_date)}`
+                  : "No urgent reminders right now"}
+              </span>
+            </div>
+
+            <div className="pfr-quick-box">
+              <strong>PREMIUM BENEFIT</strong>
+              <span>
+                Automatic reminder generation, cleaner care tracking, and better visibility.
+              </span>
+            </div>
           </div>
         </section>
 
-        {mostUrgentReminder && (
-          <section className="pfr-urgent-card">
-            <div className="pfr-urgent-left">
-              <div className="pfr-urgent-kicker">Most Urgent Reminder</div>
-              <h2 className="pfr-urgent-title">
-                {typeIcon(mostUrgentReminder.type)} {mostUrgentReminder.title}
-              </h2>
-              <p className="pfr-urgent-text">
-                {mostUrgentReminder.message || "This reminder needs your attention first."}
-              </p>
-
-              <div className="pfr-urgent-meta">
-                <span className={`pfr-type-badge pfr-type-${(mostUrgentReminder.type || "").toLowerCase()}`}>
-                  {typeLabel(mostUrgentReminder.type)}
-                </span>
-                <span className="pfr-status-badge">
-                  {mostUrgentReminder.status || "pending"}
-                </span>
-                <span className="pfr-urgent-date">
-                  Due: {formatDate(mostUrgentReminder.reminder_date)}
-                </span>
-              </div>
+        <section className="pfr-auto-section">
+          <div className="pfr-auto-head">
+            <div>
+              <div className="pfr-card-kicker">Premium reminder shortcuts</div>
+              <h2>Your pet care tasks sliding automatically</h2>
             </div>
 
-            <div className="pfr-urgent-actions">
-              <button
-                className="pfd-btn pfd-btn-small"
-                onClick={() => snoozeReminder(mostUrgentReminder.id, 1)}
-              >
-                Snooze 1d
-              </button>
-              <button
-                className="pfd-btn pfd-btn-small"
-                onClick={() => snoozeReminder(mostUrgentReminder.id, 7)}
-              >
-                Snooze 7d
-              </button>
-              <button
-                className="pfd-btn pfd-btn-small pfd-btn-primary"
-                onClick={() => completeReminder(mostUrgentReminder.id)}
-              >
-                Mark done
-              </button>
-            </div>
-          </section>
-        )}
-
-        {error && <div className="pfr-alert pfr-alert-error">{error}</div>}
-        {success && <div className="pfr-alert pfr-alert-success">{success}</div>}
-
-        <section className="pfr-summary-grid">
-          <article className="pfr-summary-card">
-            <div className="pfr-summary-label">Today</div>
-            <div className="pfr-summary-value">{heroStats.today}</div>
-          </article>
-
-          <article className="pfr-summary-card">
-            <div className="pfr-summary-label">Upcoming</div>
-            <div className="pfr-summary-value">{heroStats.upcoming}</div>
-          </article>
-
-          <article className="pfr-summary-card pfr-summary-card-overdue">
-            <div className="pfr-summary-label">Overdue</div>
-            <div className="pfr-summary-value">{heroStats.overdue}</div>
-          </article>
-
-          <article className="pfr-summary-card pfr-summary-card-completed">
-            <div className="pfr-summary-label">Completed</div>
-            <div className="pfr-summary-value">{heroStats.completed}</div>
-          </article>
-        </section>
-
-        <section className="pfr-filter-row">
-          {FILTERS.map((item) => (
-            <button
-              key={item}
-              className={`pfr-filter-pill ${filter === item ? "active" : ""}`}
-              onClick={() => setFilter(item)}
-            >
-              {item}
-            </button>
-          ))}
-        </section>
-
-        {loading && <div className="pfr-empty">Loading reminders…</div>}
-
-        {!loading && reminders.length === 0 && (
-          <div className="pfr-empty">
-            No reminders yet. Click <b>Generate Reminders</b> to create them from your pet data.
+            <div className="pfr-auto-pill">Auto sliding ✨</div>
           </div>
-        )}
 
-        {!loading && reminders.length > 0 && (
-          <section className="pfr-sections">
-            {visibleSections.map((section) => (
-              <article className="pfr-section-card" key={section.title}>
-                <div className="pfr-section-head">
-                  <div>
-                    <div className="pfr-section-kicker">Reminder Group</div>
-                    <h2>{section.title}</h2>
-                  </div>
-                  <span className="pfr-section-count">{section.items.length}</span>
+          <div className="pfr-slider-mask">
+            <div className="pfr-slider-track">
+              {[0, 1].map((groupIndex) => (
+                <div className="pfr-slider-group" key={groupIndex}>
+                  {reminderSliderItems.map((item, index) => (
+                    <button
+                      key={`${groupIndex}-${index}`}
+                      type="button"
+                      className="pfr-slide-card"
+                      onClick={item.onClick}
+                      disabled={item.title === "Generate Reminders" && working}
+                    >
+                      <span>{item.icon}</span>
+                      <strong>{item.title}</strong>
+                      <p>{item.text}</p>
+                      <small>{item.action}</small>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="pfr-slider-dots">
+            <span></span>
+            <span className="active"></span>
+            <span></span>
+            <span></span>
+          </div>
+        </section>
+
+        <section className="pfr-grid">
+          <article className="pfr-card">
+            <div className="pfr-card-kicker">Premium Search</div>
+            <h3>Find Your Reminder Fast</h3>
+
+            <div className="pfr-field" style={{ marginTop: "14px" }}>
+              <label>Search</label>
+              <input
+                type="text"
+                placeholder="Search by title, type, status, date, message..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div className="pfr-filter-pills">
+              {FILTERS.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className={`pfr-filter-pill ${filter === item ? "active" : ""}`}
+                  onClick={() => setFilter(item)}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+
+            <div className="pfr-search-meta">
+              {!searchTerm.trim() ? (
+                <span>
+                  Showing reminders: <strong>{heroStats.total}</strong>
+                </span>
+              ) : (
+                <span>
+                  Results for "<strong>{searchTerm}</strong>":{" "}
+                  <strong>{filteredCount}</strong>
+                </span>
+              )}
+            </div>
+
+            {searchTerm.trim() && (
+              <>
+                <div style={{ marginTop: "12px" }}>
+                  <button
+                    type="button"
+                    className="pfr-btn pfr-btn-small"
+                    onClick={() => setSearchTerm("")}
+                  >
+                    Clear Search
+                  </button>
                 </div>
 
-                {section.items.length === 0 ? (
-                  <div className="pfr-empty-inline">No reminders in this section.</div>
-                ) : (
-                  <div className="pfr-reminder-list">
-                    {section.items.map((r) => {
-                      const priority = getPriority(r);
-                      const isCompleted =
-                        (r?.status || "").toLowerCase() === "completed";
+                <div className="pfr-search-results">
+                  {filteredCount === 0 ? (
+                    <div className="pfr-empty" style={{ marginTop: "14px" }}>
+                      No reminders match "{searchTerm}".
+                    </div>
+                  ) : (
+                    Object.entries(searchedGroupedReminders).flatMap(([groupName, items]) =>
+                      items.map((r) => (
+                        <div key={`search-${groupName}-${r.id}`} className="pfr-search-card">
+                          <div className="pfr-search-card-head">
+                            <div className="pfr-search-card-title">
+                              {typeIcon(r.type)} {r.title || "Reminder"}
+                            </div>
 
-                      return (
-                        <div key={r.id} className="pfr-reminder-card">
-                          <div className="pfr-reminder-top">
+                            <div className="pfr-chip-wrap">
+                              <span className="pfr-chip">{typeLabel(r.type)}</span>
+                              <span className="pfr-chip">{formatDate(r.reminder_date)}</span>
+                            </div>
+                          </div>
+
+                          <div className="pfr-search-detail-grid">
                             <div>
-                              <div className="pfr-reminder-title-row">
-                                <h3>
-                                  <span className="pfr-inline-icon">{typeIcon(r.type)}</span>{" "}
-                                  {r.title || "Reminder"}
-                                </h3>
-                                <span className={`pfr-type-badge pfr-type-${(r.type || "").toLowerCase()}`}>
-                                  {typeLabel(r.type)}
-                                </span>
-                              </div>
-
-                              <p className="pfr-reminder-message">
-                                {r.message || "No extra details provided."}
-                              </p>
+                              <strong>Status:</strong> {r.status || "pending"}
                             </div>
-
-                            <div className={`pfr-priority-badge ${priority}`}>
-                              {priority} priority
+                            <div>
+                              <strong>Group:</strong> {groupName}
+                            </div>
+                            <div>
+                              <strong>Message:</strong>{" "}
+                              {r.message || "No extra details provided."}
                             </div>
                           </div>
 
-                          <div className="pfr-reminder-bottom">
-                            <div className="pfr-reminder-meta">
-                              <span>Due: {formatDate(r.reminder_date)}</span>
-                              <span className="pfr-status-badge">
-                                {r.status || "pending"}
-                              </span>
+                          {(r?.status || "").toLowerCase() !== "completed" && (
+                            <div className="pfr-timeline-actions">
+                              <button
+                                className="pfr-btn pfr-btn-small"
+                                type="button"
+                                onClick={() => snoozeReminder(r.id, 1)}
+                                disabled={busyId === r.id}
+                              >
+                                Snooze 1d
+                              </button>
+
+                              <button
+                                className="pfr-btn pfr-btn-small"
+                                type="button"
+                                onClick={() => snoozeReminder(r.id, 7)}
+                                disabled={busyId === r.id}
+                              >
+                                Snooze 7d
+                              </button>
+
+                              <button
+                                className="pfr-btn pfr-btn-primary pfr-btn-small"
+                                type="button"
+                                onClick={() => completeReminder(r.id)}
+                                disabled={busyId === r.id}
+                              >
+                                Mark done
+                              </button>
                             </div>
-
-                            {!isCompleted && (
-                              <div className="pfr-reminder-actions">
-                                <button
-                                  className="pfd-btn pfd-btn-small"
-                                  onClick={() => snoozeReminder(r.id, 1)}
-                                >
-                                  Snooze 1d
-                                </button>
-
-                                <button
-                                  className="pfd-btn pfd-btn-small"
-                                  onClick={() => snoozeReminder(r.id, 7)}
-                                >
-                                  Snooze 7d
-                                </button>
-
-                                <button
-                                  className="pfd-btn pfd-btn-small pfd-btn-primary"
-                                  onClick={() => completeReminder(r.id)}
-                                >
-                                  Mark done
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
-                      );
-                    })}
+                      ))
+                    )
+                  )}
+                </div>
+              </>
+            )}
+          </article>
+
+          <article className="pfr-card">
+            <div className="pfr-card-kicker">Reminder Snapshot</div>
+            <h3>Quick Summary</h3>
+
+            <div className="pfr-analytics-grid">
+              <div className="pfr-analytics-box">
+                <span>Total</span>
+                <strong>{heroStats.total}</strong>
+              </div>
+              <div className="pfr-analytics-box">
+                <span>Today</span>
+                <strong>{heroStats.today}</strong>
+              </div>
+              <div className="pfr-analytics-box">
+                <span>Upcoming</span>
+                <strong>{heroStats.upcoming}</strong>
+              </div>
+              <div className="pfr-analytics-box">
+                <span>Completed</span>
+                <strong>{heroStats.completed}</strong>
+              </div>
+            </div>
+          </article>
+
+          <article className="pfr-card pfr-card-wide">
+            <div className="pfr-card-kicker">Reminder Timeline</div>
+            <h3>Your Premium Reminders</h3>
+
+            {loading ? (
+              <div className="pfr-empty">Loading reminders...</div>
+            ) : reminders.length === 0 ? (
+              <div className="pfr-empty">
+                No reminders yet. Click <b>Generate Reminders</b> to create them from your
+                pet data.
+              </div>
+            ) : (
+              <div className="pfr-sections">
+                {visibleSections.map((section) => (
+                  <div className="pfr-section-block" key={section.title}>
+                    <div className="pfr-section-head">
+                      <div>
+                        <div className="pfr-section-kicker">Reminder Group</div>
+                        <h2>{section.title}</h2>
+                      </div>
+                      <span className="pfr-section-count">{section.items.length}</span>
+                    </div>
+
+                    {section.items.length === 0 ? (
+                      <div className="pfr-empty-inline">No reminders in this section.</div>
+                    ) : (
+                      <div className="pfr-timeline">
+                        {section.items.map((r, index) => {
+                          const priority = getPriority(r);
+                          const isCompleted =
+                            (r?.status || "").toLowerCase() === "completed";
+
+                          return (
+                            <div key={r.id || index} className="pfr-timeline-item">
+                              <div className="pfr-timeline-dot" />
+
+                              <div className="pfr-timeline-content">
+                                <div className="pfr-timeline-top">
+                                  <div>
+                                    <div className="pfr-timeline-title">
+                                      {typeIcon(r.type)} {r.title || "Reminder"}
+                                    </div>
+                                    <div className="pfr-timeline-text">
+                                      {r.message || "No extra details provided."}
+                                    </div>
+                                    <div className="pfr-timeline-sub">
+                                      Due: {formatDate(r.reminder_date)}
+                                    </div>
+                                  </div>
+
+                                  <div className="pfr-chip-wrap">
+                                    <span
+                                      className={`pfr-type-badge pfr-type-${(
+                                        r.type || ""
+                                      ).toLowerCase()}`}
+                                    >
+                                      {typeLabel(r.type)}
+                                    </span>
+                                    <span className="pfr-chip">
+                                      {r.status || "pending"}
+                                    </span>
+                                    <span className={`pfr-priority-badge ${priority}`}>
+                                      {priority} priority
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {!isCompleted && (
+                                  <div className="pfr-timeline-actions">
+                                    <button
+                                      className="pfr-btn pfr-btn-small"
+                                      type="button"
+                                      onClick={() => snoozeReminder(r.id, 1)}
+                                      disabled={busyId === r.id}
+                                    >
+                                      Snooze 1d
+                                    </button>
+
+                                    <button
+                                      className="pfr-btn pfr-btn-small"
+                                      type="button"
+                                      onClick={() => snoozeReminder(r.id, 7)}
+                                      disabled={busyId === r.id}
+                                    >
+                                      Snooze 7d
+                                    </button>
+
+                                    <button
+                                      className="pfr-btn pfr-btn-primary pfr-btn-small"
+                                      type="button"
+                                      onClick={() => completeReminder(r.id)}
+                                      disabled={busyId === r.id}
+                                    >
+                                      {busyId === r.id ? "Saving..." : "Mark done"}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </article>
-            ))}
-          </section>
-        )}
+                ))}
+              </div>
+            )}
+          </article>
+        </section>
       </main>
     </div>
   );

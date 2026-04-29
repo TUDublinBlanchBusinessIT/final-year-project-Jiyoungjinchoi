@@ -25,6 +25,7 @@ export default function PremiumProfile() {
   });
 
   const [pets, setPets] = useState([]);
+  const [activePetIndex, setActivePetIndex] = useState(0);
   const [loadingPets, setLoadingPets] = useState(true);
   const [petsError, setPetsError] = useState("");
 
@@ -74,6 +75,16 @@ export default function PremiumProfile() {
     fetchPets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
+
+  useEffect(() => {
+    if (pets.length <= 1) return;
+
+    const timer = setInterval(() => {
+      setActivePetIndex((prev) => (prev + 1) % pets.length);
+    }, 3500);
+
+    return () => clearInterval(timer);
+  }, [pets.length]);
 
   const loadStoredUser = () => {
     try {
@@ -144,11 +155,24 @@ export default function PremiumProfile() {
       if (!response.ok) {
         setPets([]);
         setPetsError(data?.message || "Failed to load pets.");
+        setActivePetIndex(0);
         return;
       }
 
-      const petList = Array.isArray(data) ? data : data?.pets || [];
+      const petList = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.pets)
+        ? data.pets
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
+
       setPets(petList);
+
+      setActivePetIndex((prev) => {
+        if (!petList.length) return 0;
+        return prev >= petList.length ? 0 : prev;
+      });
 
       if (petList.length > 0) {
         setSelectedPetId((prev) => prev || String(petList[0].id));
@@ -156,6 +180,7 @@ export default function PremiumProfile() {
     } catch {
       setPets([]);
       setPetsError("Server error. Is your backend running?");
+      setActivePetIndex(0);
     } finally {
       setLoadingPets(false);
     }
@@ -176,6 +201,11 @@ export default function PremiumProfile() {
       null
     );
   }, [pets, selectedPetId]);
+
+  const summaryPet = useMemo(() => {
+    if (!pets.length) return null;
+    return pets[activePetIndex] || pets[0] || null;
+  }, [pets, activePetIndex]);
 
   useEffect(() => {
     if (!selectedPet) {
@@ -240,76 +270,105 @@ export default function PremiumProfile() {
     return diff >= 0 ? `${diff} day${diff === 1 ? "" : "s"}` : "Due soon";
   }, [renewalDate]);
 
-  const premiumBenefits = useMemo(() => {
+  const profileSliderItems = useMemo(() => {
     return [
-      {
-        icon: "✨",
-        title: "Premium Benefits",
-        text: "Access exclusive Pawfection tools, enhanced care support, and upgraded profile features.",
-      },
-      {
-        icon: "🩺",
-        title: "Smart Pet Insights",
-        text: "See personalised care guidance, helpful recommendations, and premium pet summaries.",
-      },
-      {
-        icon: "🌈",
-        title: "Memorial Customisation",
-        text: "Create a more personal Rainbow Bridge memorial with custom message, theme, and visibility.",
-      },
-      {
-        icon: "🐾",
-        title: "Multi-Pet View",
-        text: "Manage all your pets in one beautiful premium dashboard with clearer overview cards.",
-      },
       {
         icon: "💬",
         title: "AI Pet Assistant",
-        text: "Use premium support tools like the AI Pet Assistant and other premium experiences.",
+        text: "Use pet-aware AI support for health, behaviour, feeding, grooming, travel, and planning.",
+        action: "Open AI assistant",
+        route: "/premium/vet-chat",
+      },
+      {
+        icon: "⚙️",
+        title: "Account Settings",
+        text: "Update your password, notification preferences, logout, or manage account actions.",
+        action: "Manage settings",
+        tab: "settings",
+      },
+      {
+        icon: "👤",
+        title: "Profile Centre",
+        text: "Keep your personal details, contact information, and Premium account status organised.",
+        action: "View overview",
+        tab: "overview",
+      },
+      {
+        icon: "⭐",
+        title: "Premium Membership",
+        text: `Your Premium plan is active at ${monthlyPrice} per month with upgraded Pawfection tools.`,
+        action: "View membership",
+        tab: "billing",
+      },
+      {
+        icon: "🐾",
+        title: "My Pet Profiles",
+        text: `You currently have ${pets.length} pet${pets.length === 1 ? "" : "s"} connected to your Premium account.`,
+        action: "Open my pets",
+        route: "/premium-mypets",
+      },
+      {
+        icon: "🌈",
+        title: "Rainbow Bridge",
+        text: "Create and customise a premium memorial profile with a message, theme, and visibility option.",
+        action: "Customise memorial",
+        tab: "memorial",
       },
     ];
-  }, []);
+  }, [monthlyPrice, pets.length]);
 
-  const insightCards = useMemo(() => {
-    const totalPets = pets.length;
-    const activeCount = activePets.length;
-    const memorialCount = memorialPets.length;
-
+  const bottomSliderItems = useMemo(() => {
     return [
       {
-        title: "Multi-pet overview",
-        text:
-          totalPets > 0
-            ? `You currently have ${totalPets} pet${totalPets > 1 ? "s" : ""} in Pawfection, with ${activeCount} active and ${memorialCount} memorial profile${memorialCount === 1 ? "" : "s"}.`
-            : "Add your first pet to begin using your Premium care dashboard.",
-        type: "good",
+        icon: "🐾",
+        title: "Pet Summary",
+        text: `You have ${pets.length} pet${pets.length === 1 ? "" : "s"} in Pawfection with ${activePets.length} active profile${activePets.length === 1 ? "" : "s"}.`,
+        action: "View pet summary",
+        tab: "overview",
       },
       {
-        title: "Premium membership active",
-        text: `Your Premium membership is active at ${monthlyPrice} per month.`,
-        type: "good",
+        icon: "⭐",
+        title: "Premium Plan",
+        text: `Premium is active at ${monthlyPrice} per month with upgraded Pawfection tools.`,
+        action: "View membership",
+        tab: "billing",
       },
       {
-        title: "Profile completeness",
-        text:
-          user.phone !== "Not Provided" && user.address !== "Not Provided"
-            ? "Your account profile looks nicely filled in."
-            : "Add your phone and address details to complete your profile.",
-        type:
-          user.phone !== "Not Provided" && user.address !== "Not Provided"
-            ? "good"
-            : "medium",
+        icon: "🌈",
+        title: "Memorial Tools",
+        text: "Create a private or public Rainbow Bridge memorial with custom message and theme.",
+        action: "Customise memorial",
+        tab: "memorial",
       },
       {
-        title: "Memorial customisation",
-        text:
-          memorialPets.length > 0
-            ? "You already have memorial profiles that can be personalised further."
-            : "You can create private or public premium memorials whenever needed.",
-        type: "medium",
+        icon: "⚙️",
+        title: "Account Controls",
+        text: "Manage password changes, notification preferences, logout, and account actions.",
+        action: "Open settings",
+        tab: "settings",
+      },
+      {
+        icon: "👤",
+        title: "Profile Snapshot",
+        text: `${user.full_name || "Your profile"} • ${user.email || "email not provided"}`,
+        action: "View overview",
+        tab: "overview",
+      },
+      {
+        icon: "💬",
+        title: "AI Pet Support",
+        text: "Open premium pet support for care, guidance, feeding, grooming, and planning.",
+        action: "Open assistant",
+        route: "/premium/vet-chat",
       },
     ];
-  }, [pets.length, activePets.length, memorialPets.length, monthlyPrice, user.phone, user.address]);
+  }, [
+    pets.length,
+    activePets.length,
+    monthlyPrice,
+    user.full_name,
+    user.email,
+  ]);
 
   const handlePasswordChange = (e) => {
     setPasswordForm((prev) => ({
@@ -496,10 +555,28 @@ export default function PremiumProfile() {
 
   const getPetImageSrc = (pet) => {
     if (!pet) return null;
+    if (pet?.display_photo_url) return pet.display_photo_url;
+    if (pet?.lost_photo_url) return pet.lost_photo_url;
     if (pet?.photo_url) return pet.photo_url;
+    if (pet?.image_url) return pet.image_url;
+    if (pet?.image) return pet.image;
     if (pet?.photo_path) return `http://127.0.0.1:8000/storage/${pet.photo_path}`;
     if (pet?.photo) return `http://127.0.0.1:8000/storage/${pet.photo}`;
     return null;
+  };
+
+  const getPetSummaryText = (pet) => {
+    if (!pet) return "Premium pet profile";
+
+    const parts = [];
+
+    if (pet?.breed) parts.push(pet.breed);
+    else if (pet?.species) parts.push(pet.species);
+
+    if (pet?.age) parts.push(`${pet.age} yrs`);
+    if (pet?.weight) parts.push(`${pet.weight}kg`);
+
+    return parts.length ? parts.join(" • ") : "Premium pet profile";
   };
 
   const handleMemorialInputChange = (e) => {
@@ -597,145 +674,199 @@ export default function PremiumProfile() {
     return "Good evening";
   };
 
-  const renderOverviewTab = () => {
+  const renderPetSummaryCard = () => {
     return (
-      <section className="ppp-grid">
-        <article className="ppp-card ppp-card-wide">
-          <div className="ppp-card-kicker">Premium Overview</div>
-          <h3>Your Premium Profile Centre</h3>
+      <article className="ppp-card ppp-card-wide ppp-pretty-pet-summary">
+        <div className="ppp-pet-summary-bg-paw">🐾</div>
 
-          <div className="ppp-summary-grid">
-            {insightCards.map((item, index) => (
-              <div key={index} className={`ppp-summary-item ppp-summary-${item.type}`}>
-                <div className="ppp-summary-item-title">{item.title}</div>
-                <div className="ppp-summary-item-text">{item.text}</div>
-              </div>
-            ))}
+        <div className="ppp-pet-summary-head">
+          <div>
+            <div className="ppp-card-kicker">Multi-Pet Premium</div>
+            <h3>Pet Summary</h3>
+            <p>
+              A quick premium overview of your pet profiles, active records, and memorial status.
+            </p>
           </div>
-        </article>
 
-        <article className="ppp-card">
-          <div className="ppp-card-kicker">Profile Snapshot</div>
-          <h3>Account Details</h3>
+          <button
+            type="button"
+            className="ppp-btn ppp-btn-primary"
+            onClick={() => navigate("/premium-mypets")}
+          >
+            Manage Pets
+          </button>
+        </div>
 
-          <div className="ppp-info-list">
-            <div><strong>Full Name</strong><span>{user.full_name}</span></div>
-            <div><strong>Email</strong><span>{user.email}</span></div>
-            <div><strong>Phone</strong><span>{user.phone}</span></div>
-            <div><strong>Address</strong><span>{user.address}</span></div>
-            <div><strong>Member Since</strong><span>{user.member_since}</span></div>
-            <div><strong>Account Type</strong><span>Premium</span></div>
-          </div>
-        </article>
-
-        <article className="ppp-card">
-          <div className="ppp-card-kicker">Premium Benefits</div>
-          <h3>What You Unlock</h3>
-
-          <div className="ppp-insight-list">
-            {premiumBenefits.map((item, index) => (
-              <div key={index} className="ppp-insight-item">
-                <div className="ppp-insight-icon">{item.icon}</div>
-                <div>
-                  <div className="ppp-insight-title">{item.title}</div>
-                  <div className="ppp-insight-text">{item.text}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="ppp-card">
-          <div className="ppp-card-kicker">Multi-Pet Premium</div>
-          <h3>Pet Summary</h3>
-
-          {loadingPets ? (
-            <div className="ppp-empty">Loading pets...</div>
-          ) : petsError ? (
-            <div className="ppp-empty">{petsError}</div>
-          ) : (
-            <>
-              <div className="ppp-analytics-grid">
-                <div className="ppp-analytics-box">
-                  <span>Total Pets</span>
-                  <strong>{pets.length}</strong>
-                </div>
-                <div className="ppp-analytics-box">
-                  <span>Active Pets</span>
-                  <strong>{activePets.length}</strong>
-                </div>
-                <div className="ppp-analytics-box">
-                  <span>Memorial Pets</span>
-                  <strong>{memorialPets.length}</strong>
-                </div>
-                <div className="ppp-analytics-box">
-                  <span>Selected Pet</span>
-                  <strong>{selectedPet?.name || "—"}</strong>
-                </div>
-              </div>
-
-              <div className="ppp-pet-mini-grid">
-                {pets.length === 0 ? (
-                  <div className="ppp-empty">No pets added yet.</div>
+        {loadingPets ? (
+          <div className="ppp-empty">Loading pets...</div>
+        ) : petsError ? (
+          <div className="ppp-empty">{petsError}</div>
+        ) : pets.length === 0 ? (
+          <div className="ppp-empty">No pets added yet.</div>
+        ) : (
+          <div className="ppp-pretty-pet-layout">
+            <div
+              className="ppp-featured-pet-card ppp-auto-changing-pet"
+              key={summaryPet?.id || "summary-pet"}
+            >
+              <div className="ppp-featured-pet-photo">
+                {getPetImageSrc(summaryPet) ? (
+                  <img src={getPetImageSrc(summaryPet)} alt={summaryPet?.name || "Pet"} />
                 ) : (
-                  pets.map((pet) => (
-                    <div key={pet.id} className="ppp-pet-mini-card">
-                      <div className="ppp-pet-mini-top">
-                        <div className="ppp-pet-mini-avatar">
-                          {getPetImageSrc(pet) ? (
-                            <img src={getPetImageSrc(pet)} alt={pet.name} />
-                          ) : (
-                            <span>🐾</span>
-                          )}
-                        </div>
-
-                        <div>
-                          <div className="ppp-pet-mini-name">{pet.name}</div>
-                          <div className="ppp-pet-mini-sub">
-                            {pet.breed || pet.species || "Pet profile"}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="ppp-pet-mini-status">
-                        {hasMemorialData(pet) ? "Memorial" : "Active"}
-                      </div>
-                    </div>
-                  ))
+                  <span>🐾</span>
                 )}
               </div>
-            </>
-          )}
-        </article>
 
-        <article className="ppp-card">
-          <div className="ppp-card-kicker">Premium Insights</div>
-          <h3>Personalised Guidance</h3>
+              <div className="ppp-featured-pet-info">
+                <div className="ppp-featured-label">Featured Pet</div>
+                <h4>{summaryPet?.name || "Your Pet"}</h4>
+                <p>{getPetSummaryText(summaryPet)}</p>
 
-          <div className="ppp-alert-list">
-            <div className="ppp-alert-item ppp-alert-good">
-              <div className="ppp-alert-title">Premium access confirmed</div>
-              <div className="ppp-alert-text">
-                Your Premium account keeps pet care, memorial tools, and personalised features in one place.
+                <div className="ppp-featured-status">
+                  {hasMemorialData(summaryPet) ? "🌈 Memorial Profile" : "💜 Active Profile"}
+                </div>
+
+                {pets.length > 1 && (
+                  <div className="ppp-pet-summary-dots">
+                    {pets.map((pet, index) => (
+                      <button
+                        key={pet.id}
+                        type="button"
+                        className={index === activePetIndex ? "active" : ""}
+                        onClick={() => setActivePetIndex(index)}
+                        aria-label={`Show ${pet.name}`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="ppp-alert-item ppp-alert-medium">
-              <div className="ppp-alert-title">Keep profile updated</div>
-              <div className="ppp-alert-text">
-                Updating contact details and pet information improves your overall Pawfection experience.
+            <div className="ppp-pretty-stats-area">
+              <div className="ppp-pretty-stat-card">
+                <span>Total Pets</span>
+                <strong>{pets.length}</strong>
+                <small>Saved profiles</small>
+              </div>
+
+              <div className="ppp-pretty-stat-card">
+                <span>Active Pets</span>
+                <strong>{activePets.length}</strong>
+                <small>Current care profiles</small>
+              </div>
+
+              <div className="ppp-pretty-stat-card">
+                <span>Memorial Pets</span>
+                <strong>{memorialPets.length}</strong>
+                <small>Rainbow Bridge</small>
+              </div>
+
+              <div className="ppp-pretty-stat-card">
+                <span>Highlighted Pet</span>
+                <strong>{summaryPet?.name || "—"}</strong>
+                <small>Auto changing</small>
               </div>
             </div>
 
-            <div className="ppp-alert-item ppp-alert-low">
-              <div className="ppp-alert-title">Use Premium tools often</div>
-              <div className="ppp-alert-text">
-                The more complete your pet records are, the more useful premium guidance becomes.
+            <div className="ppp-pet-progress-card">
+              <div>
+                <span>Profile Status</span>
+                <strong>
+                  {user.phone !== "Not Provided" && user.address !== "Not Provided"
+                    ? "Complete"
+                    : "Needs details"}
+                </strong>
               </div>
+
+              <div className="ppp-progress-track">
+                <div
+                  className={
+                    user.phone !== "Not Provided" && user.address !== "Not Provided"
+                      ? "ppp-progress-fill full"
+                      : "ppp-progress-fill"
+                  }
+                ></div>
+              </div>
+
+              <p>
+                {user.phone !== "Not Provided" && user.address !== "Not Provided"
+                  ? "Your premium profile details are nicely completed."
+                  : "Add phone and address details to make your profile feel more complete."}
+              </p>
+            </div>
+
+            <div className="ppp-pet-summary-actions">
+              <button type="button" onClick={() => navigate("/premium-mypets")}>
+                🐾 Open My Pets
+              </button>
+
+              <button type="button" onClick={() => setActiveTab("memorial")}>
+                🌈 Memorial Tools
+              </button>
+
+              <button type="button" onClick={() => navigate("/premium/reminders")}>
+                🔔 View Reminders
+              </button>
             </div>
           </div>
-        </article>
-      </section>
+        )}
+      </article>
+    );
+  };
+
+  const renderOverviewTab = () => {
+    return (
+      <>
+        <section className="ppp-bottom-auto-section">
+          <div className="ppp-bottom-auto-head">
+            <div>
+              <div className="ppp-card-kicker">Premium profile pages</div>
+              <h2>Your profile pages, sliding beautifully</h2>
+            </div>
+
+            <div className="ppp-bottom-auto-pill">Bottom auto slider ✨</div>
+          </div>
+
+          <div className="ppp-bottom-slider-mask">
+            <div className="ppp-bottom-slider-track">
+              {[0, 1].map((groupIndex) => (
+                <div className="ppp-bottom-slider-group" key={groupIndex}>
+                  {bottomSliderItems.map((item, index) => (
+                    <button
+                      key={`${groupIndex}-${index}`}
+                      type="button"
+                      className="ppp-bottom-slide-card"
+                      onClick={() => {
+                        if (item.route) {
+                          navigate(item.route);
+                        } else {
+                          setActiveTab(item.tab);
+                        }
+                      }}
+                    >
+                      <span>{item.icon}</span>
+                      <strong>{item.title}</strong>
+                      <p>{item.text}</p>
+                      <small>{item.action}</small>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="ppp-slider-dots">
+            <span></span>
+            <span className="active"></span>
+            <span></span>
+            <span></span>
+          </div>
+        </section>
+
+        <section className="ppp-grid ppp-pet-only-grid">
+          {renderPetSummaryCard()}
+        </section>
+      </>
     );
   };
 
@@ -1248,6 +1379,52 @@ export default function PremiumProfile() {
               <div><strong>Member Since</strong><span>{user.member_since}</span></div>
               <div><strong>Status</strong><span>Active</span></div>
             </div>
+          </div>
+        </section>
+
+        <section className="ppp-auto-section">
+          <div className="ppp-auto-head">
+            <div>
+              <div className="ppp-card-kicker">Premium profile shortcuts</div>
+              <h2>Everything in your profile, sliding automatically</h2>
+            </div>
+
+            <div className="ppp-auto-pill">Auto sliding ✨</div>
+          </div>
+
+          <div className="ppp-slider-mask">
+            <div className="ppp-slider-track">
+              {[0, 1].map((groupIndex) => (
+                <div className="ppp-slider-group" key={groupIndex}>
+                  {profileSliderItems.map((item, index) => (
+                    <button
+                      key={`${groupIndex}-${index}`}
+                      type="button"
+                      className="ppp-slide-card"
+                      onClick={() => {
+                        if (item.route) {
+                          navigate(item.route);
+                        } else {
+                          setActiveTab(item.tab);
+                        }
+                      }}
+                    >
+                      <span>{item.icon}</span>
+                      <strong>{item.title}</strong>
+                      <p>{item.text}</p>
+                      <small>{item.action}</small>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="ppp-slider-dots">
+            <span></span>
+            <span className="active"></span>
+            <span></span>
+            <span></span>
           </div>
         </section>
 

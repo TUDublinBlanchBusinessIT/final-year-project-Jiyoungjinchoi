@@ -58,16 +58,14 @@ export default function PremiumLostFound() {
   const userMarkerRef = useRef(null);
   const userCircleRef = useRef(null);
 
-  const fallbackImages = [
-    "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1525253086316-d0c936c814f8?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=1200&q=80",
-  ];
+  const todayText = useMemo(() => {
+    return new Date().toLocaleDateString("en-IE", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }, []);
 
   const supportQuotes = [
     {
@@ -89,6 +87,19 @@ export default function PremiumLostFound() {
   ];
 
   useEffect(() => {
+    const token = localStorage.getItem("pawfection_token");
+    const role = String(localStorage.getItem("pawfection_role") || "").toLowerCase();
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    if (role === "admin") {
+      navigate("/admin-dashboard");
+      return;
+    }
+
     try {
       const savedName = localStorage.getItem("pawfection_user_name");
 
@@ -116,7 +127,7 @@ export default function PremiumLostFound() {
       setUserName("User");
       localStorage.setItem("pawfection_account_type", "premium");
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (GOOGLE_MAPS_API_KEY) {
@@ -134,41 +145,143 @@ export default function PremiumLostFound() {
     }
   }, []);
 
+  const getReportType = (report) => {
+    return String(report?.type || report?.report_type || report?.category || "")
+      .toLowerCase()
+      .trim();
+  };
+
+  const isResolvedReport = (report) => {
+    const valuesToCheck = [
+      report?.status,
+      report?.report_status,
+      report?.lost_status,
+      report?.pet_status,
+      report?.lost_pet_status,
+      report?.resolution_status,
+      report?.sighting_status,
+      report?.state,
+      report?.lostPet?.status,
+      report?.lostPet?.lost_status,
+      report?.pet?.status,
+      report?.pet?.lost_status,
+      report?.lost_report?.status,
+      report?.lost_report?.report_status,
+    ]
+      .filter(Boolean)
+      .map((value) => String(value).toLowerCase().trim());
+
+    const resolvedWords = [
+      "resolved",
+      "found",
+      "closed",
+      "inactive",
+      "done",
+      "completed",
+      "complete",
+      "marked done",
+      "mark done",
+      "reunited",
+      "returned",
+      "safe",
+      "archived",
+    ];
+
+    return (
+      valuesToCheck.some((value) => resolvedWords.includes(value)) ||
+      report?.is_resolved === true ||
+      report?.resolved === true ||
+      report?.is_done === true ||
+      report?.done === true ||
+      report?.completed === true ||
+      report?.is_completed === true ||
+      Boolean(report?.resolved_at) ||
+      Boolean(report?.found_at) ||
+      Boolean(report?.completed_at) ||
+      Boolean(report?.done_at) ||
+      Boolean(report?.closed_at)
+    );
+  };
+
   const getImageUrl = (pathOrUrl) => {
     if (!pathOrUrl) return null;
 
+    const cleanPath = String(pathOrUrl).trim();
+
     if (
-      String(pathOrUrl).startsWith("http://") ||
-      String(pathOrUrl).startsWith("https://")
+      !cleanPath ||
+      cleanPath === "null" ||
+      cleanPath === "undefined" ||
+      cleanPath === "false"
     ) {
-      return pathOrUrl;
+      return null;
     }
 
-    return `${storageBase}/${String(pathOrUrl).replace(/^\/+/, "")}`;
+    if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
+      return cleanPath;
+    }
+
+    return `${storageBase}/${cleanPath.replace(/^\/+/, "")}`;
   };
 
-  const getFallbackImageForReport = (report) => {
-    const seedString = `${report.type || ""}-${report.id || ""}-${report.pet_name || report.name || ""}-${report.breed || ""}`;
-    let hash = 0;
+  const getPlaceholderImage = (report) => {
+    const name = report?.name || report?.pet_name || "Pet";
+    const type = getReportType(report) === "sighting" ? "Sighting" : "Lost Pet";
+    const initial = name?.charAt(0)?.toUpperCase() || "P";
 
-    for (let i = 0; i < seedString.length; i += 1) {
-      hash = seedString.charCodeAt(i) + ((hash << 5) - hash);
-    }
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+        <defs>
+          <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stop-color="#efeaff"/>
+            <stop offset="50%" stop-color="#f7fbff"/>
+            <stop offset="100%" stop-color="#dff8f4"/>
+          </linearGradient>
+          <linearGradient id="circle" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stop-color="#7d68f2"/>
+            <stop offset="100%" stop-color="#9a83ff"/>
+          </linearGradient>
+        </defs>
+        <rect width="1200" height="900" fill="url(#bg)"/>
+        <circle cx="250" cy="170" r="130" fill="#ffffff" opacity="0.55"/>
+        <circle cx="960" cy="210" r="165" fill="#ffffff" opacity="0.45"/>
+        <circle cx="560" cy="820" r="220" fill="#ffffff" opacity="0.38"/>
+        <circle cx="600" cy="390" r="150" fill="url(#circle)" opacity="0.92"/>
+        <text x="600" y="435" text-anchor="middle" font-size="128" font-family="Arial, sans-serif" font-weight="800" fill="#ffffff">${initial}</text>
+        <text x="600" y="620" text-anchor="middle" font-size="62" font-family="Arial, sans-serif" font-weight="800" fill="#2b1d57">${type}</text>
+        <text x="600" y="690" text-anchor="middle" font-size="38" font-family="Arial, sans-serif" font-weight="700" fill="#706b88">No photo uploaded</text>
+      </svg>
+    `;
 
-    const index = Math.abs(hash) % fallbackImages.length;
-    return fallbackImages[index];
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
   };
 
   const getReportImage = (report) => {
-    const realImages = [
-      report.display_photo_url,
-      report.lost_photo_url,
-      report.photo_url,
-      getImageUrl(report.lost_photo_path),
-      getImageUrl(report.photo_path),
+    const possibleImages = [
+      report?.display_photo_url,
+      report?.lost_photo_url,
+      report?.sighting_photo_url,
+      report?.photo_url,
+      report?.image_url,
+
+      report?.pet?.display_photo_url,
+      report?.pet?.photo_url,
+      report?.lostPet?.display_photo_url,
+      report?.lostPet?.photo_url,
+
+      getImageUrl(report?.lost_photo_path),
+      getImageUrl(report?.sighting_photo_path),
+      getImageUrl(report?.photo_path),
+      getImageUrl(report?.image_path),
+      getImageUrl(report?.photo),
+
+      getImageUrl(report?.pet?.photo_path),
+      getImageUrl(report?.pet?.photo),
+      getImageUrl(report?.lostPet?.photo_path),
+      getImageUrl(report?.lostPet?.photo),
     ].filter(Boolean);
 
-    return realImages[0] || getFallbackImageForReport(report);
+    return possibleImages[0] || getPlaceholderImage(report);
   };
 
   useEffect(() => {
@@ -206,21 +319,69 @@ export default function PremiumLostFound() {
           ? data
           : [];
 
-        const normalisedReports = incomingReports.map((report) => ({
+        const activeReportsOnly = incomingReports.filter((report) => {
+          return !isResolvedReport(report);
+        });
+
+        const activeLostReports = activeReportsOnly.filter((report) => {
+          return getReportType(report) === "lost";
+        });
+
+        const activeLostIds = new Set(
+          activeLostReports
+            .flatMap((report) => [
+              report.id,
+              report.pet_id,
+              report.lost_pet_id,
+              report.lost_report_id,
+              report.report_id,
+            ])
+            .filter((value) => value !== null && value !== undefined && value !== "")
+            .map((value) => String(value))
+        );
+
+        const filteredLinkedReports = activeReportsOnly.filter((report) => {
+          if (isResolvedReport(report)) return false;
+
+          const type = getReportType(report);
+
+          if (type === "lost") return true;
+
+          if (type === "sighting") {
+            const possibleLinkedIds = [
+              report.pet_id,
+              report.lost_pet_id,
+              report.lost_report_id,
+              report.report_id,
+            ]
+              .filter((value) => value !== null && value !== undefined && value !== "")
+              .map((value) => String(value));
+
+            return possibleLinkedIds.some((id) => activeLostIds.has(id));
+          }
+
+          return false;
+        });
+
+        const normalisedReports = filteredLinkedReports.map((report) => ({
           ...report,
+          type: getReportType(report),
           resolvedImage: getReportImage(report),
         }));
 
         setReports(normalisedReports);
       } catch (error) {
         console.error("Failed to fetch premium lost & found reports:", error);
-        setReportsError(error.message || "Unable to load lost and found reports right now.");
+        setReportsError(
+          error.message || "Unable to load lost and found reports right now."
+        );
       } finally {
         setLoadingReports(false);
       }
     };
 
     fetchReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -233,27 +394,56 @@ export default function PremiumLostFound() {
     return () => clearInterval(interval);
   }, [supportQuotes.length]);
 
+  const visibleReportPool = useMemo(() => {
+    return reports.filter((item) => {
+      return getReportType(item) !== "found" && !isResolvedReport(item);
+    });
+  }, [reports]);
+
+  const searchableText = (item) => {
+    return [
+      item.type,
+      item.name,
+      item.pet_name,
+      item.species,
+      item.breed,
+      item.area,
+      item.location,
+      item.last_seen_location,
+      item.sighting_location,
+      item.notes,
+      item.description,
+      item.message,
+      item.collar,
+      item.colour,
+      item.color,
+      item.markings,
+      item.behaviour,
+      item.behavior,
+      item.size,
+      item.gender,
+      item.fur_type,
+      item.eye_colour,
+      item.eye_color,
+      item.status,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+  };
+
   const filteredReports = useMemo(() => {
-    let items = [...reports];
+    let items = [...visibleReportPool];
 
     if (activeFilter === "priority") {
-      items = items.filter((item) => item.type === "lost" && item.priority);
+      items = items.filter((item) => getReportType(item) === "lost" && item.priority);
     } else if (activeFilter !== "all") {
-      items = items.filter((item) => item.type === activeFilter);
+      items = items.filter((item) => getReportType(item) === activeFilter);
     }
 
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase().trim();
-
-      items = items.filter(
-        (item) =>
-          String(item.name || item.pet_name || "").toLowerCase().includes(q) ||
-          String(item.breed || "").toLowerCase().includes(q) ||
-          String(item.area || item.last_seen_location || item.sighting_location || "")
-            .toLowerCase()
-            .includes(q) ||
-          String(item.species || "").toLowerCase().includes(q)
-      );
+      items = items.filter((item) => searchableText(item).includes(q));
     }
 
     if (useRadius && userLocation) {
@@ -278,47 +468,48 @@ export default function PremiumLostFound() {
     }
 
     return items;
-  }, [reports, activeFilter, searchTerm, useRadius, userLocation]);
+  }, [visibleReportPool, activeFilter, searchTerm, useRadius, userLocation]);
 
   const lostReports = useMemo(
-    () => reports.filter((item) => item.type === "lost"),
-    [reports]
+    () => visibleReportPool.filter((item) => getReportType(item) === "lost"),
+    [visibleReportPool]
   );
 
-  const foundReports = useMemo(
-    () => reports.filter((item) => item.type === "found"),
-    [reports]
+  const sightingReports = useMemo(
+    () => visibleReportPool.filter((item) => getReportType(item) === "sighting"),
+    [visibleReportPool]
   );
 
   const priorityReports = useMemo(
-    () => reports.filter((item) => item.priority && item.type === "lost"),
-    [reports]
+    () =>
+      visibleReportPool.filter(
+        (item) => item.priority && getReportType(item) === "lost"
+      ),
+    [visibleReportPool]
   );
 
   const visibleListReports = useMemo(() => {
     if (activeFilter === "lost") {
-      return filteredReports.filter((item) => item.type === "lost");
-    }
-
-    if (activeFilter === "found") {
-      return filteredReports.filter((item) => item.type === "found");
+      return filteredReports.filter((item) => getReportType(item) === "lost");
     }
 
     if (activeFilter === "sighting") {
-      return filteredReports.filter((item) => item.type === "sighting");
+      return filteredReports.filter((item) => {
+        return getReportType(item) === "sighting" && !isResolvedReport(item);
+      });
     }
 
     if (activeFilter === "priority") {
       return filteredReports.filter(
-        (item) => item.type === "lost" && item.priority
+        (item) => getReportType(item) === "lost" && item.priority
       );
     }
 
-    return filteredReports;
+    return filteredReports.filter((item) => getReportType(item) === "lost");
   }, [filteredReports, activeFilter]);
 
   const visibleLostReports = useMemo(
-    () => visibleListReports.filter((item) => item.type === "lost"),
+    () => visibleListReports.filter((item) => getReportType(item) === "lost"),
     [visibleListReports]
   );
 
@@ -337,8 +528,39 @@ export default function PremiumLostFound() {
   const activeAlertPet =
     premiumAlertPets[selectedAlertIndex] || premiumAlertPets[0] || null;
 
-  const activeSupportQuote =
-    supportQuotes[selectedSupportIndex] || supportQuotes[0];
+  const activeSupportQuote = supportQuotes[selectedSupportIndex] || supportQuotes[0];
+
+  const supportCloudItems = [
+    ...supportQuotes.map((quote, index) => ({
+      id: `quote-${index}`,
+      icon: ["☁️", "💜", "🐾", "✨"][index] || "☁️",
+      title: quote.title,
+      text: quote.text,
+      quoteIndex: index,
+      action: "Show message",
+    })),
+    {
+      id: "stay-calm",
+      icon: "🌙",
+      title: "Stay calm",
+      text: "Pets are often found close to where they were last seen. Staying calm helps you think clearly and act steadily.",
+      action: "Gentle reminder",
+    },
+    {
+      id: "keep-checking",
+      icon: "🔎",
+      title: "Keep checking",
+      text: "Review sightings, refresh your report, and revisit nearby places. Repeating the basics really can help.",
+      action: "Stay active",
+    },
+    {
+      id: "hold-hope",
+      icon: "💫",
+      title: "Hold onto hope",
+      text: "Many reunions happen because owners kept going, stayed visible, and followed up on every lead.",
+      action: "Keep going",
+    },
+  ];
 
   useEffect(() => {
     if (!spotlightPets.length) {
@@ -407,7 +629,17 @@ export default function PremiumLostFound() {
   };
 
   const handleViewReport = (report) => {
-    const targetId = report.type === "sighting" ? report.pet_id : report.id;
+    const type = getReportType(report);
+
+    const targetId =
+      type === "sighting"
+        ? report.lost_report_id ||
+          report.lost_pet_id ||
+          report.report_id ||
+          report.pet_id ||
+          report.id
+        : report.id;
+
     if (!targetId) return;
     navigate(`/premium/lostfound/view/${targetId}`);
   };
@@ -423,13 +655,6 @@ export default function PremiumLostFound() {
   };
 
   const getMarkerStyle = (type) => {
-    if (type === "found") {
-      return {
-        color: "#3bb273",
-        label: "F",
-      };
-    }
-
     if (type === "sighting") {
       return {
         color: "#f39c3d",
@@ -475,7 +700,10 @@ export default function PremiumLostFound() {
     let pointCount = 0;
 
     if (userLocation) {
-      const userPoint = { lat: Number(userLocation[0]), lng: Number(userLocation[1]) };
+      const userPoint = {
+        lat: Number(userLocation[0]),
+        lng: Number(userLocation[1]),
+      };
 
       userMarkerRef.current = new window.google.maps.Marker({
         position: userPoint,
@@ -518,7 +746,7 @@ export default function PremiumLostFound() {
         lng: Number(report.lng),
       };
 
-      const markerStyle = getMarkerStyle(report.type);
+      const markerStyle = getMarkerStyle(getReportType(report));
 
       const marker = new window.google.maps.Marker({
         position,
@@ -562,48 +790,45 @@ export default function PremiumLostFound() {
 
   return (
     <div className="premium-lf-page">
-      <div className="premium-lf-glow premium-lf-glow-1" />
-      <div className="premium-lf-glow premium-lf-glow-2" />
-      <div className="premium-lf-glow premium-lf-glow-3" />
-
       <header className="premium-lf-topbar">
-        <div className="premium-lf-brand glass-panel">
+        <div
+          className="premium-lf-brand"
+          onClick={() => navigate("/premium-dashboard")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") navigate("/premium-dashboard");
+          }}
+        >
           <img
             src={PawfectionLogo}
             alt="Pawfection Logo"
             className="premium-lf-logo"
           />
-          <div>
-            <h1>Pawfection</h1>
-            <p>Premium Lost &amp; Found</p>
+          <div className="premium-lf-brand-copy">
+            <div className="premium-lf-brand-title">Pawfection</div>
+            <div className="premium-lf-brand-sub">Premium Lost &amp; Found</div>
           </div>
         </div>
 
-        <nav className="premium-lf-nav glass-panel">
+        <nav className="premium-lf-nav">
           <Link to="/premium-dashboard">Premium Dashboard</Link>
-          <Link to="/premium-mypets">My Pets</Link>
+          <Link to="/premium-mypets">My Pet</Link>
           <Link to="/premium/appointments">Appointments</Link>
           <Link to="/premium/reminders">Reminders</Link>
           <Link to="/premium/lostfound" className="active">
             Lost &amp; Found
           </Link>
           <Link to="/premium/community">Community</Link>
-          <Link to="/premium-inventory">Inventory</Link>
+          <Link to="/premium/inventory">Inventory</Link>
           <Link to="/premium/vet-chat">AI Pet Assistant</Link>
           <Link to="/premium/profile">Profile</Link>
         </nav>
 
         <div className="premium-lf-userbar">
-          <div className="premium-lf-date glass-panel">
-            {new Date().toLocaleDateString("en-GB", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </div>
+          <div className="premium-lf-date">{todayText}</div>
 
-          <div className="premium-lf-userchip glass-panel">
+          <div className="premium-lf-userchip">
             <div className="premium-lf-avatar">
               {userName?.charAt(0)?.toUpperCase() || "U"}
             </div>
@@ -618,9 +843,9 @@ export default function PremiumLostFound() {
       <section className="premium-lf-main-hero">
         <div className="premium-lf-hero-card glass-panel">
           <div className="premium-lf-hero-left">
-            <div className="premium-lf-badge">PAWFECTION PREMIUM SAFETY</div>
-            <h2>Lost &amp; Found</h2>
-            <p>
+            <div className="premium-lf-badge">Pawfection Premium Safety</div>
+            <h1 className="premium-lf-hero-title">Lost &amp; Found</h1>
+            <p className="premium-lf-hero-text">
               Fast, localised lost-pet reporting with community sightings,
               smart filters, map tracking, and premium nearby alert support.
             </p>
@@ -630,10 +855,10 @@ export default function PremiumLostFound() {
                 <strong>{lostReports.length}</strong> active lost reports
               </div>
               <div className="premium-lf-stat-pill">
-                <strong>{priorityReports.length}</strong> priority alerts
+                <strong>{sightingReports.length}</strong> sighting reports
               </div>
               <div className="premium-lf-stat-pill">
-                <strong>{foundReports.length}</strong> found reports
+                <strong>{priorityReports.length}</strong> priority alerts
               </div>
               <div className="premium-lf-stat-pill">
                 <strong>{useRadius ? "On" : "Off"}</strong> area alerts
@@ -645,13 +870,13 @@ export default function PremiumLostFound() {
             <div className="premium-lf-search-card glass-inner-panel">
               <div className="premium-lf-search-head">
                 <h3>Search reports</h3>
-                <span>Name, breed, species, area</span>
+                <span>Name, breed, species, area, collar, colour, notes</span>
               </div>
 
               <div className="premium-lf-search-box">
                 <input
                   type="text"
-                  placeholder="Search Luna, Golden Retriever, Cat, Tallaght..."
+                  placeholder="Search blue collar, Tallaght, Golden Retriever, nervous..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="premium-lf-search"
@@ -675,6 +900,14 @@ export default function PremiumLostFound() {
                 >
                   <span className="premium-lf-plus">+</span>
                   <span>Report Lost Pet</span>
+                </button>
+
+                <button
+                  className="premium-lf-sighting-btn"
+                  onClick={() => navigate("/premium/lostfound/report-sighting")}
+                >
+                  <span className="premium-lf-plus">+</span>
+                  <span>Report Sighting</span>
                 </button>
 
                 <button
@@ -743,12 +976,6 @@ export default function PremiumLostFound() {
                 Lost
               </button>
               <button
-                className={activeFilter === "found" ? "chip active" : "chip"}
-                onClick={() => setActiveFilter("found")}
-              >
-                Found
-              </button>
-              <button
                 className={activeFilter === "sighting" ? "chip active" : "chip"}
                 onClick={() => setActiveFilter("sighting")}
               >
@@ -771,7 +998,7 @@ export default function PremiumLostFound() {
                   alt={activeSpotlight.name || activeSpotlight.pet_name || "Pet"}
                   className="premium-lf-spotlight-image"
                   onError={(e) => {
-                    e.currentTarget.src = getFallbackImageForReport(activeSpotlight);
+                    e.currentTarget.src = getPlaceholderImage(activeSpotlight);
                   }}
                 />
 
@@ -793,14 +1020,17 @@ export default function PremiumLostFound() {
 
                 <div className="premium-lf-spotlight-overlay">
                   <div className="premium-lf-spotlight-tag">
-                    {activeSpotlight.priority
-                      ? "PRIORITY REPORT"
-                      : "MISSING PET"}
+                    {activeSpotlight.priority ? "PRIORITY REPORT" : "MISSING PET"}
                   </div>
 
-                  <h3>{activeSpotlight.name || activeSpotlight.pet_name || "Unknown Pet"}</h3>
+                  <h3>
+                    {activeSpotlight.name ||
+                      activeSpotlight.pet_name ||
+                      "Unknown Pet"}
+                  </h3>
                   <p>
-                    {activeSpotlight.species || "Pet"} • {activeSpotlight.breed || "Unknown breed"} •{" "}
+                    {activeSpotlight.species || "Pet"} •{" "}
+                    {activeSpotlight.breed || "Unknown breed"} •{" "}
                     {activeSpotlight.area ||
                       activeSpotlight.last_seen_location ||
                       "Unknown area"}
@@ -826,7 +1056,7 @@ export default function PremiumLostFound() {
               <div className="premium-lf-slider-dots">
                 {spotlightPets.map((pet, index) => (
                   <button
-                    key={pet.id}
+                    key={`${pet.type}-${pet.id}-${index}`}
                     className={index === selectedSpotlightIndex ? "dot active" : "dot"}
                     onClick={() => setSelectedSpotlightIndex(index)}
                   />
@@ -847,13 +1077,11 @@ export default function PremiumLostFound() {
             <h3>
               {activeFilter === "lost"
                 ? "Active Lost Reports"
-                : activeFilter === "found"
-                ? "Found Reports"
                 : activeFilter === "sighting"
                 ? "Sighting Reports"
                 : activeFilter === "priority"
                 ? "Priority Lost Reports"
-                : "All Reports"}
+                : "Active Lost Reports"}
             </h3>
             <span>{visibleListReports.length} shown</span>
           </div>
@@ -862,33 +1090,32 @@ export default function PremiumLostFound() {
             {visibleListReports.length > 0 ? (
               visibleListReports.map((report) => (
                 <div
-                  key={`${report.type}-${report.id}`}
+                  key={`${report.type}-${report.id || report.pet_id}`}
                   className="premium-lf-report-card glass-row"
                 >
                   <img
                     src={report.resolvedImage}
                     alt={report.name || report.pet_name || "Pet"}
                     onError={(e) => {
-                      e.currentTarget.src = getFallbackImageForReport(report);
+                      e.currentTarget.src = getPlaceholderImage(report);
                     }}
                   />
+
                   <div className="premium-lf-report-info">
                     <h4>{report.name || report.pet_name || "Unknown Pet"}</h4>
                     <p>
-                      {report.species || "Pet"} • {report.breed || "Unknown breed"}
+                      {report.species || "Pet"} •{" "}
+                      {report.breed || "Unknown breed"}
                     </p>
                     <span>
                       {report.area ||
                         report.last_seen_location ||
                         report.sighting_location ||
+                        report.location ||
                         "Unknown area"}
                     </span>
                     <small className={`premium-lf-type-badge ${report.type}`}>
-                      {report.type === "lost"
-                        ? "Lost"
-                        : report.type === "found"
-                        ? "Found"
-                        : "Sighting"}
+                      {report.type === "lost" ? "Lost" : "Sighting"}
                     </small>
                   </div>
 
@@ -907,11 +1134,9 @@ export default function PremiumLostFound() {
               <div className="premium-lf-empty-list">
                 {activeFilter === "sighting"
                   ? "No sighting reports match your search."
-                  : activeFilter === "found"
-                  ? "No found reports match your search."
                   : activeFilter === "lost"
                   ? "No lost reports match your search."
-                  : "No reports match your search."}
+                  : "No active lost reports match your search."}
               </div>
             )}
           </div>
@@ -931,7 +1156,7 @@ export default function PremiumLostFound() {
                   alt={activeAlertPet.name || activeAlertPet.pet_name || "Pet"}
                   className="premium-lf-alert-image"
                   onError={(e) => {
-                    e.currentTarget.src = getFallbackImageForReport(activeAlertPet);
+                    e.currentTarget.src = getPlaceholderImage(activeAlertPet);
                   }}
                 />
                 <div className="premium-lf-alert-badge">
@@ -940,9 +1165,12 @@ export default function PremiumLostFound() {
               </div>
 
               <div className="premium-lf-alert-content">
-                <h4>{activeAlertPet.name || activeAlertPet.pet_name || "Unknown Pet"}</h4>
+                <h4>
+                  {activeAlertPet.name || activeAlertPet.pet_name || "Unknown Pet"}
+                </h4>
                 <p>
-                  {activeAlertPet.species || "Pet"} • {activeAlertPet.breed || "Unknown breed"}
+                  {activeAlertPet.species || "Pet"} •{" "}
+                  {activeAlertPet.breed || "Unknown breed"}
                 </p>
                 <span>
                   Last seen:{" "}
@@ -970,7 +1198,7 @@ export default function PremiumLostFound() {
               <div className="premium-lf-alert-dots">
                 {premiumAlertPets.map((pet, index) => (
                   <button
-                    key={pet.id}
+                    key={`${pet.type}-${pet.id}-${index}`}
                     className={
                       index === selectedAlertIndex
                         ? "premium-alert-dot active"
@@ -990,62 +1218,67 @@ export default function PremiumLostFound() {
       </section>
 
       <section className="premium-lf-support-section">
-        <div className="premium-lf-support-card glass-panel">
-          <div className="premium-lf-support-header">
-            <span className="premium-lf-support-badge">Support for pet owners</span>
-            <h3>You are not alone in this.</h3>
-            <p>
-              Losing a pet can feel overwhelming. Take one step at a time, keep
-              checking updates, and remember that many pets are reunited through
-              steady searching and community help.
-            </p>
-          </div>
+        <div className="premium-lf-support-card premium-lf-cloud-support-card glass-panel">
+          <div className="premium-lf-support-top-row">
+            <div className="premium-lf-support-header">
+              <span className="premium-lf-support-badge">
+                Support for pet owners
+              </span>
+              <h3>You are not alone in this.</h3>
+              <p>
+                Losing a pet can feel overwhelming. Take one step at a time, keep
+                checking updates, and remember that many pets are reunited through
+                steady searching and community help.
+              </p>
+            </div>
 
-          <div className="premium-lf-support-slider">
-            <div className="premium-lf-support-quote-card">
+            <div className="premium-lf-active-support-cloud">
+              <span className="premium-lf-active-cloud-icon">☁️</span>
               <h4>{activeSupportQuote.title}</h4>
               <p>{activeSupportQuote.text}</p>
             </div>
+          </div>
 
-            <div className="premium-lf-support-dots">
-              {supportQuotes.map((quote, index) => (
-                <button
-                  key={quote.title}
-                  className={
-                    index === selectedSupportIndex
-                      ? "premium-support-dot active"
-                      : "premium-support-dot"
-                  }
-                  onClick={() => setSelectedSupportIndex(index)}
-                />
+          <div className="premium-lf-support-auto-slider">
+            <div className="premium-lf-support-auto-track">
+              {[0, 1].map((groupIndex) => (
+                <div className="premium-lf-support-auto-group" key={groupIndex}>
+                  {supportCloudItems.map((item) => (
+                    <button
+                      key={`${groupIndex}-${item.id}`}
+                      type="button"
+                      className="premium-lf-support-cloud-slide"
+                      onClick={() => {
+                        if (typeof item.quoteIndex === "number") {
+                          setSelectedSupportIndex(item.quoteIndex);
+                        }
+                      }}
+                    >
+                      <span className="premium-lf-cloud-slide-icon">
+                        {item.icon}
+                      </span>
+                      <strong>{item.title}</strong>
+                      <p>{item.text}</p>
+                      <small>{item.action}</small>
+                    </button>
+                  ))}
+                </div>
               ))}
             </div>
           </div>
 
-          <div className="premium-lf-support-grid">
-            <div className="premium-lf-support-item">
-              <h4>Stay calm</h4>
-              <p>
-                Pets are often found close to where they were last seen. Staying
-                calm helps you think clearly and act steadily.
-              </p>
-            </div>
-
-            <div className="premium-lf-support-item">
-              <h4>Keep checking</h4>
-              <p>
-                Review sightings, refresh your report, and revisit nearby places.
-                Repeating the basics really can help.
-              </p>
-            </div>
-
-            <div className="premium-lf-support-item">
-              <h4>Hold onto hope</h4>
-              <p>
-                Many reunions happen because owners kept going, stayed visible,
-                and followed up on every lead.
-              </p>
-            </div>
+          <div className="premium-lf-support-dots">
+            {supportQuotes.map((quote, index) => (
+              <button
+                key={quote.title}
+                className={
+                  index === selectedSupportIndex
+                    ? "premium-support-dot active"
+                    : "premium-support-dot"
+                }
+                onClick={() => setSelectedSupportIndex(index)}
+              />
+            ))}
           </div>
         </div>
       </section>
@@ -1071,7 +1304,7 @@ export default function PremiumLostFound() {
                   alt={selectedMapReport.name || selectedMapReport.pet_name || "Pet"}
                   className="premium-lf-report-modal-image"
                   onError={(e) => {
-                    e.currentTarget.src = getFallbackImageForReport(selectedMapReport);
+                    e.currentTarget.src = getPlaceholderImage(selectedMapReport);
                   }}
                 />
               </div>
@@ -1080,14 +1313,16 @@ export default function PremiumLostFound() {
                 <div className="premium-lf-report-modal-badge">
                   {selectedMapReport.type === "sighting"
                     ? "Sighting Report"
-                    : selectedMapReport.type === "found"
-                    ? "Found Report"
                     : selectedMapReport.priority
                     ? "Priority Lost Report"
                     : "Lost Report"}
                 </div>
 
-                <h2>{selectedMapReport.name || selectedMapReport.pet_name || "Unknown Pet"}</h2>
+                <h2>
+                  {selectedMapReport.name ||
+                    selectedMapReport.pet_name ||
+                    "Unknown Pet"}
+                </h2>
 
                 <p className="premium-lf-report-modal-subtitle">
                   {selectedMapReport.species || "Pet"} •{" "}
@@ -1101,6 +1336,7 @@ export default function PremiumLostFound() {
                       {selectedMapReport.area ||
                         selectedMapReport.last_seen_location ||
                         selectedMapReport.sighting_location ||
+                        selectedMapReport.location ||
                         "Unknown area"}
                     </strong>
                   </div>

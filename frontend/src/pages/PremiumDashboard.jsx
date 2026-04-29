@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
-import PremiumPetInsights from "../components/PremiumPetInsights";
 import "./PremiumDashboard.css";
 
 export default function PremiumDashboard() {
@@ -11,9 +10,9 @@ export default function PremiumDashboard() {
   const [accountType, setAccountType] = useState("premium");
 
   const [pets, setPets] = useState([]);
+  const [activePetIndex, setActivePetIndex] = useState(0);
   const [petsLoading, setPetsLoading] = useState(false);
   const [petsError, setPetsError] = useState("");
-  const [deletingId, setDeletingId] = useState(null);
 
   const [appointments, setAppointments] = useState([]);
   const [apptsLoading, setApptsLoading] = useState(false);
@@ -24,19 +23,10 @@ export default function PremiumDashboard() {
   const [ownerReportsWithSightings, setOwnerReportsWithSightings] = useState([]);
   const [lostReportsLoading, setLostReportsLoading] = useState(false);
 
-  const [searchTerm, setSearchTerm] = useState("");
-
   const token = localStorage.getItem("pawfection_token");
   const apiBase = "http://127.0.0.1:8000/api";
 
   const isPremium = accountType === "premium";
-
-  const premiumBenefits = [
-    "Access to AI Pet Assistant",
-    "Priority pet-care support",
-    "Premium-only pet tools",
-    "Enhanced reminders and guidance",
-  ];
 
   const getStoredUser = () => {
     try {
@@ -84,14 +74,29 @@ export default function PremiumDashboard() {
           data?.message ||
           (data?.errors ? Object.values(data.errors).flat().join(" ") : "") ||
           "Failed to load pets.";
+
         setPetsError(msg);
         setPets([]);
+        setActivePetIndex(0);
       } else {
-        setPets(Array.isArray(data) ? data : data?.pets || []);
+        const petList = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.pets)
+          ? data.pets
+          : Array.isArray(data?.data)
+          ? data.data
+          : [];
+
+        setPets(petList);
+        setActivePetIndex((prev) => {
+          if (!petList.length) return 0;
+          return prev >= petList.length ? 0 : prev;
+        });
       }
     } catch {
       setPetsError("Server error. Is your backend running?");
       setPets([]);
+      setActivePetIndex(0);
     } finally {
       setPetsLoading(false);
     }
@@ -146,7 +151,7 @@ export default function PremiumDashboard() {
         },
       });
 
-      const data = await res.json().catch(() => ([]));
+      const data = await res.json().catch(() => []);
 
       if (!res.ok) {
         setUpcomingReminders([]);
@@ -241,20 +246,19 @@ export default function PremiumDashboard() {
             fullReport?.pet_owner?.id ??
             null;
 
-          const ownerName =
-            String(
-              lostReport?.owner_name ??
-                lostReport?.user_name ??
-                lostReport?.user?.name ??
-                lostReport?.owner?.name ??
-                fullReport?.owner_name ??
-                fullReport?.user_name ??
-                fullReport?.user?.name ??
-                fullReport?.owner?.name ??
-                ""
-            )
-              .trim()
-              .toLowerCase();
+          const ownerName = String(
+            lostReport?.owner_name ??
+              lostReport?.user_name ??
+              lostReport?.user?.name ??
+              lostReport?.owner?.name ??
+              fullReport?.owner_name ??
+              fullReport?.user_name ??
+              fullReport?.user?.name ??
+              fullReport?.owner?.name ??
+              ""
+          )
+            .trim()
+            .toLowerCase();
 
           const currentName = String(userName || "").trim().toLowerCase();
 
@@ -277,6 +281,7 @@ export default function PremiumDashboard() {
           if (isOwner && relatedSightings.length > 0) {
             ownedLostReports.push({
               ...fullReport,
+              ...lostReport,
               sightings_count: relatedSightings.length,
             });
           }
@@ -287,7 +292,7 @@ export default function PremiumDashboard() {
 
       setOwnerReportsWithSightings(
         ownedLostReports.sort(
-          (a, b) => (b?.sightings_count || 0) - (a?.sightings_count || 0)
+          (a, b) => Number(b?.sightings_count || 0) - Number(a?.sightings_count || 0)
         )
       );
     } catch (err) {
@@ -300,9 +305,7 @@ export default function PremiumDashboard() {
 
   useEffect(() => {
     const savedToken = localStorage.getItem("pawfection_token");
-    const savedRole = String(
-      localStorage.getItem("pawfection_role") || ""
-    ).toLowerCase();
+    const savedRole = String(localStorage.getItem("pawfection_role") || "").toLowerCase();
 
     if (!savedToken) {
       navigate("/login");
@@ -322,6 +325,8 @@ export default function PremiumDashboard() {
     try {
       if (resolvedUser?.name && typeof resolvedUser.name === "string") {
         setUserName(resolvedUser.name);
+      } else if (resolvedUser?.username && typeof resolvedUser.username === "string") {
+        setUserName(resolvedUser.username);
       } else {
         const fallbackName =
           localStorage.getItem("pawfection_user_name") ||
@@ -347,6 +352,7 @@ export default function PremiumDashboard() {
 
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   useEffect(() => {
@@ -354,10 +360,26 @@ export default function PremiumDashboard() {
     if (resolvedUserId && userName) {
       fetchOwnerReportsWithSightings(resolvedUserId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userName]);
 
+  useEffect(() => {
+    if (pets.length <= 1) return;
+
+    const timer = setInterval(() => {
+      setActivePetIndex((prev) => (prev + 1) % pets.length);
+    }, 3500);
+
+    return () => clearInterval(timer);
+  }, [pets.length]);
+
   const getPetImageSrc = (pet) => {
+    if (!pet) return null;
+    if (pet?.display_photo_url) return pet.display_photo_url;
+    if (pet?.lost_photo_url) return pet.lost_photo_url;
     if (pet?.photo_url) return pet.photo_url;
+    if (pet?.image_url) return pet.image_url;
+    if (pet?.image) return pet.image;
     if (pet?.photo_path) return `http://127.0.0.1:8000/storage/${pet.photo_path}`;
     if (pet?.photo) return `http://127.0.0.1:8000/storage/${pet.photo}`;
     return null;
@@ -375,57 +397,12 @@ export default function PremiumDashboard() {
     return parts.length ? parts.join(" • ") : "Pet profile";
   };
 
-  const deletePet = async (petId, petName) => {
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
-    const ok = window.confirm(`Delete ${petName || "this pet"}? This cannot be undone.`);
-    if (!ok) return;
-
-    setDeletingId(petId);
-    setPetsError("");
-
-    try {
-      const res = await fetch(`${apiBase}/pets/${petId}`, {
-        method: "DELETE",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        const msg =
-          data?.message ||
-          (data?.errors ? Object.values(data.errors).flat().join(" ") : "") ||
-          "Failed to delete pet.";
-        setPetsError(msg);
-        setDeletingId(null);
-        return;
-      }
-
-      setPets((prev) => prev.filter((p) => p.id !== petId));
-    } catch {
-      setPetsError("Failed to delete. Is the backend running?");
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
   const handleVetChat = () => {
     if (isPremium) {
       navigate("/premium/vet-chat");
     } else {
       navigate("/upgrade-premium");
     }
-  };
-
-  const handleViewMyPet = () => {
-    navigate("/premium-mypets");
   };
 
   const formatDate = (iso) => {
@@ -475,49 +452,38 @@ export default function PremiumDashboard() {
     return upcomingAppointments.length > 0 ? upcomingAppointments[0] : null;
   }, [upcomingAppointments]);
 
-  const upcomingAppointmentsCount = useMemo(() => {
-    return upcomingAppointments.length;
-  }, [upcomingAppointments]);
-
-  const activeReminderCount = useMemo(() => {
-    return (upcomingReminders || []).filter(
-      (r) => (r?.status || "").toLowerCase() !== "completed"
-    ).length;
+  const activeReminders = useMemo(() => {
+    return (upcomingReminders || [])
+      .filter((r) => String(r?.status || "").toLowerCase() !== "completed")
+      .sort((a, b) => new Date(a.reminder_date || 0) - new Date(b.reminder_date || 0));
   }, [upcomingReminders]);
+
+  const nextReminder = useMemo(() => {
+    return activeReminders.length > 0 ? activeReminders[0] : null;
+  }, [activeReminders]);
 
   const dueSoonReminderCount = useMemo(() => {
     const now = new Date();
     const threeDaysLater = new Date();
     threeDaysLater.setDate(now.getDate() + 3);
 
-    return (upcomingReminders || []).filter((r) => {
+    return activeReminders.filter((r) => {
       if (!r?.reminder_date) return false;
       const d = new Date(r.reminder_date);
       return !Number.isNaN(d.getTime()) && d >= now && d <= threeDaysLater;
     }).length;
-  }, [upcomingReminders]);
+  }, [activeReminders]);
 
-  const filteredPets = useMemo(() => {
-    if (!searchTerm.trim()) return pets;
-    const q = searchTerm.toLowerCase();
-
-    return pets.filter((pet) =>
-      [pet?.name, pet?.breed, pet?.species]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(q))
+  const totalSightings = useMemo(() => {
+    return ownerReportsWithSightings.reduce(
+      (sum, report) => sum + Number(report?.sightings_count || 0),
+      0
     );
-  }, [pets, searchTerm]);
+  }, [ownerReportsWithSightings]);
 
-  const filteredReminders = useMemo(() => {
-    if (!searchTerm.trim()) return upcomingReminders;
-    const q = searchTerm.toLowerCase();
-
-    return upcomingReminders.filter((r) =>
-      [r?.title, r?.message]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(q))
-    );
-  }, [upcomingReminders, searchTerm]);
+  const firstReportWithSightings = useMemo(() => {
+    return ownerReportsWithSightings.length > 0 ? ownerReportsWithSightings[0] : null;
+  }, [ownerReportsWithSightings]);
 
   const todayText = useMemo(() => {
     return new Date().toLocaleDateString("en-IE", {
@@ -528,20 +494,87 @@ export default function PremiumDashboard() {
     });
   }, []);
 
-  const visiblePets = filteredPets.length ? filteredPets : pets;
-  const galleryPets = visiblePets.slice(0, 4);
+  const activePet = useMemo(() => {
+    if (!pets.length) return null;
+    return pets[activePetIndex] || pets[0] || null;
+  }, [pets, activePetIndex]);
 
-  const heroPet = visiblePets[0] || pets[0] || null;
-  const heroPetImage = heroPet ? getPetImageSrc(heroPet) : null;
+  const activePetImage = activePet ? getPetImageSrc(activePet) : null;
 
-  const tallPet = visiblePets[2] || pets[2] || heroPet || null;
-  const tallPetImage = tallPet ? getPetImageSrc(tallPet) : null;
+  const getSightingRoute = (report) => {
+    const petId =
+      report?.pet_id ||
+      report?.lost_pet_id ||
+      report?.pet?.id ||
+      report?.animal_id ||
+      report?.id;
 
-  const heroReminder = filteredReminders[0] || upcomingReminders[0] || null;
+    return petId ? `/premium/pets/${petId}/sightings` : "/premium/lostfound";
+  };
 
-  const firstReportWithSightings = useMemo(() => {
-    return ownerReportsWithSightings.length > 0 ? ownerReportsWithSightings[0] : null;
-  }, [ownerReportsWithSightings]);
+  const sliderCards = [
+    {
+      icon: "💬",
+      title: "AI Pet Assistant",
+      text: "Premium support when you need quick pet-care guidance.",
+      action: "Open",
+      onClick: handleVetChat,
+    },
+    {
+      icon: "🐾",
+      title: "My Pets",
+      text: `${pets.length} pet profile${pets.length === 1 ? "" : "s"} organised in one place.`,
+      action: "View",
+      onClick: () => navigate("/premium-mypets"),
+    },
+    {
+      icon: "⏰",
+      title: "Reminders",
+      text:
+        activeReminders.length > 0
+          ? `${activeReminders.length} active reminder${activeReminders.length === 1 ? "" : "s"}.`
+          : "No urgent reminders right now.",
+      action: "Open",
+      onClick: () => navigate("/premium/reminders"),
+    },
+    {
+      icon: "📅",
+      title: "Appointments",
+      text:
+        upcomingAppointments.length > 0
+          ? `${upcomingAppointments.length} upcoming visit${upcomingAppointments.length === 1 ? "" : "s"}.`
+          : "No appointment booked yet.",
+      action: "Book",
+      onClick: () => navigate("/premium/appointments"),
+    },
+    {
+      icon: "👀",
+      title: "Sightings",
+      text:
+        totalSightings > 0
+          ? `${totalSightings} sighting${totalSightings === 1 ? "" : "s"} on your lost reports.`
+          : "No sightings on your reports yet.",
+      action: "Check",
+      onClick: () =>
+        firstReportWithSightings
+          ? navigate(getSightingRoute(firstReportWithSightings))
+          : navigate("/premium/lostfound"),
+    },
+    {
+      icon: "📦",
+      title: "Inventory",
+      text: "Track food, medicine, and supplies without clutter.",
+      action: "Open",
+      onClick: () => navigate("/premium/inventory"),
+    },
+    {
+      icon: "💗",
+      title: "Community",
+      text: "Share advice and connect with other pet owners.",
+      action: "Visit",
+      onClick: () => navigate("/premium/community"),
+    },
+  ];
 
   return (
     <div className="pfd-shell">
@@ -566,11 +599,9 @@ export default function PremiumDashboard() {
           <Link className="pfd-topnav-item active" to="/premium-dashboard">
             Premium Dashboard
           </Link>
-
           <Link className="pfd-topnav-item" to="/premium-mypets">
-            My Pets
+            My Pet
           </Link>
-
           <Link className="pfd-topnav-item" to="/premium/appointments">
             Appointments
           </Link>
@@ -595,528 +626,340 @@ export default function PremiumDashboard() {
         </nav>
 
         <div className="pfd-header-side">
-          <div className="pfd-header-meta">
-            <div className="pfd-date-pill">{todayText}</div>
+          <div className="pfd-date-pill">{todayText}</div>
 
-            <div className="pfd-userchip" title={userName}>
-              <div className="pfd-avatar">{(userName?.[0] || "U").toUpperCase()}</div>
-              <div className="pfd-userchip-text">
-                <div className="pfd-userchip-name">{userName}</div>
-                <div className="pfd-userchip-sub">
-                  {isPremium ? "Premium User" : "Standard User"}
-                </div>
-              </div>
+          <div className="pfd-userchip" title={userName}>
+            <div className="pfd-avatar">{(userName?.[0] || "U").toUpperCase()}</div>
+            <div className="pfd-userchip-text">
+              <div className="pfd-userchip-name">{userName}</div>
+              <div className="pfd-userchip-sub">Premium User</div>
             </div>
-          </div>
-
-          <div className="pfd-search">
-            <input
-              type="text"
-              placeholder="Search pets or reminders..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
           </div>
         </div>
       </header>
 
       <main className="pfd-main">
         <section className="pfd-hero">
-          <span className="pfd-doodle pfd-doodle-paw-1">🐾</span>
-          <span className="pfd-doodle pfd-doodle-paw-2">🐾</span>
-          <span className="pfd-doodle pfd-doodle-bone">🦴</span>
-          <span className="pfd-doodle pfd-doodle-heart">💗</span>
-
           <div className="pfd-hero-copy">
-            <div className="pfd-kicker">
-              {isPremium ? "Pawfection Premium Dashboard" : "Pawfection Dashboard"}
-            </div>
+            <div className="pfd-kicker">Pawfection Premium</div>
+
             <h1 className="pfd-hero-title">
-              {getGreeting()}, {userName}
+              {getGreeting()}, {userName} ✨
             </h1>
+
             <p className="pfd-hero-text">
-              Keep your pets, reminders, appointments, and premium support tools in one
-              beautifully organised space.
+              A cleaner space for your pets, reminders, appointments, and premium care tools.
             </p>
 
-            <div className="pfd-hero-chips">
-              <div className="pfd-chip">
-                {isPremium ? "⭐ Premium Active" : "🔒 Standard Plan"}
+            <div className="pfd-stats-row">
+              <div className="pfd-stat-card">
+                <span>🐾</span>
+                <strong>{pets.length}</strong>
+                <small>Pets</small>
               </div>
-              <div className="pfd-chip">🐾 {pets.length} pets</div>
-              <div className="pfd-chip">📅 {upcomingAppointmentsCount} visits</div>
-              <div className="pfd-chip">⏰ {activeReminderCount} reminders</div>
+
+              <div className="pfd-stat-card">
+                <span>⏰</span>
+                <strong>{activeReminders.length}</strong>
+                <small>Reminders</small>
+              </div>
+
+              <div className="pfd-stat-card">
+                <span>👀</span>
+                <strong>{totalSightings}</strong>
+                <small>Sightings</small>
+              </div>
             </div>
 
-            <div className="pfd-hero-actions">
-              <button className="pfd-btn pfd-btn-primary" onClick={handleVetChat}>
-                {isPremium ? "Open Vet Chat" : "Upgrade for Vet Chat"}
+            <div className="pfd-quick-grid">
+              <button className="pfd-quick-card primary" onClick={handleVetChat}>
+                <span>💬</span>
+                <div>
+                  <strong>AI Pet Assistant</strong>
+                  <small>Premium support</small>
+                </div>
               </button>
 
-              <button className="pfd-btn" onClick={handleViewMyPet}>
-                View My Pets
+              <button className="pfd-quick-card" onClick={() => navigate("/premium-mypets")}>
+                <span>🐶</span>
+                <div>
+                  <strong>My Pets</strong>
+                  <small>View profiles</small>
+                </div>
               </button>
 
               <button
-                className="pfd-btn"
+                className="pfd-quick-card"
                 onClick={() => navigate("/premium/appointments")}
               >
-                Book Appointment
+                <span>📅</span>
+                <div>
+                  <strong>Book Visit</strong>
+                  <small>Appointments</small>
+                </div>
               </button>
 
               <button
-                className="pfd-btn"
+                className="pfd-quick-card"
                 onClick={() => navigate("/premium/lostfound")}
               >
-                Open Lost &amp; Found
+                <span>📍</span>
+                <div>
+                  <strong>Lost &amp; Found</strong>
+                  <small>Reports &amp; sightings</small>
+                </div>
               </button>
-
-              {firstReportWithSightings && (
-                <button
-                  className="pfd-btn"
-                  onClick={() =>
-                    navigate(`/premium/lostfound/view/${firstReportWithSightings.id}`)
-                  }
-                >
-                  View Sightings ({firstReportWithSightings.sightings_count})
-                </button>
-              )}
             </div>
           </div>
 
-          <div className="pfd-hero-visual">
-            <div className="pfd-speech pfd-speech-left">
-              <div className="pfd-speech-title">Membership</div>
-              <div className="pfd-speech-text">
-                {isPremium ? "Premium access is active." : "Upgrade to unlock Vet Chat."}
+          <div className="pfd-hero-feature">
+            <div className="pfd-feature-badge">
+              <span>⭐</span>
+              <div>
+                <strong>Premium Active</strong>
+                <small>All premium tools unlocked</small>
               </div>
             </div>
 
-            <article className="pfd-hero-photo-card">
-              {heroPetImage ? (
-                <img src={heroPetImage} alt={heroPet?.name || "Pet"} />
+            <div className="pfd-feature-photo" key={activePet?.id || "empty-feature-pet"}>
+              {activePetImage ? (
+                <img src={activePetImage} alt={activePet?.name || "Pet"} />
               ) : (
                 <div className="pfd-photo-empty">
-                  <div className="pfd-photo-empty-icon">🐶</div>
-                  <div className="pfd-photo-empty-title">Your featured pet appears here</div>
-                  <div className="pfd-photo-empty-text">
-                    Add or edit a pet profile with a photo to personalise your premium dashboard.
-                  </div>
+                  <span>🐾</span>
+                  <strong>Add a pet photo</strong>
+                  <small>Your featured pet will appear here.</small>
                 </div>
               )}
 
-              <div className="pfd-hero-photo-overlay">
-                <div className="pfd-card-kicker pfd-card-kicker-light">Featured pet</div>
-                <div className="pfd-hero-photo-name">{heroPet?.name || "Your Pet"}</div>
-                <div className="pfd-hero-photo-meta">
-                  {heroPet ? getPetSummary(heroPet) : "Pet profile spotlight"}
-                </div>
+              <div className="pfd-feature-overlay">
+                <small>Featured Pet</small>
+                <strong>{activePet?.name || "Your Pet"}</strong>
+                <span>{activePet ? getPetSummary(activePet) : "Pet profile spotlight"}</span>
               </div>
-            </article>
 
-            <div className="pfd-speech pfd-speech-right">
-              <div className="pfd-speech-title">Up next</div>
-              <div className="pfd-speech-text">{heroReminder?.title || "No reminder due"}</div>
+              {pets.length > 1 && (
+                <div className="pfd-pet-dots">
+                  {pets.map((pet, index) => (
+                    <button
+                      key={pet.id}
+                      type="button"
+                      className={index === activePetIndex ? "active" : ""}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActivePetIndex(index);
+                      }}
+                      aria-label={`Show ${pet.name}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
 
-        <section className="pfd-collage">
-          <article className="pfd-card pfd-span-2">
-            <div className="pfd-card-head">
+        <section className="pfd-overview-grid">
+          <article className="pfd-panel">
+            <div className="pfd-panel-head">
               <div>
-                <div className="pfd-card-kicker">Membership</div>
-                <h2>Premium Status</h2>
-                <p>Check your access level and available premium benefits.</p>
+                <span className="pfd-kicker">Care Summary</span>
+                <h2>Next Care Task</h2>
               </div>
-              {!isPremium && (
-                <button
-                  className="pfd-btn pfd-btn-small"
-                  onClick={() => navigate("/upgrade-premium")}
-                >
-                  Upgrade
-                </button>
-              )}
+              <button className="pfd-small-btn" onClick={() => navigate("/premium/reminders")}>
+                Open
+              </button>
             </div>
 
-            <div className="pfd-mini-list">
-              <div className="pfd-mini-item">
-                <div className="pfd-mini-item-icon">{isPremium ? "⭐" : "🔒"}</div>
-                <div className="pfd-mini-item-body">
-                  <div className="pfd-mini-item-title">
-                    {isPremium ? "Premium User" : "Standard User"}
-                  </div>
-                  <div className="pfd-mini-item-text">
-                    {isPremium
-                      ? "You can access premium-only features including Vet Chat."
-                      : "Upgrade to Premium to unlock Vet Chat and other premium benefits."}
-                  </div>
+            <div className="pfd-summary-list">
+              <div className="pfd-summary-row">
+                <div className="pfd-summary-icon">⏰</div>
+                <div>
+                  <strong>
+                    {remindersLoading ? "Loading..." : nextReminder?.title || "No reminder due"}
+                  </strong>
+                  <p>
+                    {remindersLoading
+                      ? "Please wait..."
+                      : nextReminder?.message || "Everything looks calm right now."}
+                  </p>
+                  {nextReminder?.reminder_date && (
+                    <small>Due: {formatDate(nextReminder.reminder_date)}</small>
+                  )}
                 </div>
               </div>
 
-              {premiumBenefits.map((benefit, index) => (
-                <div key={index} className="pfd-mini-item">
-                  <div className="pfd-mini-item-icon">🐾</div>
-                  <div className="pfd-mini-item-body">
-                    <div className="pfd-mini-item-title">{benefit}</div>
-                    <div className="pfd-mini-item-text">
-                      {isPremium ? "Available on your plan." : "Locked until upgrade."}
-                    </div>
-                  </div>
+              <div className="pfd-summary-row">
+                <div className="pfd-summary-icon">📅</div>
+                <div>
+                  <strong>
+                    {apptsLoading
+                      ? "Loading..."
+                      : nextAppointment?.title ||
+                        nextAppointment?.service ||
+                        "No appointment booked"}
+                  </strong>
+                  <p>
+                    {apptsLoading
+                      ? "Please wait..."
+                      : nextAppointment
+                      ? formatDateTime(nextAppointment.appointment_at)
+                      : "Book one when your pet needs care."}
+                  </p>
                 </div>
-              ))}
-            </div>
-
-            <div className="pfd-care-actions" style={{ marginTop: "16px" }}>
-              <button className="pfd-btn pfd-btn-small" onClick={handleVetChat}>
-                {isPremium ? "Launch Vet Chat" : "Unlock Vet Chat"}
-              </button>
-              {!isPremium && (
-                <button
-                  className="pfd-btn pfd-btn-small"
-                  onClick={() => navigate("/upgrade-premium")}
-                >
-                  Upgrade to Premium
-                </button>
-              )}
+              </div>
             </div>
           </article>
 
-          <article className="pfd-card pfd-card-care">
-            <div className="pfd-card-kicker">Care board</div>
-
-            <div className="pfd-care-ring">
-              <div className="pfd-care-ring-value">{dueSoonReminderCount}</div>
-              <div className="pfd-care-ring-text">due soon</div>
-            </div>
-
-            <div className="pfd-care-block">
-              <div className="pfd-care-label">Next appointment</div>
-              <div className="pfd-care-main">
-                {apptsLoading
-                  ? "Loading..."
-                  : nextAppointment?.title ||
-                    nextAppointment?.service ||
-                    "No upcoming appointment"}
-              </div>
-              <div className="pfd-care-sub">
-                {apptsLoading
-                  ? "Please wait..."
-                  : nextAppointment
-                  ? formatDateTime(nextAppointment.appointment_at)
-                  : "Book a visit to stay organised."}
-              </div>
-            </div>
-
-            <div className="pfd-care-divider" />
-
-            <div className="pfd-care-block">
-              <div className="pfd-care-label">Upcoming reminder</div>
-              <div className="pfd-care-main">
-                {remindersLoading ? "Loading..." : heroReminder?.title || "No reminder due"}
-              </div>
-              <div className="pfd-care-sub">
-                {remindersLoading
-                  ? "Please wait..."
-                  : heroReminder?.message || "Everything looks calm for now."}
-              </div>
-            </div>
-
-            <div className="pfd-care-actions">
-              <button
-                className="pfd-btn pfd-btn-small"
-                onClick={() => navigate("/premium/appointments")}
-              >
-                Appointments
-              </button>
-              <button
-                className="pfd-btn pfd-btn-small"
-                onClick={() => navigate("/premium/reminders")}
-              >
-                Reminders
-              </button>
-            </div>
-          </article>
-
-          <article className="pfd-card pfd-span-2">
-            <div className="pfd-card-head">
+          <article className="pfd-panel">
+            <div className="pfd-panel-head">
               <div>
-                <div className="pfd-card-kicker">Lost &amp; Found</div>
-                <h2>Lost &amp; Found Sightings</h2>
-                <p>Only your own lost reports with sightings appear here.</p>
+                <span className="pfd-kicker">Pet Profile</span>
+                <h2>My Pet</h2>
               </div>
-              <button
-                className="pfd-btn pfd-btn-small"
-                onClick={() => navigate("/premium/lostfound")}
-              >
-                Open Lost &amp; Found
-              </button>
-            </div>
-
-            {lostReportsLoading && <div className="pfd-empty">Loading sightings…</div>}
-
-            {!lostReportsLoading && ownerReportsWithSightings.length === 0 && (
-              <div className="pfd-empty">No sightings on your reports yet.</div>
-            )}
-
-            {!lostReportsLoading && ownerReportsWithSightings.length > 0 && (
-              <div className="pfd-mini-list">
-                {ownerReportsWithSightings.slice(0, 4).map((report) => (
-                  <div key={report.id} className="pfd-mini-item">
-                    <div className="pfd-mini-item-icon">👀</div>
-                    <div className="pfd-mini-item-body">
-                      <div className="pfd-mini-item-title">
-                        {report.pet_name || report.name || "Lost pet report"}
-                      </div>
-                      <div className="pfd-mini-item-text">
-                        {report.location || report.last_seen_location || "Location not available"}
-                      </div>
-                      <div className="pfd-mini-item-sub">
-                        {report.sightings_count} sighting
-                        {report.sightings_count === 1 ? "" : "s"} • Reported{" "}
-                        {formatDate(
-                          report.reported_lost_at || report.reported_at || report.created_at
-                        )}
-                      </div>
-
-                      <div style={{ marginTop: "10px" }}>
-                        <button
-                          className="pfd-btn pfd-btn-small"
-                          onClick={() => navigate(`/premium/lostfound/view/${report.id}`)}
-                        >
-                          View Sightings ({report.sightings_count})
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </article>
-
-          <article className="pfd-card pfd-card-gallery pfd-span-2">
-            <div className="pfd-card-head">
-              <div>
-                <div className="pfd-card-kicker">Pet gallery</div>
-                <h2>My Pets</h2>
-                <p>Your uploaded photos arranged in a clean premium board.</p>
-              </div>
-              <button className="pfd-btn pfd-btn-small" onClick={handleViewMyPet}>
-                Open Pets
+              <button className="pfd-small-btn" onClick={() => navigate("/premium-mypets")}>
+                View
               </button>
             </div>
 
             {petsLoading && <div className="pfd-empty">Loading pets…</div>}
             {!petsLoading && petsError && <div className="pfd-empty">{petsError}</div>}
-            {!petsLoading && !petsError && visiblePets.length === 0 && (
-              <div className="pfd-empty">
-                No pets found yet. Add a pet with a photo to build the dashboard visuals.
-              </div>
-            )}
 
-            {!petsLoading && !petsError && visiblePets.length > 0 && (
-              <div className="pfd-pet-gallery">
-                {galleryPets.map((pet) => {
-                  const imgSrc = getPetImageSrc(pet);
+            {!petsLoading && !petsError && activePet && (
+              <div className="pfd-small-pet" key={activePet.id}>
+                <div className="pfd-small-pet-img">
+                  {activePetImage ? (
+                    <img src={activePetImage} alt={activePet.name} />
+                  ) : (
+                    <span>🐾</span>
+                  )}
+                </div>
 
-                  return (
-                    <div key={pet.id} className="pfd-pet-tile">
-                      <div className="pfd-pet-tile-photo">
-                        {imgSrc ? (
-                          <img src={imgSrc} alt={pet.name} />
-                        ) : (
-                          <div className="pfd-pet-tile-placeholder">🐾</div>
-                        )}
-                      </div>
+                <div className="pfd-small-pet-content">
+                  <strong>{activePet.name}</strong>
+                  <p>{getPetSummary(activePet)}</p>
 
-                      <div className="pfd-pet-tile-body">
-                        <div className="pfd-pet-tile-name">{pet.name}</div>
-                        <div className="pfd-pet-tile-meta">{getPetSummary(pet)}</div>
+                  <div className="pfd-inline-actions">
+                    <button
+                      className="pfd-small-btn"
+                      onClick={() => navigate("/premium-mypets")}
+                    >
+                      View
+                    </button>
 
-                        <div className="pfd-pet-tile-actions">
-                          <button
-                            className="pfd-btn pfd-btn-small"
-                            onClick={() => navigate(`/premium-pets/${pet.id}`)}
-                          >
-                            View
-                          </button>
-                          <button
-                            className="pfd-btn pfd-btn-small"
-                            onClick={() => navigate(`/premium-pets/${pet.id}/edit`)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="pfd-btn pfd-btn-small pfd-btn-danger"
-                            disabled={deletingId === pet.id}
-                            onClick={() => deletePet(pet.id, pet.name)}
-                          >
-                            {deletingId === pet.id ? "Deleting…" : "Delete"}
-                          </button>
-                        </div>
-                      </div>
+                    <button
+                      className="pfd-small-btn"
+                      onClick={() => navigate(`/premium/pets/${activePet.id}/edit`)}
+                    >
+                      Edit
+                    </button>
+                  </div>
+
+                  {pets.length > 1 && (
+                    <div className="pfd-small-pet-dots">
+                      {pets.map((pet, index) => (
+                        <button
+                          key={pet.id}
+                          type="button"
+                          className={index === activePetIndex ? "active" : ""}
+                          onClick={() => setActivePetIndex(index)}
+                          aria-label={`Show ${pet.name}`}
+                        />
+                      ))}
                     </div>
-                  );
-                })}
+                  )}
+                </div>
               </div>
+            )}
+
+            {!petsLoading && !petsError && !activePet && (
+              <div className="pfd-empty">No pets yet. Add a pet to personalise your dashboard.</div>
             )}
           </article>
 
-          <article className="pfd-card pfd-card-tallphoto">
-            <span className="pfd-tallphoto-paw pfd-tallphoto-paw-1">🐾</span>
-            <span className="pfd-tallphoto-paw pfd-tallphoto-paw-2">🐾</span>
-
-            {tallPetImage ? (
-              <div className="pfd-tallphoto-wrap">
-                <img src={tallPetImage} alt={tallPet?.name || "Pet"} />
-                <div className="pfd-tallphoto-overlay">
-                  <div className="pfd-card-kicker pfd-card-kicker-light">Happy face</div>
-                  <div className="pfd-tallphoto-name">{tallPet?.name || "Pet"}</div>
-                </div>
+          <article className="pfd-panel">
+            <div className="pfd-panel-head">
+              <div>
+                <span className="pfd-kicker">Lost &amp; Found</span>
+                <h2>Sightings</h2>
               </div>
-            ) : (
-              <div className="pfd-tallphoto-empty">
-                <div className="pfd-tallphoto-empty-icon">🐶</div>
-                <div className="pfd-tallphoto-empty-title">More photo magic here</div>
+              <button className="pfd-small-btn" onClick={() => navigate("/premium/lostfound")}>
+                Open
+              </button>
+            </div>
+
+            {lostReportsLoading && <div className="pfd-empty">Loading sightings…</div>}
+
+            {!lostReportsLoading && !firstReportWithSightings && (
+              <div className="pfd-empty">No sightings on your reports yet.</div>
+            )}
+
+            {!lostReportsLoading && firstReportWithSightings && (
+              <div className="pfd-sighting-card">
+                <div className="pfd-summary-icon">👀</div>
+                <div>
+                  <strong>
+                    {firstReportWithSightings.pet_name ||
+                      firstReportWithSightings.name ||
+                      "Lost pet report"}
+                  </strong>
+                  <p>
+                    {firstReportWithSightings.location ||
+                      firstReportWithSightings.last_seen_location ||
+                      "Location not available"}
+                  </p>
+                  <small>
+                    {firstReportWithSightings.sightings_count} sighting
+                    {firstReportWithSightings.sightings_count === 1 ? "" : "s"}
+                  </small>
+                  <button
+                    className="pfd-small-btn"
+                    onClick={() => navigate(getSightingRoute(firstReportWithSightings))}
+                  >
+                    View Sightings
+                  </button>
+                </div>
               </div>
             )}
           </article>
+        </section>
 
-          <article className="pfd-card pfd-card-board pfd-span-2">
-            <div className="pfd-board-columns">
-              <div className="pfd-board-column">
-                <div className="pfd-card-head">
-                  <div>
-                    <div className="pfd-card-kicker">Schedule</div>
-                    <h2>Upcoming Appointments</h2>
-                    <p>Your nearest booked visits.</p>
-                  </div>
-                  <button
-                    className="pfd-btn pfd-btn-small"
-                    onClick={() => navigate("/premium/appointments")}
-                  >
-                    Open
-                  </button>
+        <section className="pfd-auto-section">
+          <div className="pfd-auto-head">
+            <div>
+              <span className="pfd-kicker">Premium Tools</span>
+              <h2>Everything your pet needs, sliding automatically</h2>
+            </div>
+            <span className="pfd-auto-pill">{dueSoonReminderCount} due soon</span>
+          </div>
+
+          <div className="pfd-slider-mask">
+            <div className="pfd-slider-track">
+              {[0, 1].map((groupIndex) => (
+                <div className="pfd-slider-group" key={groupIndex}>
+                  {sliderCards.map((card, index) => (
+                    <button
+                      key={`${groupIndex}-${index}`}
+                      className="pfd-slide-card"
+                      onClick={card.onClick}
+                      type="button"
+                    >
+                      <span>{card.icon}</span>
+                      <strong>{card.title}</strong>
+                      <p>{card.text}</p>
+                      <small>{card.action}</small>
+                    </button>
+                  ))}
                 </div>
-
-                {apptsLoading && <div className="pfd-empty">Loading appointments…</div>}
-
-                {!apptsLoading && upcomingAppointments.length === 0 && (
-                  <div className="pfd-empty">No upcoming appointments found.</div>
-                )}
-
-                {!apptsLoading && upcomingAppointments.length > 0 && (
-                  <div className="pfd-mini-list">
-                    {upcomingAppointments.slice(0, 4).map((appt) => (
-                      <div key={appt.id} className="pfd-mini-item">
-                        <div className="pfd-mini-item-icon">📅</div>
-                        <div className="pfd-mini-item-body">
-                          <div className="pfd-mini-item-title">
-                            {appt.title || appt.service || "Appointment"}
-                          </div>
-                          <div className="pfd-mini-item-text">
-                            {formatDateTime(appt.appointment_at)}
-                          </div>
-                          <div className="pfd-mini-item-sub">
-                            Pet: {appt.pet_name || appt.pet?.name || "Not specified"}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="pfd-board-column">
-                <div className="pfd-card-head">
-                  <div>
-                    <div className="pfd-card-kicker">Care tasks</div>
-                    <h2>Upcoming Reminders</h2>
-                    <p>Your next pet-care tasks at a glance.</p>
-                  </div>
-                  <button
-                    className="pfd-btn pfd-btn-small"
-                    onClick={() => navigate("/premium/reminders")}
-                  >
-                    View All
-                  </button>
-                </div>
-
-                {remindersLoading && <div className="pfd-empty">Loading reminders…</div>}
-
-                {!remindersLoading && filteredReminders.length === 0 && (
-                  <div className="pfd-empty">No upcoming reminders found.</div>
-                )}
-
-                {!remindersLoading && filteredReminders.length > 0 && (
-                  <div className="pfd-reminder-list">
-                    {filteredReminders.slice(0, 4).map((r) => (
-                      <div key={r.id} className="pfd-reminder-row">
-                        <div className="pfd-reminder-icon">🐾</div>
-                        <div className="pfd-reminder-meta">
-                          <div className="pfd-reminder-name">{r.title}</div>
-                          <div className="pfd-reminder-desc">{r.message || "Reminder"}</div>
-                          <div className="pfd-reminder-date">
-                            Due: {formatDate(r.reminder_date)}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              ))}
             </div>
-          </article>
+          </div>
 
-          <PremiumPetInsights
-            pets={pets}
-            upcomingReminders={upcomingReminders}
-            appointments={appointments}
-            isPremium={isPremium}
-          />
-
-          <article className="pfd-banner pfd-span-3">
-            <span className="pfd-banner-paw pfd-banner-paw-1">🐾</span>
-            <span className="pfd-banner-paw pfd-banner-paw-2">🐾</span>
-            <span className="pfd-banner-bone">🦴</span>
-
-            <div className="pfd-banner-copy">
-              <div className="pfd-card-kicker pfd-card-kicker-light">Premium care</div>
-              <h2>
-                {isPremium
-                  ? "Everything your pet needs, with premium support beautifully organised."
-                  : "Upgrade to Premium for extra pet-care support and Vet Chat."}
-              </h2>
-              <div className="pfd-banner-divider">
-                pawfectly organised, lovingly designed 🐾
-              </div>
-            </div>
-
-            <div className="pfd-banner-actions">
-              <button className="pfd-quickaction" onClick={() => navigate("/pets/create")}>
-                <span className="pfd-quickicon">🐶</span>
-                <span>Add Pet</span>
-              </button>
-              <button className="pfd-quickaction" onClick={handleVetChat}>
-                <span className="pfd-quickicon">💬</span>
-                <span>{isPremium ? "Vet Chat" : "Unlock Vet Chat"}</span>
-              </button>
-              <button
-                className="pfd-quickaction"
-                onClick={() => navigate("/premium/inventory")}
-              >
-                <span className="pfd-quickicon">📦</span>
-                <span>Inventory</span>
-              </button>
-              <button
-                className="pfd-quickaction"
-                onClick={() => navigate("/premium/community")}
-              >
-                <span className="pfd-quickicon">💗</span>
-                <span>Community</span>
-              </button>
-            </div>
-          </article>
+          <div className="pfd-slider-dots">
+            <span></span>
+            <span className="active"></span>
+            <span></span>
+            <span></span>
+          </div>
         </section>
       </main>
     </div>

@@ -19,6 +19,9 @@ import "./PremiumMyPet.css";
 export default function PremiumMyPet() {
   const navigate = useNavigate();
 
+  const token = localStorage.getItem("pawfection_token");
+  const apiBase = "http://127.0.0.1:8000/api";
+
   const [userName, setUserName] = useState("User");
   const [pets, setPets] = useState([]);
   const [selectedPetId, setSelectedPetId] = useState("");
@@ -45,6 +48,7 @@ export default function PremiumMyPet() {
   const [savingHealthLog, setSavingHealthLog] = useState(false);
   const [healthFormError, setHealthFormError] = useState("");
   const [healthFormSuccess, setHealthFormSuccess] = useState("");
+
   const [healthForm, setHealthForm] = useState({
     log_date: new Date().toISOString().split("T")[0],
     weight: "",
@@ -53,37 +57,13 @@ export default function PremiumMyPet() {
     note: "",
   });
 
-  const token = localStorage.getItem("pawfection_token");
-  const apiBase = "http://127.0.0.1:8000/api";
-
-  useEffect(() => {
-    const savedToken = localStorage.getItem("pawfection_token");
-    const savedRole = String(localStorage.getItem("pawfection_role") || "").toLowerCase();
-
-    if (!savedToken) {
-      navigate("/login");
-      return;
-    }
-
-    if (savedRole === "admin") {
-      navigate("/admin-dashboard");
-      return;
-    }
-
-    try {
-      const savedUser = localStorage.getItem("pawfection_user");
-      if (savedUser) {
-        const userObj = JSON.parse(savedUser);
-        if (userObj?.name) {
-          setUserName(userObj.name);
-        }
-      }
-    } catch {
-      setUserName("User");
-    }
-
-    fetchPets();
-  }, [navigate]);
+  const extractList = (data, keyName) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.[keyName])) return data[keyName];
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.results)) return data.results;
+    return [];
+  };
 
   const fetchPets = async () => {
     if (!token) return;
@@ -103,22 +83,31 @@ export default function PremiumMyPet() {
 
       if (!res.ok) {
         setPets([]);
+        setSelectedPetId("");
         setPetsError(data?.message || "Failed to load pets.");
-      } else {
-        const petList = Array.isArray(data) ? data : data?.pets || [];
-        setPets(petList);
-
-        if (petList.length > 0) {
-          const firstId = petList[0]?.id;
-          setSelectedPetId(String(firstId));
-          fetchHealthLogs(firstId);
-          fetchReminders(firstId);
-          fetchRecommendations(firstId);
-          fetchAlerts(firstId);
-        }
+        return;
       }
+
+      const petList = extractList(data, "pets");
+
+      setPets(petList);
+
+      setSelectedPetId((currentSelectedId) => {
+        if (currentSelectedId) {
+          const petStillExists = petList.some(
+            (pet) => String(pet.id) === String(currentSelectedId)
+          );
+
+          if (petStillExists) {
+            return String(currentSelectedId);
+          }
+        }
+
+        return petList.length > 0 ? String(petList[0].id) : "";
+      });
     } catch {
       setPets([]);
+      setSelectedPetId("");
       setPetsError("Server error. Is your backend running?");
     } finally {
       setLoadingPets(false);
@@ -129,6 +118,7 @@ export default function PremiumMyPet() {
     if (!token || !petId) return;
 
     setHealthLoading(true);
+
     try {
       const res = await fetch(`${apiBase}/premium/pets/${petId}/health-logs`, {
         headers: {
@@ -137,7 +127,7 @@ export default function PremiumMyPet() {
         },
       });
 
-      const data = await res.json().catch(() => ([]));
+      const data = await res.json().catch(() => []);
       setHealthLogs(Array.isArray(data) ? data : data?.data || []);
     } catch {
       setHealthLogs([]);
@@ -150,6 +140,7 @@ export default function PremiumMyPet() {
     if (!token || !petId) return;
 
     setRemindersLoading(true);
+
     try {
       const res = await fetch(`${apiBase}/premium/pets/${petId}/reminders`, {
         headers: {
@@ -158,7 +149,7 @@ export default function PremiumMyPet() {
         },
       });
 
-      const data = await res.json().catch(() => ([]));
+      const data = await res.json().catch(() => []);
       setReminders(Array.isArray(data) ? data : data?.data || []);
     } catch {
       setReminders([]);
@@ -207,6 +198,7 @@ export default function PremiumMyPet() {
     if (!token || !petId) return;
 
     setAlertsLoading(true);
+
     try {
       const res = await fetch(`${apiBase}/premium/pets/${petId}/alerts`, {
         headers: {
@@ -215,7 +207,7 @@ export default function PremiumMyPet() {
         },
       });
 
-      const data = await res.json().catch(() => ([]));
+      const data = await res.json().catch(() => []);
       setAlerts(Array.isArray(data) ? data : data?.data || []);
     } catch {
       setAlerts([]);
@@ -224,8 +216,61 @@ export default function PremiumMyPet() {
     }
   };
 
+  useEffect(() => {
+    const savedToken = localStorage.getItem("pawfection_token");
+    const savedRole = String(localStorage.getItem("pawfection_role") || "").toLowerCase();
+
+    if (!savedToken) {
+      navigate("/login");
+      return;
+    }
+
+    if (savedRole === "admin") {
+      navigate("/admin-dashboard");
+      return;
+    }
+
+    try {
+      const savedUser = localStorage.getItem("pawfection_user");
+      if (savedUser) {
+        const userObj = JSON.parse(savedUser);
+        if (userObj?.name) {
+          setUserName(userObj.name);
+        }
+      }
+    } catch {
+      setUserName("User");
+    }
+
+    fetchPets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!selectedPetId) {
+      setHealthLogs([]);
+      setReminders([]);
+      setRecommendations([]);
+      setAlerts([]);
+      return;
+    }
+
+    fetchHealthLogs(selectedPetId);
+    fetchReminders(selectedPetId);
+    fetchRecommendations(selectedPetId);
+    fetchAlerts(selectedPetId);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPetId]);
+
   const selectedPet = useMemo(() => {
-    return pets.find((pet) => String(pet.id) === String(selectedPetId)) || pets[0] || null;
+    if (!pets.length) return null;
+
+    return (
+      pets.find((pet) => String(pet.id) === String(selectedPetId)) ||
+      pets[0] ||
+      null
+    );
   }, [pets, selectedPetId]);
 
   const isSelectedPetLost = useMemo(() => {
@@ -244,10 +289,6 @@ export default function PremiumMyPet() {
     setSelectedPetId(String(petId));
     setShowPetDetails(false);
     setActivePetTab("overview");
-    fetchHealthLogs(petId);
-    fetchReminders(petId);
-    fetchRecommendations(petId);
-    fetchAlerts(petId);
     setHealthFormError("");
     setHealthFormSuccess("");
   };
@@ -257,6 +298,8 @@ export default function PremiumMyPet() {
     if (pet?.display_photo_url) return pet.display_photo_url;
     if (pet?.lost_photo_url) return pet.lost_photo_url;
     if (pet?.photo_url) return pet.photo_url;
+    if (pet?.image_url) return pet.image_url;
+    if (pet?.image) return pet.image;
     if (pet?.photo_path) return `http://127.0.0.1:8000/storage/${pet.photo_path}`;
     if (pet?.photo) return `http://127.0.0.1:8000/storage/${pet.photo}`;
     return null;
@@ -323,6 +366,7 @@ export default function PremiumMyPet() {
     const withWeight = orderedHealthLogs.filter(
       (log) => log?.weight !== null && log?.weight !== undefined && log?.weight !== ""
     );
+
     return withWeight.length
       ? withWeight[withWeight.length - 1].weight
       : selectedPet?.weight || "—";
@@ -335,6 +379,7 @@ export default function PremiumMyPet() {
         log?.activity_minutes !== undefined &&
         log?.activity_minutes !== ""
     );
+
     return withActivity.length
       ? withActivity[withActivity.length - 1].activity_minutes
       : "—";
@@ -342,6 +387,7 @@ export default function PremiumMyPet() {
 
   const completedReminders = useMemo(() => {
     if (!reminders.length) return 0;
+
     return reminders.filter(
       (r) => String(r?.status || "").toLowerCase() === "completed"
     ).length;
@@ -508,6 +554,7 @@ export default function PremiumMyPet() {
 
     if (logsWithWeight.length === 1) {
       const first = logsWithWeight[0];
+
       return [
         {
           date: `${first.date} A`,
@@ -537,6 +584,7 @@ export default function PremiumMyPet() {
 
   const handleHealthInputChange = (e) => {
     const { name, value } = e.target;
+
     setHealthForm((prev) => ({
       ...prev,
       [name]: value,
@@ -713,6 +761,62 @@ export default function PremiumMyPet() {
     ];
   }, [alerts]);
 
+  const premiumPetSliderItems = useMemo(() => {
+    return [
+      {
+        icon: "🩺",
+        title: "Health Logs",
+        text: "Track weight, activity, appetite, and care notes for your selected pet.",
+        action: "Add health log",
+        onClick: () => setShowHealthForm(true),
+      },
+      {
+        icon: "📈",
+        title: "Trend Graphs",
+        text: "View weight and activity progress with premium health analytics.",
+        action: "View trends",
+        onClick: () => {
+          document.querySelector(".pmp-graph-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+      {
+        icon: "💡",
+        title: "Smart Insights",
+        text: "See personalised recommendations based on your pet profile and logs.",
+        action: "View insights",
+        onClick: () => {
+          document.querySelector(".pmp-insight-list")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+      {
+        icon: "🔔",
+        title: "Reminders",
+        text: `${pendingReminders} pending reminder${pendingReminders === 1 ? "" : "s"} for this pet.`,
+        action: "Open reminders",
+        onClick: () => navigate("/premium/reminders"),
+      },
+      {
+        icon: "📍",
+        title: "Lost Status",
+        text: isSelectedPetLost
+          ? "This pet is currently marked as missing."
+          : "This pet is not marked as lost.",
+        action: isSelectedPetLost ? "View sightings" : "Open lost & found",
+        onClick: () =>
+          isSelectedPetLost && selectedPet
+            ? navigate(`/premium/pets/${selectedPet.id}/sightings`)
+            : navigate("/premium/lostfound"),
+      },
+      {
+        icon: "✏️",
+        title: "Pet Profile",
+        text: "Update your pet details, photo, health info, and profile notes.",
+        action: "Edit profile",
+        onClick: () => selectedPet && navigate(`/premium/pets/${selectedPet.id}/edit`),
+      },
+    ];
+  }, [pendingReminders, isSelectedPetLost, selectedPet, navigate]);
+
   const pieColors = ["#7c6cf2", "#d9def0"];
 
   return (
@@ -784,7 +888,7 @@ export default function PremiumMyPet() {
               {getGreeting()}, {userName}
             </h1>
             <p className="pmp-hero-text">
-              Your Premium My Pet page now gives personalised care insights, health
+              Your Premium My Pet page gives personalised care insights, health
               analytics, predictive alerts, and pet-aware premium support.
             </p>
 
@@ -792,6 +896,7 @@ export default function PremiumMyPet() {
               <label htmlFor="petSelect" className="pmp-selector-label">
                 Select Pet
               </label>
+
               <select
                 id="petSelect"
                 className="pmp-selector"
@@ -800,6 +905,7 @@ export default function PremiumMyPet() {
                 disabled={loadingPets || pets.length === 0}
               >
                 {pets.length === 0 && <option value="">No pets available</option>}
+
                 {pets.map((pet) => (
                   <option key={pet.id} value={pet.id}>
                     {pet.name} {pet.breed ? `• ${pet.breed}` : ""}
@@ -813,6 +919,7 @@ export default function PremiumMyPet() {
                 className="pmp-btn pmp-btn-primary"
                 type="button"
                 onClick={() => setShowHealthForm((prev) => !prev)}
+                disabled={!selectedPet}
               >
                 {showHealthForm ? "Close Health Log" : "Add Health Log"}
               </button>
@@ -821,8 +928,9 @@ export default function PremiumMyPet() {
                 className="pmp-btn"
                 type="button"
                 onClick={() =>
-                  selectedPet ? navigate(`/pets/${selectedPet.id}/edit`) : null
+                  selectedPet ? navigate(`/premium/pets/${selectedPet.id}/edit`) : null
                 }
+                disabled={!selectedPet}
               >
                 Edit Pet Profile
               </button>
@@ -830,7 +938,7 @@ export default function PremiumMyPet() {
               <button
                 className="pmp-btn"
                 type="button"
-                onClick={() => navigate("/pets/create")}
+                onClick={() => navigate("/premium/pets/create")}
               >
                 Add New Pet
               </button>
@@ -846,8 +954,17 @@ export default function PremiumMyPet() {
               )}
             </div>
 
-            {healthFormError && <div className="pmp-form-message pmp-form-error">{healthFormError}</div>}
-            {healthFormSuccess && <div className="pmp-form-message pmp-form-success">{healthFormSuccess}</div>}
+            {healthFormError && (
+              <div className="pmp-form-message pmp-form-error">
+                {healthFormError}
+              </div>
+            )}
+
+            {healthFormSuccess && (
+              <div className="pmp-form-message pmp-form-success">
+                {healthFormSuccess}
+              </div>
+            )}
 
             {showHealthForm && (
               <form className="pmp-health-form" onSubmit={submitHealthLog}>
@@ -937,6 +1054,7 @@ export default function PremiumMyPet() {
           </div>
 
           <div
+            key={selectedPet?.id || "no-selected-pet"}
             className={`pmp-hero-card pmp-hero-card-clickable ${showPetDetails ? "is-open" : ""}`}
             onClick={() => {
               if (selectedPet) {
@@ -1019,13 +1137,34 @@ export default function PremiumMyPet() {
                   </div>
 
                   <div className="pmp-pet-profile-info">
-                    <div><strong>Date of Birth</strong><span>{selectedPet?.date_of_birth || selectedPet?.dob || "-"}</span></div>
-                    <div><strong>Gender</strong><span>{selectedPet?.gender || "-"}</span></div>
-                    <div><strong>Vaccination Status</strong><span>{selectedPet?.vaccination_status || "-"}</span></div>
-                    <div><strong>Last Vet Visit</strong><span>{formatDisplayDate(selectedPet?.last_vet_visit)}</span></div>
-                    <div><strong>Microchip Number</strong><span>{selectedPet?.microchip_number || "-"}</span></div>
-                    <div><strong>Activity Level</strong><span>{selectedPet?.activity_level || "Not added"}</span></div>
-                    <div><strong>Lost Status</strong><span>{isSelectedPetLost ? "Missing Pet" : "Not lost"}</span></div>
+                    <div>
+                      <strong>Date of Birth</strong>
+                      <span>{selectedPet?.date_of_birth || selectedPet?.dob || "-"}</span>
+                    </div>
+                    <div>
+                      <strong>Gender</strong>
+                      <span>{selectedPet?.gender || "-"}</span>
+                    </div>
+                    <div>
+                      <strong>Vaccination Status</strong>
+                      <span>{selectedPet?.vaccination_status || "-"}</span>
+                    </div>
+                    <div>
+                      <strong>Last Vet Visit</strong>
+                      <span>{formatDisplayDate(selectedPet?.last_vet_visit)}</span>
+                    </div>
+                    <div>
+                      <strong>Microchip Number</strong>
+                      <span>{selectedPet?.microchip_number || "-"}</span>
+                    </div>
+                    <div>
+                      <strong>Activity Level</strong>
+                      <span>{selectedPet?.activity_level || "Not added"}</span>
+                    </div>
+                    <div>
+                      <strong>Lost Status</strong>
+                      <span>{isSelectedPetLost ? "Missing Pet" : "Not lost"}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1077,46 +1216,85 @@ export default function PremiumMyPet() {
                 <div className="pmp-pet-tab-panel">
                   {activePetTab === "overview" && (
                     <>
-                      <div><strong>Notes</strong><span>{selectedPet?.notes || "Friendly and energetic."}</span></div>
-                      <div><strong>Species</strong><span>{selectedPet?.species || "-"}</span></div>
-                      <div><strong>Breed</strong><span>{selectedPet?.breed || "-"}</span></div>
-                      <div><strong>Weight</strong><span>{selectedPet?.weight ? `${selectedPet.weight}kg` : latestWeight}</span></div>
+                      <div>
+                        <strong>Notes</strong>
+                        <span>{selectedPet?.notes || "Friendly and energetic."}</span>
+                      </div>
+                      <div>
+                        <strong>Species</strong>
+                        <span>{selectedPet?.species || "-"}</span>
+                      </div>
+                      <div>
+                        <strong>Breed</strong>
+                        <span>{selectedPet?.breed || "-"}</span>
+                      </div>
+                      <div>
+                        <strong>Weight</strong>
+                        <span>{selectedPet?.weight ? `${selectedPet.weight}kg` : latestWeight}</span>
+                      </div>
                     </>
                   )}
 
                   {activePetTab === "health" && (
                     <>
-                      <div><strong>Vaccination</strong><span>{selectedPet?.vaccination_status || "Not set"}</span></div>
-                      <div><strong>Last Vet Visit</strong><span>{formatDisplayDate(selectedPet?.last_vet_visit)}</span></div>
-                      <div><strong>Microchip</strong><span>{selectedPet?.microchip_number || "Not set"}</span></div>
-                      <div><strong>Latest Activity</strong><span>{latestActivity === "—" ? "Not added" : `${latestActivity} mins`}</span></div>
+                      <div>
+                        <strong>Vaccination</strong>
+                        <span>{selectedPet?.vaccination_status || "Not set"}</span>
+                      </div>
+                      <div>
+                        <strong>Last Vet Visit</strong>
+                        <span>{formatDisplayDate(selectedPet?.last_vet_visit)}</span>
+                      </div>
+                      <div>
+                        <strong>Microchip</strong>
+                        <span>{selectedPet?.microchip_number || "Not set"}</span>
+                      </div>
+                      <div>
+                        <strong>Latest Activity</strong>
+                        <span>{latestActivity === "—" ? "Not added" : `${latestActivity} mins`}</span>
+                      </div>
                     </>
                   )}
 
                   {activePetTab === "diet" && (
-                    <>
-                      <div><strong>Diet</strong><span>{selectedPet?.diet || "Dry food and chicken"}</span></div>
-                    </>
+                    <div>
+                      <strong>Diet</strong>
+                      <span>{selectedPet?.diet || "Dry food and chicken"}</span>
+                    </div>
                   )}
 
                   {activePetTab === "behaviour" && (
-                    <>
-                      <div><strong>Behaviour</strong><span>{selectedPet?.behaviour || "Playful and alert"}</span></div>
-                    </>
+                    <div>
+                      <strong>Behaviour</strong>
+                      <span>{selectedPet?.behaviour || selectedPet?.behaviour_notes || "Playful and alert"}</span>
+                    </div>
                   )}
 
                   {activePetTab === "reminders" && (
                     <>
-                      <div><strong>Reminder Summary</strong><span>{reminders.length ? `${reminders.length} total reminders` : "No upcoming reminders"}</span></div>
-                      <div><strong>Completed</strong><span>{completedReminders}</span></div>
-                      <div><strong>Pending</strong><span>{pendingReminders}</span></div>
+                      <div>
+                        <strong>Reminder Summary</strong>
+                        <span>{reminders.length ? `${reminders.length} total reminders` : "No upcoming reminders"}</span>
+                      </div>
+                      <div>
+                        <strong>Completed</strong>
+                        <span>{completedReminders}</span>
+                      </div>
+                      <div>
+                        <strong>Pending</strong>
+                        <span>{pendingReminders}</span>
+                      </div>
                     </>
                   )}
 
                   {activePetTab === "guidance" && (
-                    <>
-                      <div><strong>Guidance</strong><span>{recommendationCards[0]?.text || "Keep health logs and reminders updated for better premium insights."}</span></div>
-                    </>
+                    <div>
+                      <strong>Guidance</strong>
+                      <span>
+                        {recommendationCards[0]?.text ||
+                          "Keep health logs and reminders updated for better premium insights."}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1146,7 +1324,8 @@ export default function PremiumMyPet() {
                   <button
                     className="pmp-btn pmp-btn-primary pmp-btn-small"
                     type="button"
-                    onClick={() => navigate(`/pets/${selectedPet.id}/edit`)}
+                    disabled={!selectedPet}
+                    onClick={() => selectedPet && navigate(`/premium/pets/${selectedPet.id}/edit`)}
                   >
                     Edit Profile
                   </button>
@@ -1181,6 +1360,46 @@ export default function PremiumMyPet() {
             </aside>
           </section>
         </div>
+
+        <section className="pmp-auto-section">
+          <div className="pmp-auto-head">
+            <div>
+              <div className="pmp-card-kicker">Premium pet shortcuts</div>
+              <h2>Everything for {selectedPet?.name || "your pet"}, sliding automatically</h2>
+            </div>
+
+            <div className="pmp-auto-pill">Auto sliding ✨</div>
+          </div>
+
+          <div className="pmp-slider-mask">
+            <div className="pmp-slider-track">
+              {[0, 1].map((groupIndex) => (
+                <div className="pmp-slider-group" key={groupIndex}>
+                  {premiumPetSliderItems.map((item, index) => (
+                    <button
+                      key={`${groupIndex}-${index}`}
+                      type="button"
+                      className="pmp-slide-card"
+                      onClick={item.onClick}
+                    >
+                      <span>{item.icon}</span>
+                      <strong>{item.title}</strong>
+                      <p>{item.text}</p>
+                      <small>{item.action}</small>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="pmp-slider-dots">
+            <span></span>
+            <span className="active"></span>
+            <span></span>
+            <span></span>
+          </div>
+        </section>
 
         <section className="pmp-grid">
           <article className="pmp-card pmp-card-wide">
@@ -1383,7 +1602,10 @@ export default function PremiumMyPet() {
                               label
                             >
                               {activityPieData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={pieColors[index % pieColors.length]}
+                                />
                               ))}
                             </Pie>
                             <Tooltip />
@@ -1419,19 +1641,80 @@ export default function PremiumMyPet() {
             )}
           </article>
 
-          <article className="pmp-card">
+          <article className="pmp-card pmp-selected-pet-card">
             <div className="pmp-card-kicker">Premium Care Context</div>
             <h3>Selected Pet Summary</h3>
 
-            <div className="pmp-context-box">
-              <div><strong>Name:</strong> {selectedPet?.name || "—"}</div>
-              <div><strong>Breed:</strong> {selectedPet?.breed || "—"}</div>
-              <div><strong>Age:</strong> {selectedPet?.age || "—"}</div>
-              <div><strong>Weight:</strong> {selectedPet?.weight || latestWeight || "—"}</div>
-              <div><strong>Target Weight:</strong> {targetWeight || "—"}</div>
-              <div><strong>Target Activity:</strong> {targetActivity} mins</div>
-              <div><strong>Notes:</strong> {selectedPet?.notes || "No health notes added yet."}</div>
-              <div><strong>Lost Status:</strong> {isSelectedPetLost ? "Missing Pet" : "Not lost"}</div>
+            <div className="pmp-selected-pet-box">
+              <div className="pmp-selected-pet-photo">
+                {getPetImageSrc(selectedPet) ? (
+                  <img src={getPetImageSrc(selectedPet)} alt={selectedPet?.name || "Pet"} />
+                ) : (
+                  <span>🐾</span>
+                )}
+              </div>
+
+              <div className="pmp-selected-pet-info">
+                <div className="pmp-selected-pet-badge">
+                  {isSelectedPetLost ? "📍 Missing Pet" : "💜 Active Profile"}
+                </div>
+
+                <h4>{selectedPet?.name || "Your Pet"}</h4>
+                <p>
+                  {selectedPet?.breed || selectedPet?.species || "Premium pet profile"}
+                  {selectedPet?.age ? ` • ${selectedPet.age} yrs` : ""}
+                </p>
+
+                <div className="pmp-selected-mini-grid">
+                  <div>
+                    <span>Weight</span>
+                    <strong>{selectedPet?.weight || latestWeight || "—"}</strong>
+                  </div>
+
+                  <div>
+                    <span>Target Weight</span>
+                    <strong>{targetWeight || "—"}</strong>
+                  </div>
+
+                  <div>
+                    <span>Target Activity</span>
+                    <strong>{targetActivity} mins</strong>
+                  </div>
+
+                  <div>
+                    <span>Progress</span>
+                    <strong>{reminderProgress}%</strong>
+                  </div>
+                </div>
+
+                <div className="pmp-selected-actions">
+                  <button
+                    type="button"
+                    disabled={!selectedPet}
+                    onClick={() => selectedPet && navigate(`/premium/pets/${selectedPet.id}/edit`)}
+                  >
+                    ✏️ Edit Pet
+                  </button>
+
+                  <button type="button" onClick={() => navigate("/premium/reminders")}>
+                    🔔 Reminders
+                  </button>
+
+                  {selectedPet && isSelectedPetLost && (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/premium/pets/${selectedPet.id}/sightings`)}
+                    >
+                      👀 Sightings
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="pmp-selected-note">
+              <strong>Notes:</strong>{" "}
+              {selectedPet?.notes || "No health notes added yet."}
             </div>
           </article>
 
@@ -1453,10 +1736,12 @@ export default function PremiumMyPet() {
                         {formatTimelineDate(log?.log_date || log?.created_at)}
                       </div>
                       <div className="pmp-timeline-text">
-                        Weight: {log?.weight || "—"} | Activity: {log?.activity_minutes || "—"} mins
+                        Weight: {log?.weight || "—"} | Activity:{" "}
+                        {log?.activity_minutes || "—"} mins
                       </div>
                       <div className="pmp-timeline-sub">
-                        Appetite: {log?.appetite || "—"} | {log?.note || "No extra notes added."}
+                        Appetite: {log?.appetite || "—"} |{" "}
+                        {log?.note || "No extra notes added."}
                       </div>
                       <div className="pmp-timeline-actions">
                         <button
@@ -1475,25 +1760,66 @@ export default function PremiumMyPet() {
             )}
           </article>
 
-          <article className="pmp-card">
+          <article className="pmp-card pmp-routine-card">
             <div className="pmp-card-kicker">Reminder Progress</div>
             <h3>Care Routine Completion</h3>
 
             {remindersLoading ? (
               <div className="pmp-empty">Loading reminders...</div>
             ) : (
-              <>
-                <div className="pmp-progress-ring">
-                  <div className="pmp-progress-value">{reminderProgress}%</div>
-                  <div className="pmp-progress-label">complete</div>
+              <div className="pmp-routine-layout">
+                <div>
+                  <div className="pmp-progress-ring">
+                    <div>
+                      <div className="pmp-progress-value">{reminderProgress}%</div>
+                      <div className="pmp-progress-label">complete</div>
+                    </div>
+                  </div>
+
+                  <div className="pmp-progress-meta">
+                    <div>Total reminders: {reminders.length}</div>
+                    <div>Completed: {completedReminders}</div>
+                    <div>Pending: {Math.max(reminders.length - completedReminders, 0)}</div>
+                  </div>
                 </div>
 
-                <div className="pmp-progress-meta">
-                  <div>Total reminders: {reminders.length}</div>
-                  <div>Completed: {completedReminders}</div>
-                  <div>Pending: {Math.max(reminders.length - completedReminders, 0)}</div>
+                <div className="pmp-routine-side">
+                  <div className="pmp-routine-message">
+                    <span>✨</span>
+                    <div>
+                      <strong>
+                        {reminderProgress >= 80
+                          ? "Care routine is looking great"
+                          : reminderProgress >= 40
+                          ? "Care routine is improving"
+                          : "Care routine needs attention"}
+                      </strong>
+                      <p>
+                        Keep reminders, health logs, appointments, and activity records updated
+                        to make premium insights more useful.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pmp-routine-actions">
+                    <button type="button" onClick={() => navigate("/premium/reminders")}>
+                      🔔 Open Reminders
+                    </button>
+
+                    <button type="button" onClick={() => setShowHealthForm(true)}>
+                      🩺 Add Health Log
+                    </button>
+
+                    <button type="button" onClick={() => navigate("/premium/appointments")}>
+                      📅 Book Appointment
+                    </button>
+
+                    <button type="button" onClick={() => navigate("/premium/vet-chat")}>
+                      💬 AI Pet Assistant
+                    </button>
+                  </div>
                 </div>
-              </>
+              </div>
             )}
           </article>
         </section>

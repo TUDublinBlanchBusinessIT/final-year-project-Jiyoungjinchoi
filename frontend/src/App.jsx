@@ -18,6 +18,9 @@ import AdminUsers from "./pages/AdminUsers";
 
 import CreatePet from "./pages/CreatePet";
 import EditPet from "./pages/EditPet";
+import PremiumCreatePet from "./pages/PremiumCreatePet";
+import PremiumEditPet from "./pages/PremiumEditPet";
+
 import MyPets from "./pages/MyPets";
 import PetOverview from "./pages/PetOverview";
 import Community from "./pages/Community";
@@ -40,6 +43,7 @@ import PremiumProfile from "./pages/PremiumProfile";
 import PremiumReminders from "./pages/PremiumReminders";
 import PremiumInventory from "./pages/PremiumInventory";
 import PremiumPetSightings from "./pages/PremiumPetSightings";
+import PremiumReportSighting from "./pages/PremiumReportSighting";
 
 function App() {
   return (
@@ -63,6 +67,10 @@ function App() {
 
         <Route path="/pets/create" element={<CreatePet />} />
         <Route path="/pets/:id/edit" element={<EditPet />} />
+
+        <Route path="/premium/pets/create" element={<PremiumCreatePet />} />
+        <Route path="/premium/pets/:id/edit" element={<PremiumEditPet />} />
+
         <Route path="/mypets" element={<MyPets />} />
         <Route path="/pets/:id" element={<PetOverview />} />
 
@@ -85,6 +93,7 @@ function App() {
 
         <Route path="/premium/lostfound" element={<PremiumLostFound />} />
         <Route path="/premium/lostfound/report" element={<PremiumReportLostPet />} />
+        <Route path="/premium/lostfound/report-sighting" element={<PremiumReportSighting />} />
         <Route path="/premium/lostfound/view/:id" element={<PremiumLostReportDetails />} />
         <Route
           path="/premium/lostfound/view/:id/sighting"

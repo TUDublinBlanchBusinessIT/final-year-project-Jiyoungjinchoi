@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
 import "./PremiumReportLostPet.css";
@@ -28,6 +28,22 @@ function loadGoogleMapsScript() {
     script.onerror = () => reject(new Error("Failed to load Google Maps."));
     document.head.appendChild(script);
   });
+}
+
+function getPetImage(pet) {
+  return (
+    pet?.photo_url ||
+    pet?.image_url ||
+    pet?.photo ||
+    pet?.image ||
+    pet?.profile_photo ||
+    ""
+  );
+}
+
+function getPetAge(pet) {
+  if (!pet) return "Not selected";
+  return pet.age || pet.pet_age || pet.date_of_birth || pet.dob || "Not added";
 }
 
 export default function ReportLostPet() {
@@ -66,6 +82,31 @@ export default function ReportLostPet() {
   const markerRef = useRef(null);
   const geocoderRef = useRef(null);
 
+  const selectedPet = useMemo(() => {
+    return pets.find((item) => String(item.id) === String(selectedPetId));
+  }, [pets, selectedPetId]);
+
+  const petImage = getPetImage(selectedPet);
+
+  const checklist = [
+    {
+      label: "Pet profile selected",
+      done: Boolean(selectedPetId),
+    },
+    {
+      label: "Last seen location added",
+      done: Boolean(form.location),
+    },
+    {
+      label: "Map pin confirmed",
+      done: Boolean(form.lat && form.lng),
+    },
+    {
+      label: "Description written",
+      done: Boolean(form.description.trim()),
+    },
+  ];
+
   useEffect(() => {
     const savedToken = localStorage.getItem("pawfection_token") || "";
     setToken(savedToken);
@@ -95,6 +136,7 @@ export default function ReportLostPet() {
 
   useEffect(() => {
     const savedUser = localStorage.getItem("pawfection_user");
+
     if (savedUser) {
       try {
         const parsedUser = JSON.parse(savedUser);
@@ -196,6 +238,7 @@ export default function ReportLostPet() {
           (results, status) => {
             if (status === "OK" && results?.[0]) {
               const newAddress = results[0].formatted_address || "";
+
               setForm((prev) => ({
                 ...prev,
                 location: newAddress,
@@ -216,6 +259,7 @@ export default function ReportLostPet() {
     if (!mapInstanceRef.current || lat === "" || lng === "") return;
 
     const position = { lat: Number(lat), lng: Number(lng) };
+
     mapInstanceRef.current.setCenter(position);
     mapInstanceRef.current.setZoom(16);
 
@@ -302,6 +346,13 @@ export default function ReportLostPet() {
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleLocationTyping = (e) => {
+    setForm((prev) => ({
+      ...prev,
+      location: e.target.value,
     }));
   };
 
@@ -407,6 +458,8 @@ export default function ReportLostPet() {
         description: form.description.trim(),
         lat: form.lat !== "" ? Number(form.lat) : null,
         lng: form.lng !== "" ? Number(form.lng) : null,
+        lost_at: form.lost_at || null,
+        priority: form.priority,
       };
 
       const res = await fetch(`${apiBase}/premium/lost-found`, {
@@ -449,6 +502,10 @@ export default function ReportLostPet() {
 
   return (
     <div className="premium-report-page">
+      <div className="premium-report-cloud cloud-one"></div>
+      <div className="premium-report-cloud cloud-two"></div>
+      <div className="premium-report-cloud cloud-three"></div>
+
       <div className="premium-lf-topbar">
         <div className="premium-lf-brand">
           <img
@@ -456,6 +513,7 @@ export default function ReportLostPet() {
             alt="Pawfection Logo"
             className="premium-lf-logo"
           />
+
           <div className="premium-lf-brand-text">
             <h1>Pawfection</h1>
             <p>PREMIUM LOST &amp; FOUND</p>
@@ -490,6 +548,7 @@ export default function ReportLostPet() {
             <div className="premium-lf-avatar">
               {userName?.charAt(0)?.toUpperCase() || "P"}
             </div>
+
             <div>
               <strong>{userName}</strong>
               <span>Premium User</span>
@@ -500,43 +559,145 @@ export default function ReportLostPet() {
 
       <section className="premium-report-hero">
         <span className="premium-report-badge">PREMIUM FEATURE</span>
-        <h2>Report Lost Pet</h2>
-        <p>
-          Select an existing pet profile, auto-fill the key details, and add the
-          lost report information with Google Maps for faster, cleaner reporting.
-        </p>
+
+        <div className="premium-report-hero-inner">
+          <div>
+            <h2>Report Lost Pet</h2>
+            <p>
+              Select your pet, confirm the last seen location, and send a clear
+              report to help nearby Pawfection users submit sightings faster.
+            </p>
+          </div>
+
+          <div className="premium-report-hero-card">
+            <span>Emergency Mode</span>
+            <strong>Location-based alert</strong>
+          </div>
+        </div>
       </section>
 
       {message && <div className="premium-lf-info-box">{message}</div>}
       {error && <div className="premium-lf-info-box error">{error}</div>}
 
       <div className="premium-report-grid">
-        <section className="premium-report-panel">
-          <h3>Select a Pet</h3>
-          <p className="premium-report-sub">Choose from My Pets</p>
+        <aside className="premium-report-side">
+          <section className="premium-report-panel select-panel">
+            <h3>Select a Pet</h3>
+            <p className="premium-report-sub">Choose from My Pets</p>
 
-          <div className="premium-report-field">
-            <select
-              value={selectedPetId}
-              onChange={(e) => handlePetChange(e.target.value)}
-              disabled={loadingPets || !token}
-            >
-              <option value="">Select a pet</option>
-              {loadingPets ? (
-                <option disabled>Loading pets...</option>
+            <div className="premium-report-field">
+              <select
+                value={selectedPetId}
+                onChange={(e) => handlePetChange(e.target.value)}
+                disabled={loadingPets || !token}
+              >
+                <option value="">Select a pet</option>
+
+                {loadingPets ? (
+                  <option disabled>Loading pets...</option>
+                ) : (
+                  pets.map((pet) => (
+                    <option key={pet.id} value={pet.id}>
+                      {pet.name} {pet.breed ? `• ${pet.breed}` : ""}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+
+            <div className="selected-pet-card">
+              {selectedPet ? (
+                <>
+                  <div className="selected-pet-top">
+                    <div className="selected-pet-photo">
+                      {petImage ? (
+                        <img src={petImage} alt={selectedPet.name || "Selected pet"} />
+                      ) : (
+                        <span>{selectedPet.name?.charAt(0)?.toUpperCase() || "P"}</span>
+                      )}
+                    </div>
+
+                    <div>
+                      <p>Selected Pet</p>
+                      <h4>{selectedPet.name || "Unnamed Pet"}</h4>
+                      <span>
+                        {selectedPet.species || "Pet"}{" "}
+                        {selectedPet.breed ? `• ${selectedPet.breed}` : ""}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="selected-pet-details">
+                    <div>
+                      <span>Age</span>
+                      <strong>{getPetAge(selectedPet)}</strong>
+                    </div>
+
+                    <div>
+                      <span>Microchip</span>
+                      <strong>
+                        {selectedPet.microchip_number ||
+                          selectedPet.microchip ||
+                          "Not added"}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Owner privacy</span>
+                      <strong>Protected contact</strong>
+                    </div>
+                  </div>
+                </>
               ) : (
-                pets.map((pet) => (
-                  <option key={pet.id} value={pet.id}>
-                    {pet.name} {pet.breed ? `• ${pet.breed}` : ""}
-                  </option>
-                ))
+                <div className="empty-pet-preview">
+                  <div className="empty-paw">🐾</div>
+                  <h4>No pet selected yet</h4>
+                  <p>
+                    Choose a pet profile above and Pawfection will auto-fill the
+                    report details for you.
+                  </p>
+                </div>
               )}
-            </select>
-          </div>
-        </section>
+            </div>
+          </section>
+
+          <section className="premium-report-panel checklist-panel">
+            <h3>Report Checklist</h3>
+            <p className="premium-report-sub">Make sure the report is ready</p>
+
+            <div className="report-checklist">
+              {checklist.map((item) => (
+                <div
+                  key={item.label}
+                  className={`checklist-item ${item.done ? "done" : ""}`}
+                >
+                  <span>{item.done ? "✓" : "○"}</span>
+                  <p>{item.label}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="premium-safety-tip">
+              <strong>Quick tip</strong>
+              <p>
+                After submitting, also contact nearby vets, shelters, and your
+                local dog pound as soon as possible.
+              </p>
+            </div>
+          </section>
+        </aside>
 
         <form className="premium-report-form" onSubmit={handleSubmit}>
-          <h3>Lost Report Details</h3>
+          <div className="form-title-row">
+            <div>
+              <h3>Lost Report Details</h3>
+              <p>Fill in the last seen information as clearly as possible.</p>
+            </div>
+
+            <span className="form-status-pill">
+              {form.priority ? "Priority report" : "Standard report"}
+            </span>
+          </div>
 
           <div className="premium-report-row">
             <div className="premium-report-field">
@@ -581,35 +742,30 @@ export default function ReportLostPet() {
             <input
               ref={locationInputRef}
               type="text"
+              value={form.location}
+              onChange={handleLocationTyping}
               placeholder="Search area, road, park, or landmark"
               autoComplete="off"
             />
           </div>
 
-          <div className="premium-report-row premium-report-row-single">
-            <button
-              type="button"
-              className="premium-report-location-btn"
-              onClick={handleUseMyLocation}
-              disabled={gettingLocation}
-            >
-              {gettingLocation ? "Getting Location..." : "Use My Current Location"}
-            </button>
-          </div>
+          <button
+            type="button"
+            className="premium-report-location-btn"
+            onClick={handleUseMyLocation}
+            disabled={gettingLocation}
+          >
+            <span>📍</span>
+            {gettingLocation ? "Getting Location..." : "Use My Current Location"}
+          </button>
 
-          <div className="premium-report-field">
-            <label>Map Preview</label>
-            <div
-              ref={mapRef}
-              style={{
-                width: "100%",
-                height: "260px",
-                borderRadius: "14px",
-                overflow: "hidden",
-                border: "1px solid rgba(223, 228, 243, 0.98)",
-                background: "rgba(255, 255, 255, 0.82)",
-              }}
-            />
+          <div className="premium-map-wrap">
+            <div className="map-title-row">
+              <label>Map Preview</label>
+              <span>Drag the pin to adjust</span>
+            </div>
+
+            <div ref={mapRef} className="premium-report-map" />
           </div>
 
           <div className="premium-report-field">
@@ -633,25 +789,39 @@ export default function ReportLostPet() {
           </div>
 
           <div className="premium-report-field">
-            <label>Description</label>
+            <label>Description *</label>
             <textarea
               name="description"
               value={form.description}
               onChange={handleChange}
-              placeholder="Add behaviour, collar, markings, and last seen details"
+              placeholder="Add behaviour, collar, markings, colour, and last seen details"
               rows="5"
             />
           </div>
 
-          <label className="premium-report-checkbox">
+          <label className={`premium-report-checkbox ${form.priority ? "active" : ""}`}>
             <input
               type="checkbox"
               name="priority"
               checked={form.priority}
               onChange={handleChange}
             />
-            Mark as priority premium report
+
+            <span className="checkbox-toggle"></span>
+
+            <div>
+              <strong>Mark as priority premium report</strong>
+              <p>Highlight this report for faster visibility in Lost & Found.</p>
+            </div>
           </label>
+
+          <div className="report-review-card">
+            <strong>Before you submit</strong>
+            <p>
+              Your report will appear on the premium Lost & Found map. Nearby
+              users can view the report and submit sightings linked to this pet.
+            </p>
+          </div>
 
           <div className="premium-report-actions">
             <button

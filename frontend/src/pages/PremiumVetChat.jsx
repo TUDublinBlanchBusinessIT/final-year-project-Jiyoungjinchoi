@@ -107,7 +107,6 @@ const MODE_PROMPTS = {
 const getDefaultIntakeForm = () => ({
   supportMode: "Health & Symptoms",
 
-  // General / health
   concern: "",
   duration: "",
   appetite: "",
@@ -115,54 +114,45 @@ const getDefaultIntakeForm = () => ({
   symptoms: [],
   useAiSummary: true,
 
-  // Behaviour & training
   behaviourIssue: "",
   behaviourTrigger: "",
   behaviourFrequency: "",
   trainingGoal: "",
 
-  // Food & nutrition
   currentFood: "",
   feedingSchedule: "",
   eatingChange: "",
   nutritionGoal: "",
 
-  // Grooming & care
   groomingNeed: "",
   groomingFrequency: "",
   coatSkinNotes: "",
   careGoal: "",
 
-  // Routine & reminders
   routineGoal: "",
   currentRoutine: "",
   reminderNeeds: "",
   planningNotes: "",
 
-  // Appointment prep
   appointmentType: "",
   appointmentDate: "",
   appointmentGoal: "",
   appointmentQuestions: "",
 
-  // Lost pet support
   lastSeenLocation: "",
   lastSeenTime: "",
   petDescription: "",
   collarMicrochipInfo: "",
 
-  // New pet owner
   newPetSituation: "",
   starterHelpNeeded: "",
   homeSetupStatus: "",
 
-  // Travel
   travelType: "",
   destinationType: "",
   travelConcern: "",
   packingHelp: "",
 
-  // Other
   otherTopic: "",
   otherDetails: "",
 });
@@ -1426,7 +1416,7 @@ Instructions:
           <Link className="pvc-topnav-item" to="/premium/inventory">
             Inventory
           </Link>
-          <Link className="pvc-topnav-item" to="/premium/vet-chat">
+          <Link className="pvc-topnav-item active" to="/premium/vet-chat">
             AI Pet Assistant
           </Link>
           <Link className="pvc-topnav-item" to="/premium/profile">
@@ -1680,13 +1670,6 @@ Instructions:
                             } else if (intakeForm.supportMode === "Other") {
                               setIntakeForm((prev) => ({ ...prev, otherDetails: item }));
                             }
-                          }}
-                          style={{
-                            textAlign: "left",
-                            width: "100%",
-                            background: "transparent",
-                            border: "none",
-                            cursor: "pointer",
                           }}
                         >
                           {item}

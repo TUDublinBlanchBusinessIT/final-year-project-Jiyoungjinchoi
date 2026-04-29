@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
-import "./PremiumDashboard.css";
 import "./PremiumInventory.css";
 
 const FILTERS = ["All", "Urgent", "Low Stock", "Out of Stock", "Healthy"];
@@ -16,6 +15,7 @@ function formatDate(iso) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
+
   return d.toLocaleDateString("en-IE", {
     year: "numeric",
     month: "short",
@@ -81,13 +81,13 @@ function getInsightText({ outOfStock, lowStock, healthy, mostUrgent }) {
 
   if (outOfStock.length > 0) {
     return `You have ${outOfStock.length} item${
-      outOfStock.length > 1 ? "s" : ""
+      outOfStock.length === 1 ? "" : "s"
     } out of stock. Restocking these first will keep care routines uninterrupted.`;
   }
 
   if (lowStock.length > 0) {
     return `${lowStock.length} item${
-      lowStock.length > 1 ? "s are" : " is"
+      lowStock.length === 1 ? " is" : "s are"
     } running low. This is a good time to plan your next restock.`;
   }
 
@@ -100,7 +100,9 @@ function getInsightText({ outOfStock, lowStock, healthy, mostUrgent }) {
 
 export default function PremiumInventory() {
   const navigate = useNavigate();
+
   const token = localStorage.getItem("pawfection_token");
+  const role = String(localStorage.getItem("pawfection_role") || "").toLowerCase();
   const apiBase = "http://127.0.0.1:8000/api";
 
   const [userName, setUserName] = useState("User");
@@ -143,27 +145,57 @@ export default function PremiumInventory() {
     };
   }, [token]);
 
-  const loadUserName = () => {
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    if (role === "admin") {
+      navigate("/admin-dashboard");
+      return;
+    }
+
+    localStorage.setItem("pawfection_account_type", "premium");
+
     try {
       const savedUser = localStorage.getItem("pawfection_user");
       if (savedUser) {
         const userObj = JSON.parse(savedUser);
-        if (userObj?.name && typeof userObj.name === "string") {
+        if (userObj?.name) {
           setUserName(userObj.name);
-          return;
         }
+      } else {
+        const fallbackName =
+          localStorage.getItem("pawfection_user_name") ||
+          localStorage.getItem("user_name") ||
+          localStorage.getItem("name");
+
+        if (fallbackName) setUserName(fallbackName);
       }
-
-      const fallbackName =
-        localStorage.getItem("pawfection_user_name") ||
-        localStorage.getItem("user_name") ||
-        localStorage.getItem("name");
-
-      if (fallbackName) setUserName(fallbackName);
     } catch {
       setUserName("User");
     }
+
+    fetchInventory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, token, role]);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
   };
+
+  const todayText = useMemo(() => {
+    return new Date().toLocaleDateString("en-IE", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }, []);
 
   const fetchInventory = async () => {
     if (!token) {
@@ -185,9 +217,11 @@ export default function PremiumInventory() {
       if (!res.ok) {
         setError(data?.message || "Failed to load inventory.");
         setItems([]);
-      } else {
-        setItems(Array.isArray(data) ? data : data?.items || []);
+        return;
       }
+
+      const list = Array.isArray(data) ? data : data?.items || data?.data || [];
+      setItems(Array.isArray(list) ? list : []);
     } catch {
       setError("Server error. Is your backend running?");
       setItems([]);
@@ -196,33 +230,24 @@ export default function PremiumInventory() {
     }
   };
 
-  useEffect(() => {
-    const savedToken = localStorage.getItem("pawfection_token");
-    const savedRole = String(
-      localStorage.getItem("pawfection_role") || ""
-    ).toLowerCase();
-
-    if (!savedToken) {
-      navigate("/login");
-      return;
-    }
-
-    if (savedRole === "admin") {
-      navigate("/admin-dashboard");
-      return;
-    }
-
-    localStorage.setItem("pawfection_account_type", "premium");
-    loadUserName();
-    fetchInventory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const onChange = (e) =>
+  const onChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
-  const onEditChange = (e) =>
+  const onEditChange = (e) => {
     setEditForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const resetCreateForm = () => {
+    setForm({
+      name: "",
+      category: "Food",
+      unit: "g",
+      current_quantity: "",
+      daily_usage: "",
+      remind_before_days: 7,
+    });
+  };
 
   const createItem = async (e) => {
     e.preventDefault();
@@ -232,12 +257,14 @@ export default function PremiumInventory() {
     setSuccess("");
 
     if (!form.name.trim()) return setError("Please enter product name.");
+
     if (
       form.current_quantity === "" ||
       Number.isNaN(Number(form.current_quantity))
     ) {
       return setError("Please enter current quantity.");
     }
+
     if (form.daily_usage === "" || Number.isNaN(Number(form.daily_usage))) {
       return setError("Please enter daily usage.");
     }
@@ -271,16 +298,8 @@ export default function PremiumInventory() {
       }
 
       setSuccess("Item added successfully!");
+      resetCreateForm();
       setShowForm(false);
-      setForm({
-        name: "",
-        category: "Food",
-        unit: "g",
-        current_quantity: "",
-        daily_usage: "",
-        remind_before_days: 7,
-      });
-
       await fetchInventory();
     } catch {
       setError("Failed to create item. Is your backend running?");
@@ -319,6 +338,8 @@ export default function PremiumInventory() {
 
       setSuccess("Item restocked successfully!");
       await fetchInventory();
+    } catch {
+      setError("Failed to restock. Is your backend running?");
     } finally {
       setBusyId(null);
     }
@@ -424,6 +445,7 @@ export default function PremiumInventory() {
     setEditingId(item.id);
     setShowForm(false);
     setUsageOpenId(null);
+
     setEditForm({
       name: item.name || "",
       category: item.category || "Food",
@@ -445,13 +467,18 @@ export default function PremiumInventory() {
     setSuccess("");
 
     if (!editForm.name.trim()) return setError("Please enter product name.");
+
     if (
       editForm.current_quantity === "" ||
       Number.isNaN(Number(editForm.current_quantity))
     ) {
       return setError("Please enter current quantity.");
     }
-    if (editForm.daily_usage === "" || Number.isNaN(Number(editForm.daily_usage))) {
+
+    if (
+      editForm.daily_usage === "" ||
+      Number.isNaN(Number(editForm.daily_usage))
+    ) {
       return setError("Please enter daily usage.");
     }
 
@@ -538,8 +565,12 @@ export default function PremiumInventory() {
     if (!q) return groupedItems;
 
     const matches = (item) => {
-      const hay =
-        `${item?.name || ""} ${item?.category || ""} ${item?.unit || ""}`.toLowerCase();
+      const hay = `${item?.name || ""} ${item?.category || ""} ${
+        item?.unit || ""
+      } ${statusInfo(item).label} ${formatDate(
+        item?.estimated_depletion_date
+      )}`.toLowerCase();
+
       return hay.includes(q);
     };
 
@@ -556,13 +587,17 @@ export default function PremiumInventory() {
     if (sourceGroups.outOfStock.length > 0) return sourceGroups.outOfStock[0];
     if (sourceGroups.lowStock.length > 0) return sourceGroups.lowStock[0];
     if (sourceGroups.healthy.length > 0) return sourceGroups.healthy[0];
+
     return null;
   }, [groupedItems, searchedGroups, searchTerm]);
 
   const visibleSections = useMemo(() => {
     if (filter === "Urgent") {
       return [
-        { title: "Most Urgent", items: mostUrgentItem ? [mostUrgentItem] : [] },
+        {
+          title: "Most Urgent",
+          items: mostUrgentItem ? [mostUrgentItem] : [],
+        },
       ];
     }
 
@@ -594,14 +629,13 @@ export default function PremiumInventory() {
     };
   }, [items.length, groupedItems]);
 
-  const todayText = useMemo(() => {
-    return new Date().toLocaleDateString("en-IE", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  }, []);
+  const filteredCount = useMemo(() => {
+    return (
+      searchedGroups.outOfStock.length +
+      searchedGroups.lowStock.length +
+      searchedGroups.healthy.length
+    );
+  }, [searchedGroups]);
 
   const insightText = getInsightText({
     outOfStock: groupedItems.outOfStock,
@@ -610,11 +644,89 @@ export default function PremiumInventory() {
     mostUrgent: mostUrgentItem,
   });
 
+  const inventorySliderItems = useMemo(() => {
+    return [
+      {
+        icon: "➕",
+        title: "Add Product",
+        text: "Add food, supplements, medication, or accessories to your premium inventory.",
+        action: "Open form",
+        onClick: () => {
+          setShowForm(true);
+          setEditingId(null);
+          setUsageOpenId(null);
+          setError("");
+          setSuccess("");
+        },
+      },
+      {
+        icon: "⚠️",
+        title: "Urgent Stock",
+        text: mostUrgentItem
+          ? `${mostUrgentItem.name} needs the most attention right now.`
+          : "No urgent item right now.",
+        action: "View urgent",
+        onClick: () => {
+          setFilter("Urgent");
+          document.querySelector(".pfi-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+      {
+        icon: "📉",
+        title: "Low Stock",
+        text:
+          stats.low > 0
+            ? `${stats.low} item${stats.low === 1 ? "" : "s"} running low.`
+            : "No low stock items right now.",
+        action: "Check low stock",
+        onClick: () => {
+          setFilter("Low Stock");
+          document.querySelector(".pfi-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+      {
+        icon: "📦",
+        title: "Out of Stock",
+        text:
+          stats.out > 0
+            ? `${stats.out} item${stats.out === 1 ? "" : "s"} out of stock.`
+            : "Nothing is out of stock.",
+        action: "View empty stock",
+        onClick: () => {
+          setFilter("Out of Stock");
+          document.querySelector(".pfi-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+      {
+        icon: "✅",
+        title: "Healthy Stock",
+        text:
+          stats.healthy > 0
+            ? `${stats.healthy} item${stats.healthy === 1 ? "" : "s"} well stocked.`
+            : "Healthy stock items will appear here.",
+        action: "View healthy",
+        onClick: () => {
+          setFilter("Healthy");
+          document.querySelector(".pfi-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+      {
+        icon: "🔎",
+        title: "Smart Search",
+        text: "Search products by name, category, stock status, or estimated depletion date.",
+        action: "Search",
+        onClick: () => {
+          document.querySelector(".pfi-grid")?.scrollIntoView({ behavior: "smooth" });
+        },
+      },
+    ];
+  }, [mostUrgentItem, stats]);
+
   return (
-    <div className="pfd-shell pfi-premium-shell">
-      <header className="pfd-site-header">
+    <div className="pfi-shell">
+      <header className="pfi-site-header">
         <div
-          className="pfd-brand"
+          className="pfi-brand"
           onClick={() => navigate("/premium-dashboard")}
           role="button"
           tabIndex={0}
@@ -622,586 +734,772 @@ export default function PremiumInventory() {
             if (e.key === "Enter" || e.key === " ") navigate("/premium-dashboard");
           }}
         >
-          <img className="pfd-brand-logo" src={PawfectionLogo} alt="Pawfection" />
-          <div className="pfd-brand-copy">
-            <div className="pfd-brand-title">Pawfection</div>
-            <div className="pfd-brand-sub">Premium Inventory</div>
+          <img className="pfi-brand-logo" src={PawfectionLogo} alt="Pawfection" />
+          <div className="pfi-brand-copy">
+            <div className="pfi-brand-title">Pawfection</div>
+            <div className="pfi-brand-sub">Premium Inventory</div>
           </div>
         </div>
 
-        <nav className="pfd-topnav">
-          <Link className="pfd-topnav-item" to="/premium-dashboard">
+        <nav className="pfi-topnav">
+          <Link className="pfi-topnav-item" to="/premium-dashboard">
             Premium Dashboard
           </Link>
-          <Link className="pfd-topnav-item" to="/premium-mypets">
-            My Pets
+          <Link className="pfi-topnav-item" to="/premium-mypets">
+            My Pet
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/appointments">
+          <Link className="pfi-topnav-item" to="/premium/appointments">
             Appointments
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/reminders">
+          <Link className="pfi-topnav-item" to="/premium/reminders">
             Reminders
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/lostfound">
+          <Link className="pfi-topnav-item" to="/premium/lostfound">
             Lost &amp; Found
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/community">
+          <Link className="pfi-topnav-item" to="/premium/community">
             Community
           </Link>
-          <Link className="pfd-topnav-item active" to="/premium/inventory">
+          <Link className="pfi-topnav-item active" to="/premium/inventory">
             Inventory
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/vet-chat">
+          <Link className="pfi-topnav-item" to="/premium/vet-chat">
             AI Pet Assistant
           </Link>
-          <Link className="pfd-topnav-item" to="/premium/profile">
+          <Link className="pfi-topnav-item" to="/premium/profile">
             Profile
           </Link>
         </nav>
 
-        <div className="pfd-header-side">
-          <div className="pfd-header-meta">
-            <div className="pfd-date-pill">{todayText}</div>
-
-            <div className="pfd-userchip" title={userName}>
-              <div className="pfd-avatar">{(userName?.[0] || "U").toUpperCase()}</div>
-              <div className="pfd-userchip-text">
-                <div className="pfd-userchip-name">{userName}</div>
-                <div className="pfd-userchip-sub">Premium User</div>
-              </div>
+        <div className="pfi-header-side">
+          <div className="pfi-date-pill">{todayText}</div>
+          <div className="pfi-userchip">
+            <div className="pfi-avatar">{(userName?.[0] || "U").toUpperCase()}</div>
+            <div>
+              <div className="pfi-userchip-name">{userName}</div>
+              <div className="pfi-userchip-sub">Premium User</div>
             </div>
-          </div>
-
-          <div className="pfd-search">
-            <input
-              type="text"
-              placeholder="Search inventory items..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
           </div>
         </div>
       </header>
 
-      <main className="pfd-main">
-        <section className="pfi-hero-card">
+      <main className="pfi-main">
+        <section className="pfi-hero">
           <div className="pfi-hero-copy">
             <div className="pfi-kicker">Pawfection Premium Supplies</div>
-            <h1 className="pfi-title">Inventory</h1>
-            <p className="pfi-subtitle">
-              Track urgent stock, monitor usage, and manage pet supplies in one
-              premium workspace.
+            <h1 className="pfi-hero-title">
+              {getGreeting()}, {userName}
+            </h1>
+            <p className="pfi-hero-text">
+              Track pet food, supplements, medication, and accessories in one polished
+              premium space. Monitor stock levels, log usage, restock products, and spot
+              urgent supplies before they run out.
             </p>
+
+            <div className="pfi-selector-wrap">
+              <label htmlFor="inventoryFocusSelect" className="pfi-selector-label">
+                Inventory Focus
+              </label>
+              <select
+                id="inventoryFocusSelect"
+                className="pfi-selector"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              >
+                {FILTERS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div className="pfi-hero-actions">
               <button
-                className="pfd-btn pfd-btn-primary"
+                className="pfi-btn pfi-btn-primary"
+                type="button"
                 onClick={() => {
                   setShowForm((prev) => !prev);
                   setEditingId(null);
                   setUsageOpenId(null);
+                  setError("");
+                  setSuccess("");
                 }}
               >
-                {showForm ? "Close Form" : "+ Add Product"}
+                {showForm ? "Close Form" : "Add Product"}
               </button>
 
               <button
-                className="pfd-btn"
+                className="pfi-btn"
+                type="button"
                 onClick={fetchInventory}
                 disabled={loading}
               >
-                {loading ? "Refreshing..." : "Refresh"}
+                {loading ? "Refreshing..." : "Refresh Inventory"}
+              </button>
+
+              <button
+                className="pfi-btn"
+                type="button"
+                onClick={() => navigate("/premium-dashboard")}
+              >
+                Back to Dashboard
               </button>
             </div>
+
+            {error && <div className="pfi-form-message pfi-form-error">{error}</div>}
+            {success && (
+              <div className="pfi-form-message pfi-form-success">{success}</div>
+            )}
+
+            {showForm && (
+              <form className="pfi-form-card" onSubmit={createItem}>
+                <div className="pfi-form-grid">
+                  <div className="pfi-field">
+                    <label>Product name *</label>
+                    <input
+                      name="name"
+                      value={form.name}
+                      onChange={onChange}
+                      placeholder="e.g., Dry food"
+                    />
+                  </div>
+
+                  <div className="pfi-field">
+                    <label>Category</label>
+                    <select name="category" value={form.category} onChange={onChange}>
+                      <option>Food</option>
+                      <option>Supplement</option>
+                      <option>Medication</option>
+                      <option>Accessory</option>
+                    </select>
+                  </div>
+
+                  <div className="pfi-field">
+                    <label>Current quantity *</label>
+                    <input
+                      name="current_quantity"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={form.current_quantity}
+                      onChange={onChange}
+                      placeholder="e.g., 1200"
+                    />
+                  </div>
+
+                  <div className="pfi-field">
+                    <label>Unit</label>
+                    <select name="unit" value={form.unit} onChange={onChange}>
+                      <option value="g">g</option>
+                      <option value="kg">kg</option>
+                      <option value="ml">ml</option>
+                      <option value="tablets">tablets</option>
+                      <option value="pcs">pcs</option>
+                    </select>
+                  </div>
+
+                  <div className="pfi-field">
+                    <label>Daily usage *</label>
+                    <input
+                      name="daily_usage"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={form.daily_usage}
+                      onChange={onChange}
+                      placeholder="e.g., 50"
+                    />
+                  </div>
+
+                  <div className="pfi-field">
+                    <label>Remind before days</label>
+                    <input
+                      name="remind_before_days"
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={form.remind_before_days}
+                      onChange={onChange}
+                    />
+                  </div>
+                </div>
+
+                <div className="pfi-form-actions">
+                  <button className="pfi-btn pfi-btn-primary" type="submit">
+                    Save Product
+                  </button>
+                  <button
+                    className="pfi-btn"
+                    type="button"
+                    onClick={() => {
+                      resetCreateForm();
+                      setShowForm(false);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
 
-          <div className="pfi-insight-card">
-            <div className="pfi-insight-label">Smart Insight</div>
-            <div className="pfi-insight-text">{insightText}</div>
+          <div className="pfi-hero-card">
+            <div className="pfi-hero-card-top">
+              <div className="pfi-premium-badge">Premium Active</div>
+              <h2>Inventory</h2>
+              <p>Smart stock tracking for your pet care routine</p>
+            </div>
+
+            <div className="pfi-stat-row">
+              <div className="pfi-stat-pill">Total: {stats.total}</div>
+              <div className="pfi-stat-pill">Low: {stats.low}</div>
+              <div className="pfi-stat-pill">Out: {stats.out}</div>
+              <div className="pfi-stat-pill">Healthy: {stats.healthy}</div>
+            </div>
+
+            <div className="pfi-quick-box">
+              <strong>SMART INSIGHT</strong>
+              <span>{insightText}</span>
+            </div>
+
+            <div className="pfi-quick-box">
+              <strong>MOST URGENT</strong>
+              <span>
+                {mostUrgentItem
+                  ? `${categoryIcon(mostUrgentItem.category)} ${
+                      mostUrgentItem.name
+                    } • ${statusInfo(mostUrgentItem).label}`
+                  : "No urgent inventory item right now"}
+              </span>
+            </div>
+
+            <div className="pfi-quick-box">
+              <strong>PREMIUM BENEFIT</strong>
+              <span>
+                Track usage, monitor depletion dates, and organise pet supplies in one
+                place.
+              </span>
+            </div>
           </div>
         </section>
 
-        {mostUrgentItem && (
-          <section className="pfi-urgent-card">
-            <div className="pfi-urgent-left">
-              <div className="pfi-urgent-kicker">Most Urgent Item</div>
-              <h2 className="pfi-urgent-title">
-                {categoryIcon(mostUrgentItem.category)} {mostUrgentItem.name}
-              </h2>
-              <p className="pfi-urgent-text">
-                {mostUrgentItem.category} • Stock:{" "}
-                {formatQuantity(mostUrgentItem.current_quantity)} {mostUrgentItem.unit} •
-                Daily use: {formatQuantity(mostUrgentItem.daily_usage)}{" "}
-                {mostUrgentItem.unit}
-              </p>
-
-              <div className="pfi-urgent-meta">
-                <span className={`pfi-status-badge ${statusInfo(mostUrgentItem).cls}`}>
-                  {statusInfo(mostUrgentItem).label}
-                </span>
-                <span className="pfi-meta-pill">
-                  Days left:{" "}
-                  {typeof mostUrgentItem.days_left === "number"
-                    ? mostUrgentItem.days_left
-                    : "N/A"}
-                </span>
-                <span className="pfi-meta-pill">
-                  Est. depletion: {formatDate(mostUrgentItem.estimated_depletion_date)}
-                </span>
-              </div>
+        <section className="pfi-auto-section">
+          <div className="pfi-auto-head">
+            <div>
+              <div className="pfi-card-kicker">Premium inventory shortcuts</div>
+              <h2>Your pet supplies sliding automatically</h2>
             </div>
 
-            <div className="pfi-urgent-actions">
-              <button
-                className="pfd-btn pfd-btn-small"
-                onClick={() => restockItem(mostUrgentItem.id)}
-                disabled={busyId === mostUrgentItem.id}
-              >
-                Restock
-              </button>
+            <div className="pfi-auto-pill">Auto sliding ✨</div>
+          </div>
 
-              {canLogUsage(mostUrgentItem.category) && (
-                <button
-                  className="pfd-btn pfd-btn-small"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setFilter("All");
-                    openUsageForm(mostUrgentItem);
-                  }}
-                  disabled={busyId === mostUrgentItem.id}
-                >
-                  Log Usage
-                </button>
-              )}
-
-              <button
-                className="pfd-btn pfd-btn-small pfd-btn-primary"
-                onClick={() => {
-                  setSearchTerm("");
-                  setFilter("All");
-                  startEdit(mostUrgentItem);
-                }}
-                disabled={busyId === mostUrgentItem.id}
-              >
-                Edit Item
-              </button>
+          <div className="pfi-slider-mask">
+            <div className="pfi-slider-track">
+              {[0, 1].map((groupIndex) => (
+                <div className="pfi-slider-group" key={groupIndex}>
+                  {inventorySliderItems.map((item, index) => (
+                    <button
+                      key={`${groupIndex}-${index}`}
+                      type="button"
+                      className="pfi-slide-card"
+                      onClick={item.onClick}
+                    >
+                      <span>{item.icon}</span>
+                      <strong>{item.title}</strong>
+                      <p>{item.text}</p>
+                      <small>{item.action}</small>
+                    </button>
+                  ))}
+                </div>
+              ))}
             </div>
-          </section>
-        )}
+          </div>
 
-        {error && <div className="pfi-alert pfi-alert-error">{error}</div>}
-        {success && <div className="pfi-alert pfi-alert-success">{success}</div>}
-
-        <section className="pfi-summary-grid">
-          <article className="pfi-summary-card">
-            <div className="pfi-summary-label">Total Items</div>
-            <div className="pfi-summary-value">{stats.total}</div>
-          </article>
-
-          <article className="pfi-summary-card pfi-summary-card-low">
-            <div className="pfi-summary-label">Low Stock</div>
-            <div className="pfi-summary-value">{stats.low}</div>
-          </article>
-
-          <article className="pfi-summary-card pfi-summary-card-out">
-            <div className="pfi-summary-label">Out of Stock</div>
-            <div className="pfi-summary-value">{stats.out}</div>
-          </article>
-
-          <article className="pfi-summary-card pfi-summary-card-healthy">
-            <div className="pfi-summary-label">Healthy Stock</div>
-            <div className="pfi-summary-value">{stats.healthy}</div>
-          </article>
+          <div className="pfi-slider-dots">
+            <span></span>
+            <span className="active"></span>
+            <span></span>
+            <span></span>
+          </div>
         </section>
 
-        {showForm && (
-          <section className="pfi-form-card">
-            <div className="pfi-section-kicker">Add Inventory Item</div>
-            <form className="pfi-form" onSubmit={createItem}>
-              <div className="pfi-formgrid">
-                <div className="pfi-field">
-                  <label>Product name *</label>
-                  <input
-                    name="name"
-                    value={form.name}
-                    onChange={onChange}
-                    placeholder="e.g., Dry food"
-                  />
-                </div>
+        <section className="pfi-grid">
+          <article className="pfi-card">
+            <div className="pfi-card-kicker">Premium Search</div>
+            <h3>Find Your Product Fast</h3>
 
-                <div className="pfi-field">
-                  <label>Category</label>
-                  <select name="category" value={form.category} onChange={onChange}>
-                    <option>Food</option>
-                    <option>Supplement</option>
-                    <option>Medication</option>
-                    <option>Accessory</option>
-                  </select>
-                </div>
+            <div className="pfi-field" style={{ marginTop: "14px" }}>
+              <label>Search</label>
+              <input
+                type="text"
+                placeholder="Search by product, category, unit, status..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
 
-                <div className="pfi-field">
-                  <label>Current quantity *</label>
-                  <input
-                    name="current_quantity"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={form.current_quantity}
-                    onChange={onChange}
-                    placeholder="e.g., 1200"
-                  />
-                </div>
-
-                <div className="pfi-field">
-                  <label>Unit</label>
-                  <select name="unit" value={form.unit} onChange={onChange}>
-                    <option value="g">g</option>
-                    <option value="kg">kg</option>
-                    <option value="ml">ml</option>
-                    <option value="tablets">tablets</option>
-                    <option value="pcs">pcs</option>
-                  </select>
-                </div>
-
-                <div className="pfi-field">
-                  <label>Daily usage *</label>
-                  <input
-                    name="daily_usage"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={form.daily_usage}
-                    onChange={onChange}
-                    placeholder="e.g., 50"
-                  />
-                </div>
-
-                <div className="pfi-field">
-                  <label>Remind before (days)</label>
-                  <input
-                    name="remind_before_days"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={form.remind_before_days}
-                    onChange={onChange}
-                  />
-                </div>
-              </div>
-
-              <div className="pfi-formactions">
-                <button className="pfd-btn pfd-btn-primary" type="submit">
-                  Save
-                </button>
+            <div className="pfi-filter-pills">
+              {FILTERS.map((item) => (
                 <button
-                  className="pfd-btn"
+                  key={item}
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  className={`pfi-filter-pill ${filter === item ? "active" : ""}`}
+                  onClick={() => setFilter(item)}
                 >
-                  Cancel
+                  {item}
                 </button>
-              </div>
-            </form>
-          </section>
-        )}
+              ))}
+            </div>
 
-        <section className="pfi-filter-row">
-          {FILTERS.map((item) => (
-            <button
-              key={item}
-              className={`pfi-filter-pill ${filter === item ? "active" : ""}`}
-              onClick={() => setFilter(item)}
-            >
-              {item}
-            </button>
-          ))}
-        </section>
+            <div className="pfi-search-meta">
+              {!searchTerm.trim() ? (
+                <span>
+                  Showing inventory items: <strong>{stats.total}</strong>
+                </span>
+              ) : (
+                <span>
+                  Results for "<strong>{searchTerm}</strong>":{" "}
+                  <strong>{filteredCount}</strong>
+                </span>
+              )}
+            </div>
 
-        {loading && <div className="pfi-empty">Loading inventory…</div>}
-
-        {!loading && items.length === 0 && (
-          <div className="pfi-empty">
-            No items yet. Click <b>+ Add Product</b> to start.
-          </div>
-        )}
-
-        {!loading && items.length > 0 && (
-          <section className="pfi-sections">
-            {visibleSections.map((section) => (
-              <article className="pfi-section-card" key={section.title}>
-                <div className="pfi-section-head">
-                  <div>
-                    <div className="pfi-section-kicker">Inventory Group</div>
-                    <h2>{section.title}</h2>
-                  </div>
-                  <span className="pfi-section-count">{section.items.length}</span>
+            {searchTerm.trim() && (
+              <>
+                <div style={{ marginTop: "12px" }}>
+                  <button
+                    type="button"
+                    className="pfi-btn pfi-btn-small"
+                    onClick={() => setSearchTerm("")}
+                  >
+                    Clear Search
+                  </button>
                 </div>
 
-                {section.items.length === 0 ? (
-                  <div className="pfi-empty-inline">No items in this section.</div>
-                ) : (
-                  <div className="pfi-item-list">
-                    {section.items.map((i) => {
-                      const status = statusInfo(i);
-                      const isEditing = editingId === i.id;
-                      const isUsing = usageOpenId === i.id;
-                      const stock = Math.round(Number(i.current_quantity || 0));
-                      const sliderStep = getSliderStep(i);
-                      const currentUsageValue =
-                        usageOpenId === i.id ? Math.round(Number(usageAmount || 0)) : 0;
-                      const noStock = stock <= 0;
-
-                      return (
-                        <div key={i.id} className="pfi-item-card">
-                          {isEditing ? (
-                            <div className="pfi-editwrap">
-                              <div className="pfi-formgrid">
-                                <div className="pfi-field">
-                                  <label>Name *</label>
-                                  <input
-                                    name="name"
-                                    value={editForm.name}
-                                    onChange={onEditChange}
-                                  />
-                                </div>
-
-                                <div className="pfi-field">
-                                  <label>Category</label>
-                                  <select
-                                    name="category"
-                                    value={editForm.category}
-                                    onChange={onEditChange}
-                                  >
-                                    <option>Food</option>
-                                    <option>Supplement</option>
-                                    <option>Medication</option>
-                                    <option>Accessory</option>
-                                  </select>
-                                </div>
-
-                                <div className="pfi-field">
-                                  <label>Current quantity *</label>
-                                  <input
-                                    name="current_quantity"
-                                    type="number"
-                                    min="0"
-                                    step="1"
-                                    value={editForm.current_quantity}
-                                    onChange={onEditChange}
-                                  />
-                                </div>
-
-                                <div className="pfi-field">
-                                  <label>Unit</label>
-                                  <select
-                                    name="unit"
-                                    value={editForm.unit}
-                                    onChange={onEditChange}
-                                  >
-                                    <option value="g">g</option>
-                                    <option value="kg">kg</option>
-                                    <option value="ml">ml</option>
-                                    <option value="tablets">tablets</option>
-                                    <option value="pcs">pcs</option>
-                                  </select>
-                                </div>
-
-                                <div className="pfi-field">
-                                  <label>Daily usage *</label>
-                                  <input
-                                    name="daily_usage"
-                                    type="number"
-                                    min="0"
-                                    step="1"
-                                    value={editForm.daily_usage}
-                                    onChange={onEditChange}
-                                  />
-                                </div>
-
-                                <div className="pfi-field">
-                                  <label>Remind before (days)</label>
-                                  <input
-                                    name="remind_before_days"
-                                    type="number"
-                                    min="1"
-                                    step="1"
-                                    value={editForm.remind_before_days}
-                                    onChange={onEditChange}
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="pfi-formactions">
-                                <button
-                                  className="pfd-btn pfd-btn-primary"
-                                  type="button"
-                                  onClick={() => saveEdit(i.id)}
-                                  disabled={busyId === i.id}
-                                >
-                                  {busyId === i.id ? "Saving..." : "Save"}
-                                </button>
-
-                                <button
-                                  className="pfd-btn"
-                                  type="button"
-                                  onClick={cancelEdit}
-                                  disabled={busyId === i.id}
-                                >
-                                  Cancel
-                                </button>
-                              </div>
+                <div className="pfi-search-results">
+                  {filteredCount === 0 ? (
+                    <div className="pfi-empty" style={{ marginTop: "14px" }}>
+                      No inventory items match "{searchTerm}".
+                    </div>
+                  ) : (
+                    Object.entries(searchedGroups).flatMap(([groupName, groupItems]) =>
+                      groupItems.map((item) => (
+                        <div
+                          key={`search-${groupName}-${item.id}`}
+                          className="pfi-search-card"
+                        >
+                          <div className="pfi-search-card-head">
+                            <div className="pfi-search-card-title">
+                              {categoryIcon(item.category)} {item.name}
                             </div>
-                          ) : (
-                            <>
-                              <div className="pfi-item-top">
-                                <div>
-                                  <div className="pfi-item-title-row">
-                                    <h3>
-                                      <span className="pfi-inline-icon">
-                                        {categoryIcon(i.category)}
-                                      </span>
-                                      {i.name}
-                                    </h3>
-                                    <span className="pfi-category-badge">
-                                      {i.category}
-                                    </span>
-                                  </div>
 
-                                  <p className="pfi-item-text">
-                                    Stock: {formatQuantity(i.current_quantity)} {i.unit} • Daily
-                                    use: {formatQuantity(i.daily_usage)} {i.unit}
-                                  </p>
-                                </div>
-
-                                <span className={`pfi-status-badge ${status.cls}`}>
-                                  {status.label}
-                                </span>
-                              </div>
-
-                              <div className="pfi-item-meta">
-                                <span>
-                                  Days left:{" "}
-                                  {typeof i.days_left === "number" ? i.days_left : "N/A"}
-                                </span>
-                                <span>
-                                  Est. depletion: {formatDate(i.estimated_depletion_date)}
-                                </span>
-                                <span>
-                                  Last restocked: {formatDate(i.last_restocked_at)}
-                                </span>
-                              </div>
-
-                              <div className="pfi-item-actions">
-                                {canLogUsage(i.category) && (
-                                  <button
-                                    className="pfd-btn pfd-btn-small"
-                                    onClick={() => openUsageForm(i)}
-                                    disabled={busyId === i.id}
-                                  >
-                                    Log Usage
-                                  </button>
-                                )}
-
-                                <button
-                                  className="pfd-btn pfd-btn-small"
-                                  onClick={() => restockItem(i.id)}
-                                  disabled={busyId === i.id}
-                                >
-                                  {busyId === i.id ? "..." : "Restock"}
-                                </button>
-
-                                <button
-                                  className="pfd-btn pfd-btn-small"
-                                  onClick={() => startEdit(i)}
-                                  disabled={busyId === i.id}
-                                >
-                                  Edit
-                                </button>
-
-                                <button
-                                  className="pfd-btn pfd-btn-small pfi-delete-btn"
-                                  onClick={() => deleteItem(i.id, i.name)}
-                                  disabled={busyId === i.id}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </>
-                          )}
-
-                          {!isEditing && isUsing && (
-                            <div className="pfi-usage-box">
-                              <div className="pfi-usage-title">
-                                Did your pet use this product today?
-                              </div>
-
-                              <div className="pfi-usage-text">
-                                Saved daily usage: <b>{formatQuantity(i.daily_usage)}</b> {i.unit}
-                              </div>
-
-                              {noStock ? (
-                                <div className="pfi-usage-empty">
-                                  This item is currently out of stock, so usage cannot be logged.
-                                </div>
-                              ) : (
-                                <div className="pfi-field">
-                                  <label>Actual amount used today</label>
-
-                                  <div className="pfi-slider-wrap">
-                                    <div className="pfi-slider-value">
-                                      {formatQuantity(currentUsageValue)} {i.unit}
-                                    </div>
-
-                                    <input
-                                      className="pfi-slider"
-                                      type="range"
-                                      min="0"
-                                      max="5000"
-                                      step={sliderStep}
-                                      value={usageAmount}
-                                      onChange={(e) => setUsageAmount(e.target.value)}
-                                    />
-
-                                    <div className="pfi-slider-scale">
-                                      <span>0 {i.unit}</span>
-                                      <span>5000 {i.unit}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              <div className="pfi-formactions">
-                                <button
-                                  className="pfd-btn pfd-btn-primary"
-                                  type="button"
-                                  onClick={() => consumeItem(i.id)}
-                                  disabled={
-                                    busyId === i.id || noStock || Number(usageAmount) <= 0
-                                  }
-                                >
-                                  {busyId === i.id ? "Saving..." : "Yes, Reduce Stock"}
-                                </button>
-
-                                <button
-                                  className="pfd-btn"
-                                  type="button"
-                                  onClick={cancelUsageForm}
-                                  disabled={busyId === i.id}
-                                >
-                                  No, Not Today
-                                </button>
-                              </div>
+                            <div className="pfi-chip-wrap">
+                              <span className="pfi-chip">{item.category}</span>
+                              <span className={`pfi-status-badge ${statusInfo(item).cls}`}>
+                                {statusInfo(item).label}
+                              </span>
                             </div>
-                          )}
+                          </div>
+
+                          <div className="pfi-search-detail-grid">
+                            <div>
+                              <strong>Stock:</strong>{" "}
+                              {formatQuantity(item.current_quantity)} {item.unit}
+                            </div>
+                            <div>
+                              <strong>Daily use:</strong>{" "}
+                              {formatQuantity(item.daily_usage)} {item.unit}
+                            </div>
+                            <div>
+                              <strong>Days left:</strong>{" "}
+                              {typeof item.days_left === "number"
+                                ? item.days_left
+                                : "N/A"}
+                            </div>
+                            <div>
+                              <strong>Estimated depletion:</strong>{" "}
+                              {formatDate(item.estimated_depletion_date)}
+                            </div>
+                          </div>
+
+                          <div className="pfi-timeline-actions">
+                            <button
+                              className="pfi-btn pfi-btn-small"
+                              type="button"
+                              onClick={() => restockItem(item.id)}
+                              disabled={busyId === item.id}
+                            >
+                              Restock
+                            </button>
+
+                            {canLogUsage(item.category) && (
+                              <button
+                                className="pfi-btn pfi-btn-small"
+                                type="button"
+                                onClick={() => openUsageForm(item)}
+                                disabled={busyId === item.id}
+                              >
+                                Log Usage
+                              </button>
+                            )}
+
+                            <button
+                              className="pfi-btn pfi-btn-primary pfi-btn-small"
+                              type="button"
+                              onClick={() => startEdit(item)}
+                              disabled={busyId === item.id}
+                            >
+                              Edit
+                            </button>
+                          </div>
                         </div>
-                      );
-                    })}
+                      ))
+                    )
+                  )}
+                </div>
+              </>
+            )}
+          </article>
+
+          <article className="pfi-card">
+            <div className="pfi-card-kicker">Inventory Snapshot</div>
+            <h3>Quick Summary</h3>
+
+            <div className="pfi-analytics-grid">
+              <div className="pfi-analytics-box">
+                <span>Total Items</span>
+                <strong>{stats.total}</strong>
+              </div>
+              <div className="pfi-analytics-box">
+                <span>Low Stock</span>
+                <strong>{stats.low}</strong>
+              </div>
+              <div className="pfi-analytics-box">
+                <span>Out of Stock</span>
+                <strong>{stats.out}</strong>
+              </div>
+              <div className="pfi-analytics-box">
+                <span>Healthy</span>
+                <strong>{stats.healthy}</strong>
+              </div>
+            </div>
+          </article>
+
+          <article className="pfi-card pfi-card-wide">
+            <div className="pfi-card-kicker">Inventory Timeline</div>
+            <h3>Your Premium Inventory</h3>
+
+            {loading ? (
+              <div className="pfi-empty">Loading inventory...</div>
+            ) : items.length === 0 ? (
+              <div className="pfi-empty">
+                No items yet. Click <b>Add Product</b> to start tracking your pet
+                supplies.
+              </div>
+            ) : (
+              <div className="pfi-sections">
+                {visibleSections.map((section) => (
+                  <div className="pfi-section-block" key={section.title}>
+                    <div className="pfi-section-head">
+                      <div>
+                        <div className="pfi-section-kicker">Inventory Group</div>
+                        <h2>{section.title}</h2>
+                      </div>
+                      <span className="pfi-section-count">{section.items.length}</span>
+                    </div>
+
+                    {section.items.length === 0 ? (
+                      <div className="pfi-empty-inline">No items in this section.</div>
+                    ) : (
+                      <div className="pfi-timeline">
+                        {section.items.map((item, index) => {
+                          const status = statusInfo(item);
+                          const isEditing = editingId === item.id;
+                          const isUsing = usageOpenId === item.id;
+                          const stock = Math.round(Number(item.current_quantity || 0));
+                          const currentUsageValue =
+                            usageOpenId === item.id
+                              ? Math.round(Number(usageAmount || 0))
+                              : 0;
+                          const noStock = stock <= 0;
+
+                          return (
+                            <div key={item.id || index} className="pfi-timeline-item">
+                              <div className="pfi-timeline-dot" />
+
+                              <div className="pfi-timeline-content">
+                                {!isEditing ? (
+                                  <>
+                                    <div className="pfi-timeline-top">
+                                      <div>
+                                        <div className="pfi-timeline-title">
+                                          {categoryIcon(item.category)} {item.name}
+                                        </div>
+                                        <div className="pfi-timeline-text">
+                                          Stock: {formatQuantity(item.current_quantity)}{" "}
+                                          {item.unit} • Daily use:{" "}
+                                          {formatQuantity(item.daily_usage)} {item.unit}
+                                        </div>
+                                        <div className="pfi-timeline-sub">
+                                          Est. depletion:{" "}
+                                          {formatDate(item.estimated_depletion_date)}
+                                        </div>
+                                      </div>
+
+                                      <div className="pfi-chip-wrap">
+                                        <span className="pfi-chip">{item.category}</span>
+                                        <span
+                                          className={`pfi-status-badge ${status.cls}`}
+                                        >
+                                          {status.label}
+                                        </span>
+                                        <span className="pfi-chip">
+                                          Days left:{" "}
+                                          {typeof item.days_left === "number"
+                                            ? item.days_left
+                                            : "N/A"}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div className="pfi-inventory-meta">
+                                      <div>
+                                        <strong>Last restocked:</strong>{" "}
+                                        {formatDate(item.last_restocked_at)}
+                                      </div>
+                                      <div>
+                                        <strong>Reminder threshold:</strong>{" "}
+                                        {item.remind_before_days ?? 7} days
+                                      </div>
+                                    </div>
+
+                                    <div className="pfi-timeline-actions">
+                                      {canLogUsage(item.category) && (
+                                        <button
+                                          className="pfi-btn pfi-btn-small"
+                                          type="button"
+                                          onClick={() => openUsageForm(item)}
+                                          disabled={busyId === item.id}
+                                        >
+                                          Log Usage
+                                        </button>
+                                      )}
+
+                                      <button
+                                        className="pfi-btn pfi-btn-small"
+                                        type="button"
+                                        onClick={() => restockItem(item.id)}
+                                        disabled={busyId === item.id}
+                                      >
+                                        {busyId === item.id ? "..." : "Restock"}
+                                      </button>
+
+                                      <button
+                                        className="pfi-btn pfi-btn-small"
+                                        type="button"
+                                        onClick={() => startEdit(item)}
+                                        disabled={busyId === item.id}
+                                      >
+                                        Edit
+                                      </button>
+
+                                      <button
+                                        className="pfi-btn pfi-btn-danger pfi-btn-small"
+                                        type="button"
+                                        onClick={() => deleteItem(item.id, item.name)}
+                                        disabled={busyId === item.id}
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+
+                                    {isUsing && (
+                                      <div className="pfi-usage-box">
+                                        <div className="pfi-usage-title">
+                                          Did your pet use this product today?
+                                        </div>
+
+                                        <div className="pfi-usage-text">
+                                          Saved daily usage:{" "}
+                                          <b>{formatQuantity(item.daily_usage)}</b>{" "}
+                                          {item.unit}
+                                        </div>
+
+                                        {noStock ? (
+                                          <div className="pfi-usage-empty">
+                                            This item is currently out of stock, so usage
+                                            cannot be logged.
+                                          </div>
+                                        ) : (
+                                          <div className="pfi-field">
+                                            <label>Actual amount used today</label>
+
+                                            <div className="pfi-slider-wrap">
+                                              <div className="pfi-slider-value">
+                                                {formatQuantity(currentUsageValue)}{" "}
+                                                {item.unit}
+                                              </div>
+
+                                              <input
+                                                className="pfi-slider"
+                                                type="range"
+                                                min="0"
+                                                max="5000"
+                                                step={getSliderStep(item)}
+                                                value={usageAmount}
+                                                onChange={(e) =>
+                                                  setUsageAmount(e.target.value)
+                                                }
+                                              />
+
+                                              <div className="pfi-slider-scale">
+                                                <span>0 {item.unit}</span>
+                                                <span>5000 {item.unit}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        <div className="pfi-form-actions">
+                                          <button
+                                            className="pfi-btn pfi-btn-primary"
+                                            type="button"
+                                            onClick={() => consumeItem(item.id)}
+                                            disabled={
+                                              busyId === item.id ||
+                                              noStock ||
+                                              Number(usageAmount) <= 0
+                                            }
+                                          >
+                                            {busyId === item.id
+                                              ? "Saving..."
+                                              : "Yes, Reduce Stock"}
+                                          </button>
+
+                                          <button
+                                            className="pfi-btn"
+                                            type="button"
+                                            onClick={cancelUsageForm}
+                                            disabled={busyId === item.id}
+                                          >
+                                            No, Not Today
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className="pfi-form-grid">
+                                      <div className="pfi-field">
+                                        <label>Name *</label>
+                                        <input
+                                          name="name"
+                                          value={editForm.name}
+                                          onChange={onEditChange}
+                                        />
+                                      </div>
+
+                                      <div className="pfi-field">
+                                        <label>Category</label>
+                                        <select
+                                          name="category"
+                                          value={editForm.category}
+                                          onChange={onEditChange}
+                                        >
+                                          <option>Food</option>
+                                          <option>Supplement</option>
+                                          <option>Medication</option>
+                                          <option>Accessory</option>
+                                        </select>
+                                      </div>
+
+                                      <div className="pfi-field">
+                                        <label>Current quantity *</label>
+                                        <input
+                                          name="current_quantity"
+                                          type="number"
+                                          min="0"
+                                          step="1"
+                                          value={editForm.current_quantity}
+                                          onChange={onEditChange}
+                                        />
+                                      </div>
+
+                                      <div className="pfi-field">
+                                        <label>Unit</label>
+                                        <select
+                                          name="unit"
+                                          value={editForm.unit}
+                                          onChange={onEditChange}
+                                        >
+                                          <option value="g">g</option>
+                                          <option value="kg">kg</option>
+                                          <option value="ml">ml</option>
+                                          <option value="tablets">tablets</option>
+                                          <option value="pcs">pcs</option>
+                                        </select>
+                                      </div>
+
+                                      <div className="pfi-field">
+                                        <label>Daily usage *</label>
+                                        <input
+                                          name="daily_usage"
+                                          type="number"
+                                          min="0"
+                                          step="1"
+                                          value={editForm.daily_usage}
+                                          onChange={onEditChange}
+                                        />
+                                      </div>
+
+                                      <div className="pfi-field">
+                                        <label>Remind before days</label>
+                                        <input
+                                          name="remind_before_days"
+                                          type="number"
+                                          min="1"
+                                          step="1"
+                                          value={editForm.remind_before_days}
+                                          onChange={onEditChange}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="pfi-timeline-actions">
+                                      <button
+                                        className="pfi-btn pfi-btn-primary pfi-btn-small"
+                                        type="button"
+                                        onClick={() => saveEdit(item.id)}
+                                        disabled={busyId === item.id}
+                                      >
+                                        {busyId === item.id ? "Saving..." : "Save"}
+                                      </button>
+
+                                      <button
+                                        className="pfi-btn pfi-btn-small"
+                                        type="button"
+                                        onClick={cancelEdit}
+                                        disabled={busyId === item.id}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </article>
-            ))}
-          </section>
-        )}
+                ))}
+              </div>
+            )}
+          </article>
+        </section>
       </main>
     </div>
   );
