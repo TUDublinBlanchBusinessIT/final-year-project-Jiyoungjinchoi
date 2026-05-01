@@ -49,29 +49,17 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
 
+        {/* Basic user routes */}
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/premium-dashboard" element={<PremiumDashboard />} />
-        <Route path="/premium-mypets" element={<PremiumMyPet />} />
-        <Route path="/premium/vet-chat" element={<PremiumVetChat />} />
-        <Route path="/premium/appointments" element={<PremiumAppointments />} />
-
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/moderation" element={<AdminModeration />} />
-        <Route path="/admin/lostfound" element={<AdminLostFound />} />
-        <Route path="/admin/users" element={<AdminUsers />} />
-
+        <Route path="/mypets" element={<MyPets />} />
         <Route path="/pets/create" element={<CreatePet />} />
         <Route path="/pets/:id/edit" element={<EditPet />} />
-
-        <Route path="/premium/pets/create" element={<PremiumCreatePet />} />
-        <Route path="/premium/pets/:id/edit" element={<PremiumEditPet />} />
-
-        <Route path="/mypets" element={<MyPets />} />
         <Route path="/pets/:id" element={<PetOverview />} />
 
         <Route path="/community" element={<Community />} />
@@ -81,30 +69,55 @@ function App() {
         <Route path="/profile" element={<ViewProfile />} />
         <Route path="/upgrade-premium" element={<UpgradePremium />} />
 
+        {/* Premium routes */}
+        <Route path="/premium-dashboard" element={<PremiumDashboard />} />
+        <Route path="/premium-mypets" element={<PremiumMyPet />} />
+        <Route path="/premium/vet-chat" element={<PremiumVetChat />} />
+        <Route path="/premium/appointments" element={<PremiumAppointments />} />
         <Route path="/premium/community" element={<PremiumCommunity />} />
         <Route path="/premium/inventory" element={<PremiumInventory />} />
         <Route path="/premium/reminders" element={<PremiumReminders />} />
         <Route path="/premium/profile" element={<PremiumProfile />} />
 
+        <Route path="/premium/pets/create" element={<PremiumCreatePet />} />
+        <Route path="/premium/pets/:id/edit" element={<PremiumEditPet />} />
+        <Route path="/premium/pets/:petId/sightings" element={<PremiumPetSightings />} />
+
+        {/* Admin routes */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/moderation" element={<AdminModeration />} />
+        <Route path="/admin/lostfound" element={<AdminLostFound />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
+
+        {/* Safety redirect for old admin dashboard route */}
+        <Route
+          path="/admin-dashboard"
+          element={<Navigate to="/admin/dashboard" replace />}
+        />
+
+        {/* Basic Lost & Found routes */}
         <Route path="/lostfound" element={<LostFound />} />
         <Route path="/lostfound/report" element={<ReportLostPet />} />
         <Route path="/lostfound/view/:id" element={<LostReportDetails />} />
         <Route path="/lostfound/view/:id/sighting" element={<SubmitSighting />} />
 
+        {/* Premium Lost & Found routes */}
         <Route path="/premium/lostfound" element={<PremiumLostFound />} />
         <Route path="/premium/lostfound/report" element={<PremiumReportLostPet />} />
-        <Route path="/premium/lostfound/report-sighting" element={<PremiumReportSighting />} />
-        <Route path="/premium/lostfound/view/:id" element={<PremiumLostReportDetails />} />
+        <Route
+          path="/premium/lostfound/report-sighting"
+          element={<PremiumReportSighting />}
+        />
+        <Route
+          path="/premium/lostfound/view/:id"
+          element={<PremiumLostReportDetails />}
+        />
         <Route
           path="/premium/lostfound/view/:id/sighting"
           element={<PremiumSubmitSighting />}
         />
 
-        <Route
-          path="/premium/pets/:petId/sightings"
-          element={<PremiumPetSightings />}
-        />
-
+        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

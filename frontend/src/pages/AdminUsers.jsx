@@ -16,6 +16,7 @@ export default function AdminUsers() {
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("pawfection_admin_dark_mode");
+
     if (savedTheme === "true") {
       setDarkMode(true);
     }
@@ -27,7 +28,7 @@ export default function AdminUsers() {
 
   useEffect(() => {
     const token = localStorage.getItem("pawfection_token");
-    const role = localStorage.getItem("pawfection_role");
+    const role = String(localStorage.getItem("pawfection_role") || "").toLowerCase();
 
     if (!token) {
       navigate("/login");
@@ -44,6 +45,11 @@ export default function AdminUsers() {
 
   async function fetchUsers() {
     const token = localStorage.getItem("pawfection_token");
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
 
     try {
       setStatus({
@@ -82,6 +88,11 @@ export default function AdminUsers() {
   async function toggleBan(userId, isBanned) {
     const token = localStorage.getItem("pawfection_token");
 
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
     setLoadingAction((prev) => ({ ...prev, [`ban-${userId}`]: true }));
 
     try {
@@ -112,6 +123,12 @@ export default function AdminUsers() {
 
   async function changePlan(userId, action) {
     const token = localStorage.getItem("pawfection_token");
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
     const actionKey = `${action}-${userId}`;
 
     setLoadingAction((prev) => ({ ...prev, [actionKey]: true }));
@@ -167,7 +184,10 @@ export default function AdminUsers() {
 
   function isExpired(user) {
     const expiryDate = getExpiryDate(user);
-    if (!expiryDate) return false;
+
+    if (!expiryDate) {
+      return false;
+    }
 
     return expiryDate < new Date();
   }
@@ -200,6 +220,7 @@ export default function AdminUsers() {
 
     if (search.trim()) {
       const q = search.toLowerCase();
+
       result = result.filter(
         (user) =>
           user.name?.toLowerCase().includes(q) ||
@@ -208,15 +229,11 @@ export default function AdminUsers() {
     }
 
     if (filter === "basic") {
-      result = result.filter(
-        (user) => normalizePlan(user.account_type) === "basic"
-      );
+      result = result.filter((user) => normalizePlan(user.account_type) === "basic");
     }
 
     if (filter === "premium") {
-      result = result.filter(
-        (user) => normalizePlan(user.account_type) === "premium"
-      );
+      result = result.filter((user) => normalizePlan(user.account_type) === "premium");
     }
 
     if (filter === "expired") {
@@ -305,10 +322,24 @@ export default function AdminUsers() {
           }}
         >
           <div>
-            <h1 style={{ margin: 0, fontSize: 42, fontWeight: 900, color: theme.text }}>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 42,
+                fontWeight: 900,
+                color: theme.text,
+              }}
+            >
               User Management
             </h1>
-            <p style={{ marginTop: 10, color: theme.subtext, fontSize: 18 }}>
+
+            <p
+              style={{
+                marginTop: 10,
+                color: theme.subtext,
+                fontSize: 18,
+              }}
+            >
               View users, manage plans, and track admin activity.
             </p>
           </div>
@@ -330,7 +361,7 @@ export default function AdminUsers() {
             </button>
 
             <button
-              onClick={() => navigate("/admin-dashboard")}
+              onClick={() => navigate("/admin/dashboard")}
               style={{
                 border: "none",
                 background: "#111827",
@@ -341,7 +372,7 @@ export default function AdminUsers() {
                 cursor: "pointer",
               }}
             >
-              Back
+              Back to Dashboard
             </button>
           </div>
         </div>
@@ -420,6 +451,22 @@ export default function AdminUsers() {
           </div>
         </div>
 
+        {status.type === "loading" && (
+          <div
+            style={{
+              background: darkMode ? "#0f1d36" : "#eff6ff",
+              border: darkMode ? "1px solid #1d4ed8" : "1px solid #bfdbfe",
+              padding: 16,
+              borderRadius: 12,
+              marginBottom: 20,
+              fontWeight: 600,
+              color: darkMode ? "#93c5fd" : "#1d4ed8",
+            }}
+          >
+            {status.message}
+          </div>
+        )}
+
         {status.type === "error" && (
           <div
             style={{
@@ -463,7 +510,13 @@ export default function AdminUsers() {
                 : "0 12px 30px rgba(0,0,0,.05)",
             }}
           >
-            <table style={{ width: "100%", minWidth: 1500, borderCollapse: "collapse" }}>
+            <table
+              style={{
+                width: "100%",
+                minWidth: 1500,
+                borderCollapse: "collapse",
+              }}
+            >
               <thead style={{ background: theme.tableHeadBg }}>
                 <tr>
                   <th style={{ ...thStyle, color: theme.subtext }}>Name</th>
@@ -486,6 +539,8 @@ export default function AdminUsers() {
                   const planBadge = getPlanBadge(user.account_type);
                   const expiryDate = getExpiryDate(user);
                   const isPremium = normalizePlan(user.account_type) === "premium";
+                  const planAction = isPremium ? "downgrade" : "upgrade";
+                  const planActionKey = `${planAction}-${user.id}`;
 
                   return (
                     <tr
@@ -494,17 +549,24 @@ export default function AdminUsers() {
                         borderTop: `1px solid ${theme.border}`,
                       }}
                     >
-                      <td style={{ ...tdStyle, color: theme.text, fontWeight: 700 }}>
-                        {user.name}
+                      <td
+                        style={{
+                          ...tdStyle,
+                          color: theme.text,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {user.name || "-"}
                       </td>
 
                       <td style={{ ...tdStyle, color: theme.text }}>
-                        {user.email}
+                        {user.email || "-"}
                       </td>
 
                       <td style={{ ...tdStyle, color: theme.text }}>
                         {user.role
-                          ? String(user.role).charAt(0).toUpperCase() + String(user.role).slice(1)
+                          ? String(user.role).charAt(0).toUpperCase() +
+                            String(user.role).slice(1)
                           : "User"}
                       </td>
 
@@ -554,14 +616,32 @@ export default function AdminUsers() {
 
                       <td style={{ ...tdStyle, color: theme.text }}>
                         {user.latest_activity ? (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 4,
+                            }}
+                          >
                             <span style={{ fontWeight: 700 }}>
                               {user.latest_activity.action}
                             </span>
-                            <span style={{ color: theme.subtext, fontSize: 13 }}>
+
+                            <span
+                              style={{
+                                color: theme.subtext,
+                                fontSize: 13,
+                              }}
+                            >
                               by {user.latest_activity.admin_name || "Admin"}
                             </span>
-                            <span style={{ color: theme.subtext, fontSize: 13 }}>
+
+                            <span
+                              style={{
+                                color: theme.subtext,
+                                fontSize: 13,
+                              }}
+                            >
                               {formatDateTime(user.latest_activity.created_at)}
                             </span>
                           </div>
@@ -575,29 +655,30 @@ export default function AdminUsers() {
                       </td>
 
                       <td style={tdStyle}>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 8,
+                            flexWrap: "wrap",
+                          }}
+                        >
                           <button
-                            onClick={() =>
-                              changePlan(user.id, isPremium ? "downgrade" : "upgrade")
-                            }
-                            disabled={
-                              !!loadingAction[`${isPremium ? "downgrade" : "upgrade"}-${user.id}`]
-                            }
+                            onClick={() => changePlan(user.id, planAction)}
+                            disabled={!!loadingAction[planActionKey]}
                             style={{
                               border: "none",
                               borderRadius: 10,
                               padding: "9px 14px",
                               fontWeight: 700,
-                              cursor: "pointer",
+                              cursor: loadingAction[planActionKey]
+                                ? "not-allowed"
+                                : "pointer",
                               background: isPremium ? "#f59e0b" : "#2563eb",
                               color: "#fff",
-                              opacity:
-                                loadingAction[`${isPremium ? "downgrade" : "upgrade"}-${user.id}`]
-                                  ? 0.7
-                                  : 1,
+                              opacity: loadingAction[planActionKey] ? 0.7 : 1,
                             }}
                           >
-                            {loadingAction[`${isPremium ? "downgrade" : "upgrade"}-${user.id}`]
+                            {loadingAction[planActionKey]
                               ? "Working..."
                               : isPremium
                               ? "Downgrade"
@@ -612,7 +693,9 @@ export default function AdminUsers() {
                               borderRadius: 10,
                               padding: "9px 14px",
                               fontWeight: 700,
-                              cursor: "pointer",
+                              cursor: loadingAction[`ban-${user.id}`]
+                                ? "not-allowed"
+                                : "pointer",
                               background: user.is_banned ? "#16a34a" : "#dc2626",
                               color: "#fff",
                               opacity: loadingAction[`ban-${user.id}`] ? 0.7 : 1,
@@ -661,6 +744,7 @@ function StatCard({ title, value, darkMode }) {
       >
         {title}
       </div>
+
       <div
         style={{
           color: darkMode ? "#f9fafb" : "#111827",
