@@ -5,6 +5,45 @@ import "./LostFoundPremium.css";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
+const TEST_LOCATION_COORDS = [
+  {
+    petNames: ["milo"],
+    locationKeywords: ["millennium park", "blanchardstown"],
+    lat: 53.3925,
+    lng: -6.3897,
+  },
+  {
+    petNames: ["luna"],
+    locationKeywords: ["swords main street", "swords"],
+    lat: 53.4597,
+    lng: -6.2181,
+  },
+  {
+    petNames: ["coco"],
+    locationKeywords: ["griffeen valley park"],
+    lat: 53.3537,
+    lng: -6.4482,
+  },
+  {
+    petNames: ["max"],
+    locationKeywords: ["tymon park"],
+    lat: 53.3066,
+    lng: -6.3418,
+  },
+  {
+    petNames: ["oscar"],
+    locationKeywords: ["corkagh park"],
+    lat: 53.3166,
+    lng: -6.4329,
+  },
+  {
+    petNames: ["found maltese", "maltese"],
+    locationKeywords: ["leixlip", "kildare", "co. kildare"],
+    lat: 53.3656,
+    lng: -6.4956,
+  },
+];
+
 function loadGoogleMapsScript() {
   return new Promise((resolve, reject) => {
     if (window.google?.maps) {
@@ -146,9 +185,31 @@ export default function PremiumLostFound() {
   }, []);
 
   const getReportType = (report) => {
-    return String(report?.type || report?.report_type || report?.category || "")
+    const rawType = String(
+      report?.type || report?.report_type || report?.category || ""
+    )
       .toLowerCase()
       .trim();
+
+    if (rawType) return rawType;
+
+    if (report?.location_found || report?.found_at) return "found";
+    if (report?.sighting_location || report?.sighting_latitude) return "sighting";
+    if (report?.pet_name && report?.location) return "lost";
+
+    return "";
+  };
+
+  const getReportArea = (report) => {
+    return (
+      report?.area ||
+      report?.last_seen_location ||
+      report?.location_found ||
+      report?.found_at ||
+      report?.sighting_location ||
+      report?.location ||
+      "Unknown area"
+    );
   };
 
   const isResolvedReport = (report) => {
@@ -173,7 +234,6 @@ export default function PremiumLostFound() {
 
     const resolvedWords = [
       "resolved",
-      "found",
       "closed",
       "inactive",
       "done",
@@ -190,13 +250,14 @@ export default function PremiumLostFound() {
     return (
       valuesToCheck.some((value) => resolvedWords.includes(value)) ||
       report?.is_resolved === true ||
+      report?.is_resolved === 1 ||
       report?.resolved === true ||
+      report?.resolved === 1 ||
       report?.is_done === true ||
       report?.done === true ||
       report?.completed === true ||
       report?.is_completed === true ||
       Boolean(report?.resolved_at) ||
-      Boolean(report?.found_at) ||
       Boolean(report?.completed_at) ||
       Boolean(report?.done_at) ||
       Boolean(report?.closed_at)
@@ -226,7 +287,15 @@ export default function PremiumLostFound() {
 
   const getPlaceholderImage = (report) => {
     const name = report?.name || report?.pet_name || "Pet";
-    const type = getReportType(report) === "sighting" ? "Sighting" : "Lost Pet";
+    const reportType = getReportType(report);
+
+    const type =
+      reportType === "sighting"
+        ? "Sighting"
+        : reportType === "found"
+        ? "Found Pet"
+        : "Lost Pet";
+
     const initial = name?.charAt(0)?.toUpperCase() || "P";
 
     const svg = `
@@ -261,20 +330,19 @@ export default function PremiumLostFound() {
       report?.display_photo_url,
       report?.lost_photo_url,
       report?.sighting_photo_url,
+      report?.found_photo_url,
       report?.photo_url,
       report?.image_url,
-
       report?.pet?.display_photo_url,
       report?.pet?.photo_url,
       report?.lostPet?.display_photo_url,
       report?.lostPet?.photo_url,
-
       getImageUrl(report?.lost_photo_path),
       getImageUrl(report?.sighting_photo_path),
+      getImageUrl(report?.found_photo_path),
       getImageUrl(report?.photo_path),
       getImageUrl(report?.image_path),
       getImageUrl(report?.photo),
-
       getImageUrl(report?.pet?.photo_path),
       getImageUrl(report?.pet?.photo),
       getImageUrl(report?.lostPet?.photo_path),
@@ -282,6 +350,92 @@ export default function PremiumLostFound() {
     ].filter(Boolean);
 
     return possibleImages[0] || getPlaceholderImage(report);
+  };
+
+  const toMapNumber = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : null;
+  };
+
+  const firstValidMapNumber = (values) => {
+    for (const value of values) {
+      const numberValue = toMapNumber(value);
+      if (numberValue !== null) return numberValue;
+    }
+
+    return null;
+  };
+
+  const getFallbackCoords = (report) => {
+    const petName = String(report?.name || report?.pet_name || "")
+      .toLowerCase()
+      .trim();
+
+    const locationText = [
+      report?.location,
+      report?.area,
+      report?.last_seen_location,
+      report?.location_found,
+      report?.found_at,
+      report?.sighting_location,
+      report?.description,
+      report?.notes,
+      report?.message,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return TEST_LOCATION_COORDS.find((item) => {
+      const nameMatches = item.petNames.some((name) => petName === name);
+      const locationMatches = item.locationKeywords.some((keyword) =>
+        locationText.includes(keyword)
+      );
+
+      return nameMatches || locationMatches;
+    });
+  };
+
+  const getReportLat = (report) => {
+    const directLat = firstValidMapNumber([
+      report?.lat,
+      report?.latitude,
+      report?.last_seen_latitude,
+      report?.location_latitude,
+      report?.lost_latitude,
+      report?.found_latitude,
+      report?.sighting_latitude,
+      report?.pet?.lat,
+      report?.pet?.latitude,
+      report?.lostPet?.lat,
+      report?.lostPet?.latitude,
+    ]);
+
+    if (directLat !== null) return directLat;
+
+    return getFallbackCoords(report)?.lat ?? null;
+  };
+
+  const getReportLng = (report) => {
+    const directLng = firstValidMapNumber([
+      report?.lng,
+      report?.longitude,
+      report?.lon,
+      report?.last_seen_longitude,
+      report?.location_longitude,
+      report?.lost_longitude,
+      report?.found_longitude,
+      report?.sighting_longitude,
+      report?.pet?.lng,
+      report?.pet?.longitude,
+      report?.lostPet?.lng,
+      report?.lostPet?.longitude,
+    ]);
+
+    if (directLng !== null) return directLng;
+
+    return getFallbackCoords(report)?.lng ?? null;
   };
 
   useEffect(() => {
@@ -345,7 +499,7 @@ export default function PremiumLostFound() {
 
           const type = getReportType(report);
 
-          if (type === "lost") return true;
+          if (type === "lost" || type === "found") return true;
 
           if (type === "sighting") {
             const possibleLinkedIds = [
@@ -366,6 +520,15 @@ export default function PremiumLostFound() {
         const normalisedReports = filteredLinkedReports.map((report) => ({
           ...report,
           type: getReportType(report),
+          lat: getReportLat(report),
+          lng: getReportLng(report),
+          priority:
+            report?.priority === true ||
+            report?.is_priority === true ||
+            report?.priority === 1 ||
+            report?.is_priority === 1 ||
+            String(report?.priority).toLowerCase() === "true" ||
+            String(report?.is_priority).toLowerCase() === "true",
           resolvedImage: getReportImage(report),
         }));
 
@@ -396,7 +559,7 @@ export default function PremiumLostFound() {
 
   const visibleReportPool = useMemo(() => {
     return reports.filter((item) => {
-      return getReportType(item) !== "found" && !isResolvedReport(item);
+      return !isResolvedReport(item);
     });
   }, [reports]);
 
@@ -409,6 +572,8 @@ export default function PremiumLostFound() {
       item.breed,
       item.area,
       item.location,
+      item.location_found,
+      item.found_at,
       item.last_seen_location,
       item.sighting_location,
       item.notes,
@@ -450,17 +615,13 @@ export default function PremiumLostFound() {
       const [userLat, userLng] = userLocation;
 
       items = items.filter((item) => {
-        if (
-          item.lat === null ||
-          item.lat === undefined ||
-          item.lng === null ||
-          item.lng === undefined
-        ) {
-          return false;
-        }
+        const itemLat = getReportLat(item);
+        const itemLng = getReportLng(item);
 
-        const latDiff = Number(item.lat) - Number(userLat);
-        const lngDiff = Number(item.lng) - Number(userLng);
+        if (itemLat === null || itemLng === null) return false;
+
+        const latDiff = itemLat - Number(userLat);
+        const lngDiff = itemLng - Number(userLng);
         const distanceApprox = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
 
         return distanceApprox <= 0.03;
@@ -475,22 +636,23 @@ export default function PremiumLostFound() {
     [visibleReportPool]
   );
 
-  const sightingReports = useMemo(
-    () => visibleReportPool.filter((item) => getReportType(item) === "sighting"),
+  const foundReports = useMemo(
+    () => visibleReportPool.filter((item) => getReportType(item) === "found"),
     [visibleReportPool]
   );
 
-  const priorityReports = useMemo(
-    () =>
-      visibleReportPool.filter(
-        (item) => item.priority && getReportType(item) === "lost"
-      ),
+  const sightingReports = useMemo(
+    () => visibleReportPool.filter((item) => getReportType(item) === "sighting"),
     [visibleReportPool]
   );
 
   const visibleListReports = useMemo(() => {
     if (activeFilter === "lost") {
       return filteredReports.filter((item) => getReportType(item) === "lost");
+    }
+
+    if (activeFilter === "found") {
+      return filteredReports.filter((item) => getReportType(item) === "found");
     }
 
     if (activeFilter === "sighting") {
@@ -601,13 +763,11 @@ export default function PremiumLostFound() {
   }, [premiumAlertPets, selectedAlertIndex]);
 
   const mapMarkers = useMemo(() => {
-    return filteredReports.filter(
-      (report) =>
-        report.lat !== null &&
-        report.lat !== undefined &&
-        report.lng !== null &&
-        report.lng !== undefined
-    );
+    return filteredReports.filter((report) => {
+      const lat = getReportLat(report);
+      const lng = getReportLng(report);
+      return lat !== null && lng !== null;
+    });
   }, [filteredReports]);
 
   const handleUseLocation = () => {
@@ -630,6 +790,11 @@ export default function PremiumLostFound() {
 
   const handleViewReport = (report) => {
     const type = getReportType(report);
+
+    if (type === "found") {
+      openMapReportModal(report);
+      return;
+    }
 
     const targetId =
       type === "sighting"
@@ -659,6 +824,13 @@ export default function PremiumLostFound() {
       return {
         color: "#f39c3d",
         label: "S",
+      };
+    }
+
+    if (type === "found") {
+      return {
+        color: "#35c3a8",
+        label: "F",
       };
     }
 
@@ -741,11 +913,12 @@ export default function PremiumLostFound() {
     }
 
     mapMarkers.forEach((report) => {
-      const position = {
-        lat: Number(report.lat),
-        lng: Number(report.lng),
-      };
+      const lat = getReportLat(report);
+      const lng = getReportLng(report);
 
+      if (lat === null || lng === null) return;
+
+      const position = { lat, lng };
       const markerStyle = getMarkerStyle(getReportType(report));
 
       const marker = new window.google.maps.Marker({
@@ -846,8 +1019,8 @@ export default function PremiumLostFound() {
             <div className="premium-lf-badge">Pawfection Premium Safety</div>
             <h1 className="premium-lf-hero-title">Lost &amp; Found</h1>
             <p className="premium-lf-hero-text">
-              Fast, localised lost-pet reporting with community sightings,
-              smart filters, map tracking, and premium nearby alert support.
+              Fast, localised lost-pet reporting with community sightings, smart
+              filters, map tracking, and premium nearby alert support.
             </p>
 
             <div className="premium-lf-hero-meta">
@@ -855,10 +1028,10 @@ export default function PremiumLostFound() {
                 <strong>{lostReports.length}</strong> active lost reports
               </div>
               <div className="premium-lf-stat-pill">
-                <strong>{sightingReports.length}</strong> sighting reports
+                <strong>{foundReports.length}</strong> found reports
               </div>
               <div className="premium-lf-stat-pill">
-                <strong>{priorityReports.length}</strong> priority alerts
+                <strong>{sightingReports.length}</strong> sighting reports
               </div>
               <div className="premium-lf-stat-pill">
                 <strong>{useRadius ? "On" : "Off"}</strong> area alerts
@@ -951,14 +1124,16 @@ export default function PremiumLostFound() {
       )}
 
       {reportsError && (
-        <div className="premium-lf-info-box error glass-panel">{reportsError}</div>
+        <div className="premium-lf-info-box error glass-panel">
+          {reportsError}
+        </div>
       )}
 
       <section className="premium-lf-feature-grid">
         <div className="premium-lf-map-card glass-panel">
           <div className="premium-lf-card-head">
             <div>
-              <h3>Lost Pet Map</h3>
+              <h3>Lost &amp; Found Map</h3>
               <p>Track nearby reports and explore activity by location.</p>
             </div>
 
@@ -974,6 +1149,12 @@ export default function PremiumLostFound() {
                 onClick={() => setActiveFilter("lost")}
               >
                 Lost
+              </button>
+              <button
+                className={activeFilter === "found" ? "chip active" : "chip"}
+                onClick={() => setActiveFilter("found")}
+              >
+                Found
               </button>
               <button
                 className={activeFilter === "sighting" ? "chip active" : "chip"}
@@ -1031,9 +1212,7 @@ export default function PremiumLostFound() {
                   <p>
                     {activeSpotlight.species || "Pet"} •{" "}
                     {activeSpotlight.breed || "Unknown breed"} •{" "}
-                    {activeSpotlight.area ||
-                      activeSpotlight.last_seen_location ||
-                      "Unknown area"}
+                    {getReportArea(activeSpotlight)}
                   </p>
 
                   <div className="premium-lf-spotlight-actions">
@@ -1077,6 +1256,8 @@ export default function PremiumLostFound() {
             <h3>
               {activeFilter === "lost"
                 ? "Active Lost Reports"
+                : activeFilter === "found"
+                ? "Found Pet Reports"
                 : activeFilter === "sighting"
                 ? "Sighting Reports"
                 : activeFilter === "priority"
@@ -1107,21 +1288,19 @@ export default function PremiumLostFound() {
                       {report.species || "Pet"} •{" "}
                       {report.breed || "Unknown breed"}
                     </p>
-                    <span>
-                      {report.area ||
-                        report.last_seen_location ||
-                        report.sighting_location ||
-                        report.location ||
-                        "Unknown area"}
-                    </span>
+                    <span>{getReportArea(report)}</span>
                     <small className={`premium-lf-type-badge ${report.type}`}>
-                      {report.type === "lost" ? "Lost" : "Sighting"}
+                      {report.type === "lost"
+                        ? "Lost"
+                        : report.type === "found"
+                        ? "Found"
+                        : "Sighting"}
                     </small>
                   </div>
 
                   <button
                     onClick={() =>
-                      report.type === "sighting"
+                      report.type === "sighting" || report.type === "found"
                         ? openMapReportModal(report)
                         : handleViewReport(report)
                     }
@@ -1132,7 +1311,9 @@ export default function PremiumLostFound() {
               ))
             ) : (
               <div className="premium-lf-empty-list">
-                {activeFilter === "sighting"
+                {activeFilter === "found"
+                  ? "No found pet reports match your search."
+                  : activeFilter === "sighting"
                   ? "No sighting reports match your search."
                   : activeFilter === "lost"
                   ? "No lost reports match your search."
@@ -1172,12 +1353,7 @@ export default function PremiumLostFound() {
                   {activeAlertPet.species || "Pet"} •{" "}
                   {activeAlertPet.breed || "Unknown breed"}
                 </p>
-                <span>
-                  Last seen:{" "}
-                  {activeAlertPet.area ||
-                    activeAlertPet.last_seen_location ||
-                    "Unknown area"}
-                </span>
+                <span>Last seen: {getReportArea(activeAlertPet)}</span>
 
                 <div className="premium-lf-alert-actions">
                   <button onClick={() => handleViewReport(activeAlertPet)}>
@@ -1313,6 +1489,8 @@ export default function PremiumLostFound() {
                 <div className="premium-lf-report-modal-badge">
                   {selectedMapReport.type === "sighting"
                     ? "Sighting Report"
+                    : selectedMapReport.type === "found"
+                    ? "Found Pet Report"
                     : selectedMapReport.priority
                     ? "Priority Lost Report"
                     : "Lost Report"}
@@ -1332,13 +1510,7 @@ export default function PremiumLostFound() {
                 <div className="premium-lf-report-modal-details">
                   <div className="premium-lf-report-detail-box">
                     <span>Area</span>
-                    <strong>
-                      {selectedMapReport.area ||
-                        selectedMapReport.last_seen_location ||
-                        selectedMapReport.sighting_location ||
-                        selectedMapReport.location ||
-                        "Unknown area"}
-                    </strong>
+                    <strong>{getReportArea(selectedMapReport)}</strong>
                   </div>
 
                   <div className="premium-lf-report-detail-box">
@@ -1373,7 +1545,9 @@ export default function PremiumLostFound() {
                     className="premium-lf-primary-btn"
                     onClick={() => handleViewReport(selectedMapReport)}
                   >
-                    Open Full Report Page
+                    {selectedMapReport.type === "found"
+                      ? "Close"
+                      : "Open Full Report Page"}
                   </button>
 
                   {selectedMapReport.type === "lost" && (

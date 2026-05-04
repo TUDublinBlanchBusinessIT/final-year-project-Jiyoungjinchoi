@@ -1343,3 +1343,14 @@ h4 {
     flex-basis: 230px;
   }
 }
+.pfi-auto-pill {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--pfi-primary), var(--pfi-primary-2));
+  color: white;
+  font-family: "Fredoka", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  box-shadow: var(--pfi-purple-shadow);
+}

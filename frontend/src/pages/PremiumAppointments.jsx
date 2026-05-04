@@ -1058,8 +1058,6 @@ export default function PremiumAppointments() {
               <div className="pmpa-card-kicker">Premium appointment shortcuts</div>
               <h2>Your bookings, clinics, and care visits sliding automatically</h2>
             </div>
-
-            <div className="pmpa-auto-pill">Auto sliding ✨</div>
           </div>
 
           <div className="pmpa-slider-mask">

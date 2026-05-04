@@ -86,6 +86,22 @@ export default function PremiumProfile() {
     return () => clearInterval(timer);
   }, [pets.length]);
 
+  const todayText = useMemo(() => {
+    return new Date().toLocaleDateString("en-IE", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }, []);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
   const loadStoredUser = () => {
     try {
       const storedUser = localStorage.getItem("pawfection_user");
@@ -658,22 +674,6 @@ export default function PremiumProfile() {
     setOpenSettingSection((prev) => (prev === section ? "" : section));
   };
 
-  const todayText = useMemo(() => {
-    return new Date().toLocaleDateString("en-IE", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  }, []);
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
-  };
-
   const renderPetSummaryCard = () => {
     return (
       <article className="ppp-card ppp-card-wide ppp-pretty-pet-summary">
@@ -823,8 +823,6 @@ export default function PremiumProfile() {
               <div className="ppp-card-kicker">Premium profile pages</div>
               <h2>Your profile pages, sliding beautifully</h2>
             </div>
-
-            <div className="ppp-bottom-auto-pill">Bottom auto slider ✨</div>
           </div>
 
           <div className="ppp-bottom-slider-mask">
@@ -1388,8 +1386,6 @@ export default function PremiumProfile() {
               <div className="ppp-card-kicker">Premium profile shortcuts</div>
               <h2>Everything in your profile, sliding automatically</h2>
             </div>
-
-            <div className="ppp-auto-pill">Auto sliding ✨</div>
           </div>
 
           <div className="ppp-slider-mask">

@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  LineChart,
+  ComposedChart,
+  Area,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
+  RadialBarChart,
+  RadialBar,
+  PolarAngleAxis,
+  ReferenceLine,
 } from "recharts";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
 import "./PremiumMyPet.css";
@@ -89,7 +90,6 @@ export default function PremiumMyPet() {
       }
 
       const petList = extractList(data, "pets");
-
       setPets(petList);
 
       setSelectedPetId((currentSelectedId) => {
@@ -572,15 +572,32 @@ export default function PremiumMyPet() {
     return [];
   }, [orderedHealthLogs, targetWeight]);
 
-  const activityPieData = useMemo(() => {
-    const done = Math.min(latestActivityNumber, targetActivity);
-    const remaining = Math.max(targetActivity - done, 0);
-
-    return [
-      { name: "Completed", value: done },
-      { name: "Remaining", value: remaining },
-    ];
+  const activityProgressPercent = useMemo(() => {
+    if (!targetActivity || targetActivity <= 0) return 0;
+    return Math.round((latestActivityNumber / targetActivity) * 100);
   }, [latestActivityNumber, targetActivity]);
+
+  const activityChartValue = useMemo(() => {
+    return Math.min(activityProgressPercent, 100);
+  }, [activityProgressPercent]);
+
+  const activityRingData = useMemo(() => {
+    return [
+      {
+        name: "Activity Progress",
+        value: activityChartValue,
+        fill: "#7d68f2",
+      },
+    ];
+  }, [activityChartValue]);
+
+  const activityStatus = useMemo(() => {
+    if (!targetActivity || targetActivity <= 0) return "No goal set";
+    if (activityProgressPercent >= 100) return "Goal reached";
+    if (activityProgressPercent >= 75) return "Almost there";
+    if (activityProgressPercent >= 40) return "In progress";
+    return "Needs activity";
+  }, [activityProgressPercent, targetActivity]);
 
   const handleHealthInputChange = (e) => {
     const { name, value } = e.target;
@@ -817,7 +834,54 @@ export default function PremiumMyPet() {
     ];
   }, [pendingReminders, isSelectedPetLost, selectedPet, navigate]);
 
-  const pieColors = ["#7c6cf2", "#d9def0"];
+  const WeightTooltip = ({ active, payload, label }) => {
+    if (!active || !payload || !payload.length) return null;
+
+    const actual = payload.find((item) => item.dataKey === "actualWeight");
+    const target = payload.find((item) => item.dataKey === "targetWeight");
+
+    return (
+      <div className="pmp-custom-tooltip">
+        <div className="pmp-tooltip-date">{label}</div>
+
+        {actual && (
+          <div className="pmp-tooltip-row">
+            <span className="pmp-tooltip-dot actual"></span>
+            <span>Actual Weight</span>
+            <strong>{actual.value} kg</strong>
+          </div>
+        )}
+
+        {target && (
+          <div className="pmp-tooltip-row">
+            <span className="pmp-tooltip-dot target"></span>
+            <span>Target Weight</span>
+            <strong>{target.value} kg</strong>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const ActivityTooltip = () => {
+    return (
+      <div className="pmp-custom-tooltip">
+        <div className="pmp-tooltip-date">Activity Progress</div>
+
+        <div className="pmp-tooltip-row">
+          <span className="pmp-tooltip-dot actual"></span>
+          <span>Latest Activity</span>
+          <strong>{latestActivityNumber} mins</strong>
+        </div>
+
+        <div className="pmp-tooltip-row">
+          <span className="pmp-tooltip-dot target"></span>
+          <span>Daily Goal</span>
+          <strong>{targetActivity} mins</strong>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="pmp-shell">
@@ -1367,8 +1431,6 @@ export default function PremiumMyPet() {
               <div className="pmp-card-kicker">Premium pet shortcuts</div>
               <h2>Everything for {selectedPet?.name || "your pet"}, sliding automatically</h2>
             </div>
-
-            <div className="pmp-auto-pill">Auto sliding ✨</div>
           </div>
 
           <div className="pmp-slider-mask">
@@ -1424,7 +1486,7 @@ export default function PremiumMyPet() {
 
           <article className="pmp-card">
             <div className="pmp-card-kicker">Personalised Insights</div>
-            <h3>Smart Recommendations</h3>
+            <h3>Breed-Specific Recommendations for {selectedPet?.name || "Your Pet"}</h3>
 
             {recommendationsLoading ? (
               <div className="pmp-empty">Loading recommendations...</div>
@@ -1469,13 +1531,39 @@ export default function PremiumMyPet() {
 
           <article className="pmp-card pmp-card-wide">
             <div className="pmp-card-kicker">Trend Graph</div>
-            <h3>Health Trend Tracking</h3>
+
+            <div className="pmp-chart-header-row">
+              <div>
+                <h3>Health Trend Tracking</h3>
+                <p>
+                  Premium health analytics for {selectedPet?.name || "your pet"} based on
+                  recent health logs.
+                </p>
+              </div>
+
+              <div className="pmp-chart-metrics">
+                <div className="pmp-chart-metric">
+                  <span>Latest Weight</span>
+                  <strong>{latestWeightNumber ? `${latestWeightNumber}kg` : "—"}</strong>
+                </div>
+
+                <div className="pmp-chart-metric">
+                  <span>Target Weight</span>
+                  <strong>{targetWeight ? `${targetWeight}kg` : "—"}</strong>
+                </div>
+
+                <div className="pmp-chart-metric">
+                  <span>Activity</span>
+                  <strong>{activityProgressPercent}%</strong>
+                </div>
+              </div>
+            </div>
 
             <div className="pmp-graph-grid">
               <div>
                 <h4 className="pmp-graph-title">Weight Trend Tracking</h4>
 
-                <div className="pmp-chart-card pmp-weight-chart-card">
+                <div className="pmp-chart-card pmp-weight-chart-card pmp-professional-chart">
                   {healthLoading ? (
                     <div className="pmp-empty">Loading weight chart...</div>
                   ) : weightChartData.length ? (
@@ -1486,80 +1574,97 @@ export default function PremiumMyPet() {
                       </div>
 
                       <div className="pmp-recharts-wrap pmp-recharts-wrap-weight">
-                        <ResponsiveContainer width="100%" height={320}>
-                          <LineChart
+                        <ResponsiveContainer width="100%" height={330}>
+                          <ComposedChart
                             data={weightChartData}
-                            margin={{ top: 20, right: 35, left: 10, bottom: 35 }}
+                            margin={{ top: 25, right: 35, left: 5, bottom: 35 }}
                           >
+                            <defs>
+                              <linearGradient id="weightFill" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#7d68f2" stopOpacity={0.28} />
+                                <stop offset="95%" stopColor="#7d68f2" stopOpacity={0.02} />
+                              </linearGradient>
+                            </defs>
+
                             <CartesianGrid
-                              strokeDasharray="0"
-                              stroke="#d7d9e8"
-                              vertical={true}
-                              horizontal={true}
+                              stroke="#e9e5f8"
+                              strokeDasharray="4 6"
+                              vertical={false}
                             />
 
                             <XAxis
                               dataKey="date"
-                              angle={-45}
+                              angle={-35}
                               textAnchor="end"
                               height={60}
-                              tick={{ fill: "#746a95", fontSize: 12 }}
+                              tick={{ fill: "#746b95", fontSize: 12, fontWeight: 700 }}
                               tickLine={false}
-                              axisLine={{ stroke: "#7f8299", strokeWidth: 1.4 }}
+                              axisLine={false}
                             />
 
                             <YAxis
-                              tick={{ fill: "#746a95", fontSize: 12 }}
+                              tick={{ fill: "#746b95", fontSize: 12, fontWeight: 700 }}
                               tickLine={false}
-                              axisLine={{ stroke: "#7f8299", strokeWidth: 1.4 }}
-                              domain={["auto", "auto"]}
+                              axisLine={false}
+                              width={48}
+                              domain={["dataMin - 1", "dataMax + 1"]}
+                              tickFormatter={(value) => `${value}kg`}
                             />
 
-                            <Tooltip />
+                            <Tooltip content={<WeightTooltip />} />
+
+                            {targetWeight > 0 && (
+                              <ReferenceLine
+                                y={targetWeight}
+                                stroke="#35c3a8"
+                                strokeWidth={2}
+                                strokeDasharray="8 8"
+                                label={{
+                                  value: "Target",
+                                  position: "insideTopRight",
+                                  fill: "#249c88",
+                                  fontSize: 12,
+                                  fontWeight: 800,
+                                }}
+                              />
+                            )}
+
+                            <Area
+                              type="monotone"
+                              dataKey="actualWeight"
+                              stroke="none"
+                              fill="url(#weightFill)"
+                            />
 
                             <Line
-                              type="linear"
+                              type="monotone"
                               dataKey="actualWeight"
                               name="Actual Weight"
-                              stroke="#f2b21b"
-                              strokeWidth={2.5}
+                              stroke="#7d68f2"
+                              strokeWidth={4}
                               dot={{
                                 r: 5,
-                                fill: "#f2b21b",
-                                stroke: "#f2b21b",
-                                strokeWidth: 1,
+                                fill: "#ffffff",
+                                stroke: "#7d68f2",
+                                strokeWidth: 3,
                               }}
-                              activeDot={{ r: 7 }}
-                              label={{
-                                position: "top",
-                                fill: "#5a4f7c",
-                                fontSize: 12,
-                                fontWeight: 700,
-                              }}
-                            />
-
-                            <Line
-                              type="linear"
-                              dataKey="targetWeight"
-                              name="Target Weight"
-                              stroke="#22b573"
-                              strokeWidth={2.5}
-                              dot={{
-                                r: 5,
-                                fill: "#22b573",
-                                stroke: "#22b573",
-                                strokeWidth: 1,
-                              }}
-                              activeDot={{ r: 7 }}
-                              label={{
-                                position: "top",
-                                fill: "#5a4f7c",
-                                fontSize: 12,
-                                fontWeight: 700,
+                              activeDot={{
+                                r: 8,
+                                fill: "#7d68f2",
+                                stroke: "#ffffff",
+                                strokeWidth: 3,
                               }}
                             />
-                          </LineChart>
+                          </ComposedChart>
                         </ResponsiveContainer>
+                      </div>
+
+                      <div className="pmp-chart-caption">
+                        {weightDifference > 0.2
+                          ? `${selectedPet?.name || "Your pet"} is currently ${weightDifference}kg above the target weight.`
+                          : weightDifference < -0.2
+                          ? `${selectedPet?.name || "Your pet"} is currently ${Math.abs(weightDifference)}kg below the target weight.`
+                          : `${selectedPet?.name || "Your pet"} is close to the target weight.`}
                       </div>
                     </>
                   ) : (
@@ -1573,45 +1678,75 @@ export default function PremiumMyPet() {
               <div>
                 <h4 className="pmp-graph-title">Activity Goal Progress</h4>
 
-                <div className="pmp-chart-card">
+                <div className="pmp-chart-card pmp-activity-card pmp-professional-chart">
                   {healthLoading ? (
                     <div className="pmp-empty">Loading activity chart...</div>
                   ) : (
                     <>
                       <div className="pmp-chart-info">
-                        <span className="pmp-chart-summary">
-                          Goal: {targetActivity} mins
-                        </span>
+                        <span className="pmp-chart-summary">Goal: {targetActivity} mins</span>
                         <span className="pmp-chart-summary">
                           Latest: {latestActivityNumber} mins
                         </span>
                       </div>
 
-                      <div className="pmp-recharts-wrap">
-                        <ResponsiveContainer width="100%" height={280}>
-                          <PieChart>
-                            <Pie
-                              data={activityPieData}
+                      <div className="pmp-activity-layout">
+                        <div className="pmp-recharts-wrap pmp-recharts-wrap-activity">
+                          <ResponsiveContainer width="100%" height={280}>
+                            <RadialBarChart
                               cx="50%"
                               cy="50%"
-                              innerRadius={55}
-                              outerRadius={90}
-                              paddingAngle={3}
-                              dataKey="value"
-                              nameKey="name"
-                              label
+                              innerRadius="72%"
+                              outerRadius="100%"
+                              barSize={18}
+                              data={activityRingData}
+                              startAngle={90}
+                              endAngle={-270}
                             >
-                              {activityPieData.map((entry, index) => (
-                                <Cell
-                                  key={`cell-${index}`}
-                                  fill={pieColors[index % pieColors.length]}
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                            <Legend />
-                          </PieChart>
-                        </ResponsiveContainer>
+                              <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+
+                              <RadialBar
+                                dataKey="value"
+                                cornerRadius={18}
+                                background={{ fill: "#edf0fb" }}
+                              />
+
+                              <Tooltip content={<ActivityTooltip />} />
+                            </RadialBarChart>
+                          </ResponsiveContainer>
+
+                          <div className="pmp-activity-centre">
+                            <strong>{activityProgressPercent}%</strong>
+                            <span>{activityStatus}</span>
+                          </div>
+                        </div>
+
+                        <div className="pmp-activity-progress">
+                          <div>
+                            <span>Completed</span>
+                            <strong>{latestActivityNumber} mins</strong>
+                          </div>
+
+                          <div>
+                            <span>Daily Goal</span>
+                            <strong>{targetActivity} mins</strong>
+                          </div>
+
+                          <div>
+                            <span>Difference</span>
+                            <strong>
+                              {latestActivityNumber >= targetActivity
+                                ? `+${latestActivityNumber - targetActivity} mins`
+                                : `${targetActivity - latestActivityNumber} mins left`}
+                            </strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pmp-chart-caption">
+                        {latestActivityNumber >= targetActivity
+                          ? `${selectedPet?.name || "Your pet"} has reached today’s activity goal.`
+                          : `${selectedPet?.name || "Your pet"} needs ${targetActivity - latestActivityNumber} more minutes to reach the goal.`}
                       </div>
                     </>
                   )}

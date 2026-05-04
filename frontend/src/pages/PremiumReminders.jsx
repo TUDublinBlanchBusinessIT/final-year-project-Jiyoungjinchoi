@@ -670,8 +670,6 @@ export default function PremiumReminders() {
               <div className="pfr-card-kicker">Premium reminder shortcuts</div>
               <h2>Your pet care tasks sliding automatically</h2>
             </div>
-
-            <div className="pfr-auto-pill">Auto sliding ✨</div>
           </div>
 
           <div className="pfr-slider-mask">
