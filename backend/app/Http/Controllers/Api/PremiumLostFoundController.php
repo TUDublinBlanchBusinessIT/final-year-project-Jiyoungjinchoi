@@ -7,6 +7,7 @@ use App\Models\FoundReport;
 use App\Models\LostPet;
 use App\Models\Sighting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class PremiumLostFoundController extends Controller
 {
@@ -69,6 +70,10 @@ class PremiumLostFoundController extends Controller
             ->map(function ($report) {
                 $foundImageUrl = $this->makeImageUrl($report->photo_path ?? null);
 
+                // IMPORTANT: support either lat/lng or latitude/longitude columns
+                $reportLat = $report->lat ?? $report->latitude ?? null;
+                $reportLng = $report->lng ?? $report->longitude ?? null;
+
                 return [
                     'id' => $report->id,
                     'pet_id' => null,
@@ -86,8 +91,9 @@ class PremiumLostFoundController extends Controller
                     'description' => $report->description ?? '',
                     'notes' => $report->notes ?? '',
 
-                    'lat' => null,
-                    'lng' => null,
+                    // FIXED: found/unknown reports now return coordinates to the map
+                    'lat' => $reportLat !== null ? (float) $reportLat : null,
+                    'lng' => $reportLng !== null ? (float) $reportLng : null,
 
                     'lostDate' => optional($report->found_at)?->format('Y-m-d'),
                     'reported_at' => optional($report->found_at)?->format('Y-m-d H:i:s'),
@@ -218,6 +224,119 @@ class PremiumLostFoundController extends Controller
         ], 201);
     }
 
+    public function storeUnknownSighting(Request $request)
+    {
+        $validated = $request->validate([
+            'pet_name' => ['nullable', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'species' => ['required', 'string', 'max:255'],
+            'breed' => ['nullable', 'string', 'max:255'],
+
+            // Your frontend may send either description or notes
+            'description' => ['nullable', 'string', 'max:1000'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+
+            'seen_location' => ['nullable', 'string', 'max:255'],
+            'location' => ['nullable', 'string', 'max:255'],
+            'location_found' => ['nullable', 'string', 'max:255'],
+
+            'latitude' => ['nullable', 'numeric'],
+            'longitude' => ['nullable', 'numeric'],
+            'lat' => ['nullable', 'numeric'],
+            'lng' => ['nullable', 'numeric'],
+
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+        ]);
+
+        $location = $validated['seen_location']
+            ?? $validated['location']
+            ?? $validated['location_found']
+            ?? null;
+
+        if (!$location) {
+            return response()->json([
+                'message' => 'The seen location field is required.',
+                'errors' => [
+                    'seen_location' => ['The seen location field is required.'],
+                ],
+            ], 422);
+        }
+
+        $petName = $validated['pet_name']
+            ?? $validated['name']
+            ?? 'Unknown Pet';
+
+        $description = $validated['description']
+            ?? $validated['notes']
+            ?? 'No description provided.';
+
+        $lat = $validated['latitude'] ?? $validated['lat'] ?? null;
+        $lng = $validated['longitude'] ?? $validated['lng'] ?? null;
+
+        $photoPath = null;
+
+        if ($request->hasFile('photo')) {
+            $photoPath = $request->file('photo')->store('found_reports', 'public');
+        }
+
+        $report = new FoundReport();
+        $table = $report->getTable();
+
+        $this->setIfColumn($report, $table, 'user_id', optional($request->user())->id);
+        $this->setIfColumn($report, $table, 'reported_by', optional($request->user())->id);
+        $this->setIfColumn($report, $table, 'reporter_id', optional($request->user())->id);
+        $this->setIfColumn($report, $table, 'reporter_name', optional($request->user())->name ?? 'Premium User');
+
+        $this->setIfColumn($report, $table, 'pet_name', $petName);
+        $this->setIfColumn($report, $table, 'name', $petName);
+
+        $this->setIfColumn($report, $table, 'species', $validated['species']);
+        $this->setIfColumn($report, $table, 'breed', $validated['breed'] ?? null);
+
+        // Fix: database description cannot be null
+        $this->setIfColumn($report, $table, 'description', $description);
+        $this->setIfColumn($report, $table, 'notes', $description);
+
+        $this->setIfColumn($report, $table, 'location_found', $location);
+        $this->setIfColumn($report, $table, 'seen_location', $location);
+        $this->setIfColumn($report, $table, 'location', $location);
+
+        // These will save only if the columns exist in found_reports
+        $this->setIfColumn($report, $table, 'lat', $lat);
+        $this->setIfColumn($report, $table, 'lng', $lng);
+        $this->setIfColumn($report, $table, 'latitude', $lat);
+        $this->setIfColumn($report, $table, 'longitude', $lng);
+
+        $this->setIfColumn($report, $table, 'photo_path', $photoPath);
+        $this->setIfColumn($report, $table, 'found_at', now());
+        $this->setIfColumn($report, $table, 'status', 'active');
+
+        $report->save();
+
+        return response()->json([
+            'message' => 'Unknown pet sighting submitted successfully.',
+            'report' => [
+                'id' => $report->id,
+                'type' => 'found',
+                'name' => $petName,
+                'pet_name' => $petName,
+                'species' => $validated['species'],
+                'breed' => $validated['breed'] ?? 'Unknown',
+                'location' => $location,
+                'last_seen_location' => $location,
+                'description' => $description,
+                'notes' => $description,
+                'lat' => $lat !== null ? (float) $lat : null,
+                'lng' => $lng !== null ? (float) $lng : null,
+                'photo_path' => $photoPath,
+                'photo_url' => $this->makeImageUrl($photoPath),
+                'display_photo_url' => $this->makeImageUrl($photoPath),
+                'status' => 'Found Report',
+                'created_at' => optional($report->created_at)?->format('Y-m-d H:i:s'),
+            ],
+        ], 201);
+    }
+
     public function show(Request $request, $id)
     {
         $pet = LostPet::find($id);
@@ -327,6 +446,13 @@ class PremiumLostFoundController extends Controller
                 'is_lost' => false,
             ]
         ]);
+    }
+
+    private function setIfColumn($model, $table, $column, $value)
+    {
+        if (Schema::hasColumn($table, $column)) {
+            $model->{$column} = $value;
+        }
     }
 
     private function makeImageUrl($path)

@@ -114,18 +114,20 @@ Route::middleware('auth:sanctum')->group(function () {
         // AI Vet Chat
         Route::post('/ai-vet-chat', [AiVetChatController::class, 'chat']);
 
-        // AI vet chat sessions
+        // AI Vet Chat Sessions
         Route::get('/ai-vet-chat/sessions', [AiVetChatController::class, 'sessions']);
         Route::post('/ai-vet-chat/sessions', [AiVetChatController::class, 'storeSession']);
         Route::put('/ai-vet-chat/sessions/{session}/transcript', [AiVetChatController::class, 'updateTranscript']);
         Route::post('/ai-vet-chat/sessions/{session}/end', [AiVetChatController::class, 'endSession']);
         Route::post('/ai-vet-chat/sessions/{session}/rating', [AiVetChatController::class, 'storeRating']);
-    });
 
-    // Premium Lost & Found
-    Route::prefix('premium')->group(function () {
+        // Premium Lost & Found
         Route::get('/lost-found', [PremiumLostFoundController::class, 'index']);
         Route::post('/lost-found', [PremiumLostFoundController::class, 'store']);
+
+        // Unknown Pet Sighting Form
+        Route::post('/report-sighting', [PremiumLostFoundController::class, 'storeUnknownSighting']);
+
         Route::get('/lost-found/{id}', [PremiumLostFoundController::class, 'show']);
         Route::patch('/lost-found/{id}/resolve', [PremiumLostFoundController::class, 'resolve']);
     });
@@ -140,6 +142,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Admin routes
     Route::prefix('admin')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard']);
+
         Route::get('/lost-pets', [AdminController::class, 'lostPets']);
         Route::patch('/lost-pets/{id}/approve', [AdminController::class, 'approveLostPet']);
         Route::patch('/lost-pets/{id}/hide', [AdminController::class, 'hideLostPet']);
