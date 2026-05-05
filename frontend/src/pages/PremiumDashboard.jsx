@@ -927,7 +927,7 @@ export default function PremiumDashboard() {
           <div className="pfd-auto-head">
             <div>
               <span className="pfd-kicker">Premium Tools</span>
-              <h2>Everything your pet needs, sliding automatically</h2>
+              <h2>Everything your pet needs</h2>
             </div>
             <span className="pfd-auto-pill">{dueSoonReminderCount} due soon</span>
           </div>

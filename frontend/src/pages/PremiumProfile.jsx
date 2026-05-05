@@ -821,7 +821,7 @@ export default function PremiumProfile() {
           <div className="ppp-bottom-auto-head">
             <div>
               <div className="ppp-card-kicker">Premium profile pages</div>
-              <h2>Your profile pages, sliding beautifully</h2>
+              <h2>Your profile pages</h2>
             </div>
           </div>
 
@@ -1384,7 +1384,7 @@ export default function PremiumProfile() {
           <div className="ppp-auto-head">
             <div>
               <div className="ppp-card-kicker">Premium profile shortcuts</div>
-              <h2>Everything in your profile, sliding automatically</h2>
+              <h2>Everything in your profile</h2>
             </div>
           </div>
 

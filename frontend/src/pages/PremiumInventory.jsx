@@ -988,7 +988,7 @@ export default function PremiumInventory() {
           <div className="pfi-auto-head">
             <div>
               <div className="pfi-card-kicker">Premium inventory shortcuts</div>
-              <h2>Your pet supplies sliding automatically</h2>
+              <h2>Your pet supplies</h2>
             </div>
           </div>
 

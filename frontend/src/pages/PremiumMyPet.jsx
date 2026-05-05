@@ -1429,7 +1429,7 @@ export default function PremiumMyPet() {
           <div className="pmp-auto-head">
             <div>
               <div className="pmp-card-kicker">Premium pet shortcuts</div>
-              <h2>Everything for {selectedPet?.name || "your pet"}, sliding automatically</h2>
+              <h2>Everything for {selectedPet?.name || "your pet"}</h2>
             </div>
           </div>
 

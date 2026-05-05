@@ -668,7 +668,7 @@ export default function PremiumReminders() {
           <div className="pfr-auto-head">
             <div>
               <div className="pfr-card-kicker">Premium reminder shortcuts</div>
-              <h2>Your pet care tasks sliding automatically</h2>
+              <h2>Your pet care tasks</h2>
             </div>
           </div>
 
