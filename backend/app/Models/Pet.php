@@ -12,8 +12,6 @@ class Pet extends Model
 
     protected $fillable = [
         'user_id',
-
-        // Basic
         'name',
         'species',
         'breed',
@@ -23,14 +21,10 @@ class Pet extends Model
         'weight',
         'notes',
         'photo_path',
-
-        // Reminder fields
         'last_vaccination_date',
         'vaccine_interval_days',
         'last_grooming_date',
         'grooming_interval_days',
-
-        // Extra profile fields
         'eye_color',
         'fur_type',
         'markings',
@@ -42,8 +36,6 @@ class Pet extends Model
         'activity_level',
         'diet',
         'personality_traits',
-
-        // Legacy/compatibility fields still used in some places
         'vaccination_status',
         'last_vet_visit',
         'medical_notes',
@@ -51,9 +43,10 @@ class Pet extends Model
         'feeding_schedule',
         'temperament',
         'behaviour_notes',
-
-        // Lost & Found
+        'status',
+        'memorial_message',
         'is_lost',
+        'is_priority',
         'lost_status',
         'lost_description',
         'last_seen_location',
@@ -63,6 +56,9 @@ class Pet extends Model
         'reported_lost_at',
         'resolved_at',
         'archived_at',
+        'memorial_photo_url',
+        'memorial_theme',
+        'memorial_visibility',
     ];
 
     protected $casts = [
@@ -71,6 +67,7 @@ class Pet extends Model
         'last_grooming_date' => 'date',
         'last_vet_visit' => 'date',
         'is_lost' => 'boolean',
+        'is_priority' => 'boolean',
         'reported_lost_at' => 'datetime',
         'resolved_at' => 'datetime',
         'archived_at' => 'datetime',
@@ -84,5 +81,15 @@ class Pet extends Model
     public function reminders()
     {
         return $this->hasMany(\App\Models\Reminder::class);
+    }
+
+    public function healthLogs()
+    {
+        return $this->hasMany(\App\Models\PetHealthLog::class);
+    }
+
+    public function sightings()
+    {
+        return $this->hasMany(\App\Models\Sighting::class, 'pet_id');
     }
 }

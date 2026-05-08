@@ -13,6 +13,8 @@ export default function CreatePet() {
     dob: "",
     age: "",
     weight: "",
+    target_weight: "",
+    target_activity_minutes: "",
 
     last_vaccination_date: "",
     vaccine_interval_days: "365",
@@ -79,6 +81,21 @@ export default function CreatePet() {
       return "Please enter Weight (kg).";
     }
 
+    if (
+      form.target_weight !== "" &&
+      (Number.isNaN(Number(form.target_weight)) || Number(form.target_weight) <= 0)
+    ) {
+      return "Target Weight must be a valid positive number.";
+    }
+
+    if (
+      form.target_activity_minutes !== "" &&
+      (Number.isNaN(Number(form.target_activity_minutes)) ||
+        Number(form.target_activity_minutes) < 0)
+    ) {
+      return "Target Activity Minutes must be 0 or more.";
+    }
+
     const computedAge = form.age !== "" ? Number(form.age) : calcAgeFromDob(form.dob);
     if (computedAge === "" || Number.isNaN(Number(computedAge)) || Number(computedAge) < 0) {
       return "Please enter Age, or select Date of Birth.";
@@ -116,15 +133,34 @@ export default function CreatePet() {
     fd.append("age", String(computedAge));
     fd.append("weight", String(form.weight));
 
+    if (form.target_weight !== "") {
+      fd.append("target_weight", String(form.target_weight));
+    }
+
+    if (form.target_activity_minutes !== "") {
+      fd.append("target_activity_minutes", String(form.target_activity_minutes));
+    }
+
     if (form.dob) {
       fd.append("dob", form.dob);
       fd.append("date_of_birth", form.dob);
     }
 
-    if (form.last_vaccination_date) fd.append("last_vaccination_date", form.last_vaccination_date);
-    if (form.vaccine_interval_days) fd.append("vaccine_interval_days", String(form.vaccine_interval_days));
-    if (form.last_grooming_date) fd.append("last_grooming_date", form.last_grooming_date);
-    if (form.grooming_interval_days) fd.append("grooming_interval_days", String(form.grooming_interval_days));
+    if (form.last_vaccination_date) {
+      fd.append("last_vaccination_date", form.last_vaccination_date);
+    }
+
+    if (form.vaccine_interval_days) {
+      fd.append("vaccine_interval_days", String(form.vaccine_interval_days));
+    }
+
+    if (form.last_grooming_date) {
+      fd.append("last_grooming_date", form.last_grooming_date);
+    }
+
+    if (form.grooming_interval_days) {
+      fd.append("grooming_interval_days", String(form.grooming_interval_days));
+    }
 
     if (form.eye_color) fd.append("eye_color", form.eye_color.trim());
     if (form.fur_type) fd.append("fur_type", form.fur_type.trim());
@@ -265,6 +301,31 @@ export default function CreatePet() {
               <div className="pf-field">
                 <label>Weight (kg) *</label>
                 <input type="number" step="0.1" min="0" name="weight" value={form.weight} onChange={onChange} />
+              </div>
+
+              <div className="pf-field">
+                <label>Target Weight (kg)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  name="target_weight"
+                  value={form.target_weight}
+                  onChange={onChange}
+                  placeholder="e.g. 7.5"
+                />
+              </div>
+
+              <div className="pf-field">
+                <label>Target Activity Minutes</label>
+                <input
+                  type="number"
+                  min="0"
+                  name="target_activity_minutes"
+                  value={form.target_activity_minutes}
+                  onChange={onChange}
+                  placeholder="e.g. 60"
+                />
               </div>
 
               <div className="pf-field pf-file">

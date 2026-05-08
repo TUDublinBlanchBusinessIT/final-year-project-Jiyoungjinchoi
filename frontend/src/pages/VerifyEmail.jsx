@@ -78,7 +78,8 @@ export default function VerifyEmail() {
 
       setStatus({
         type: "success",
-        message: data.message || "Verification email sent! Please check again.",
+        message:
+          data.message || "Verification email sent! Please check your email/log again.",
       });
     } catch (error) {
       setStatus({
@@ -125,7 +126,7 @@ export default function VerifyEmail() {
           maxWidth: 520,
           background: cardBg,
           borderRadius: 22,
-          padding: 28,
+          padding: 24,
           boxShadow: "0 12px 35px rgba(0,0,0,.07)",
           textAlign: "center",
         }}
@@ -148,8 +149,8 @@ export default function VerifyEmail() {
         {status.type !== "idle" && (
           <div
             style={{
-              marginTop: 20,
-              padding: "12px 16px",
+              marginTop: 16,
+              padding: "10px 12px",
               borderRadius: 14,
               background: statusBg,
               border:
@@ -168,8 +169,7 @@ export default function VerifyEmail() {
                 ? "Please wait"
                 : "Attention"}
             </strong>
-            <div style={{ marginTop: 6 }}>{status.message}</div>
-            {verifiedParam === "1" && <div style={{ marginTop: 6 }}>Redirecting to login…</div>}
+            <div style={{ marginTop: 4 }}>{status.message}</div>
           </div>
         )}
 

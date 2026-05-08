@@ -9,6 +9,7 @@ class Reminder extends Model
     protected $fillable = [
         'user_id',
         'pet_id',
+        'appointment_id',
         'type',
         'title',
         'message',
@@ -19,7 +20,7 @@ class Reminder extends Model
     ];
 
     protected $casts = [
-        'reminder_date' => 'date',
+        'reminder_date' => 'datetime',
         'notified_at' => 'datetime',
     ];
 
@@ -31,5 +32,10 @@ class Reminder extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function appointment()
+    {
+        return $this->belongsTo(Appointment::class);
     }
 }

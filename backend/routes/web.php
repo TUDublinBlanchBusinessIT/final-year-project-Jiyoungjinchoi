@@ -12,36 +12,36 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::post('/register', [RegisterController::class, 'store'])->name('register');
-
-/*
-|--------------------------------------------------------------------------
-| Email Verification Routes
-|--------------------------------------------------------------------------
-| Public verification link for React frontend
-|--------------------------------------------------------------------------
-*/
-
-// Verification notice
+// Optional email verification notice page
 Route::get('/email/verify', function () {
     return response()->json([
         'message' => 'Please verify your email address.',
     ]);
 })->name('verification.notice');
 
-// Verification link from email
+/*
+|--------------------------------------------------------------------------
+| Email Verification Routes
+|--------------------------------------------------------------------------
+| Public signed route for React frontend
+*/
+
+// Register route
+Route::post('/register', [RegisterController::class, 'store'])->name('register');
+
+// Verification link clicked from email
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
     $user = User::find($id);
 
-    if (!$user) {
+    if (! $user) {
         return redirect('http://localhost:5173/verify-email?verified=0');
     }
 
-    if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+    if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
         return redirect('http://localhost:5173/verify-email?verified=0');
     }
 
-    if (!$user->hasVerifiedEmail()) {
+    if (! $user->hasVerifiedEmail()) {
         $user->markEmailAsVerified();
         event(new Verified($user));
     }
@@ -51,7 +51,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 
 // Resend verification email
 Route::post('/email/verification-notification', function (Request $request) {
-    if (!$request->user()) {
+    if (! $request->user()) {
         return response()->json([
             'message' => 'Unauthenticated.',
         ], 401);
@@ -60,6 +60,6 @@ Route::post('/email/verification-notification', function (Request $request) {
     $request->user()->sendEmailVerificationNotification();
 
     return response()->json([
-        'message' => 'Verification link sent!',
+        'message' => 'Verification link sent.',
     ]);
-})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+})->middleware(['auth'])->name('verification.send');

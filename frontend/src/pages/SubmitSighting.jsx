@@ -3,13 +3,52 @@ import { useNavigate, useParams } from "react-router-dom";
 
 export default function SubmitSighting() {
   const navigate = useNavigate();
-  const { id } = useParams(); // lost pet id (pet record id)
+  const { id } = useParams();
 
   const [status, setStatus] = useState({ type: "idle", message: "" });
 
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [photo, setPhoto] = useState(null);
+  const [lat, setLat] = useState("");
+  const [lng, setLng] = useState("");
+  const [gettingLocation, setGettingLocation] = useState(false);
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setStatus({
+        type: "error",
+        message: "Geolocation is not supported on this device.",
+      });
+      return;
+    }
+
+    setGettingLocation(true);
+    setStatus({ type: "loading", message: "Getting your location..." });
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const nextLat = position.coords.latitude.toString();
+        const nextLng = position.coords.longitude.toString();
+
+        setLat(nextLat);
+        setLng(nextLng);
+
+        setGettingLocation(false);
+        setStatus({
+          type: "success",
+          message: "Location captured successfully.",
+        });
+      },
+      () => {
+        setGettingLocation(false);
+        setStatus({
+          type: "error",
+          message: "Unable to get your location. Please allow location access.",
+        });
+      }
+    );
+  };
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -36,6 +75,8 @@ export default function SubmitSighting() {
       form.append("location", cleanLoc);
       if (cleanNotes) form.append("notes", cleanNotes);
       if (photo) form.append("photo", photo);
+      if (lat !== "") form.append("lat", lat);
+      if (lng !== "") form.append("lng", lng);
 
       const res = await fetch(`http://127.0.0.1:8000/api/lost-pets/${id}/sightings`, {
         method: "POST",
@@ -63,7 +104,11 @@ export default function SubmitSighting() {
         throw new Error(firstError);
       }
 
-      setStatus({ type: "success", message: data.message || "Sighting submitted ✅" });
+      setStatus({
+        type: "success",
+        message: data.message || "Sighting submitted successfully.",
+      });
+
       setTimeout(() => navigate("/lostfound"), 700);
     } catch (err) {
       setStatus({ type: "error", message: err.message || "Failed to fetch" });
@@ -100,7 +145,14 @@ export default function SubmitSighting() {
           boxShadow: "0 12px 35px rgba(0,0,0,.07)",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            alignItems: "center",
+          }}
+        >
           <h1 style={{ fontSize: 24, margin: 0 }}>Submit Found / Sighting</h1>
           <button
             onClick={() => navigate("/lostfound")}
@@ -161,6 +213,71 @@ export default function SubmitSighting() {
               boxSizing: "border-box",
             }}
           />
+
+          <button
+            type="button"
+            onClick={handleUseMyLocation}
+            disabled={gettingLocation}
+            style={{
+              width: "100%",
+              padding: "11px 14px",
+              borderRadius: 12,
+              border: "1px solid #dbe4ff",
+              background: "#eef4ff",
+              color: "#335eea",
+              fontWeight: 800,
+              cursor: "pointer",
+              marginBottom: 14,
+              opacity: gettingLocation ? 0.7 : 1,
+            }}
+          >
+            {gettingLocation ? "Getting Location..." : "Use My Current Location"}
+          </button>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 12,
+              marginBottom: 14,
+            }}
+          >
+            <div>
+              <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>
+                Latitude
+              </label>
+              <input
+                value={lat}
+                onChange={(e) => setLat(e.target.value)}
+                placeholder="Auto-filled or enter manually"
+                style={{
+                  width: "100%",
+                  padding: "11px 12px",
+                  borderRadius: 12,
+                  border: "1px solid #e5e7eb",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>
+                Longitude
+              </label>
+              <input
+                value={lng}
+                onChange={(e) => setLng(e.target.value)}
+                placeholder="Auto-filled or enter manually"
+                style={{
+                  width: "100%",
+                  padding: "11px 12px",
+                  borderRadius: 12,
+                  border: "1px solid #e5e7eb",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+          </div>
 
           <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>
             Notes (optional)

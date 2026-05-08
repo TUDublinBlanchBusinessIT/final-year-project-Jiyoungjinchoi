@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
+use App\Models\Pet;
 
 class Sighting extends Model
 {
@@ -13,6 +15,8 @@ class Sighting extends Model
         'pet_id',
         'reported_by',
         'location',
+        'lat',
+        'lng',
         'notes',
         'photo_path',
         'owner_notified_at',
@@ -20,6 +24,8 @@ class Sighting extends Model
 
     protected $casts = [
         'owner_notified_at' => 'datetime',
+        'lat' => 'float',
+        'lng' => 'float',
     ];
 
     public function pet()

@@ -2,248 +2,159 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Hash;
-use App\Models\Pet;
-use App\Models\User;
 
-use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\AuthController;
-
 use App\Http\Controllers\PetController;
-use App\Http\Controllers\PostController;
-use App\Http\Controllers\LikeController;
-use App\Http\Controllers\CommentController;
-use App\Http\Controllers\InventoryController;
-use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ReminderController;
-
+use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\PostController;
+use App\Http\Controllers\CommentController;
+use App\Http\Controllers\LikeController;
 use App\Http\Controllers\LostPetController;
-use App\Http\Controllers\SightingController;
-use App\Http\Controllers\FoundReportController;
-use App\Http\Controllers\FoundReportCommentController;
-use App\Http\Controllers\AdminController;
 
-// ✅ Health check
-Route::get('/health', function () {
-    return response()->json(['status' => 'ok'], 200);
-});
+use App\Http\Controllers\Api\SightingController;
+use App\Http\Controllers\Api\PremiumLostFoundController;
+use App\Http\Controllers\Api\PremiumPetController;
+use App\Http\Controllers\Api\AiVetChatController;
+use App\Http\Controllers\Api\StripeController;
+use App\Http\Controllers\Api\AdminController;
 
-// ✅ Register
-Route::post('/register', [RegisterController::class, 'apiStore'])
-    ->middleware('throttle:10,1');
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
-// ✅ Login
-Route::post('/login', [AuthController::class, 'login'])
-    ->middleware('throttle:10,1');
+// Public Stripe success route
+Route::get('/stripe/success', [StripeController::class, 'success']);
 
-// ✅ Resend verification email
-Route::post('/email/verification-notification', function (Request $request) {
-    $validated = $request->validate([
-        'email' => ['required', 'email'],
-    ]);
-
-    $user = User::where('email', $validated['email'])->first();
-
-    if (!$user) {
-        return response()->json(['message' => 'User not found.'], 404);
-    }
-
-    if ($user->hasVerifiedEmail()) {
-        return response()->json(['message' => 'Email already verified.'], 400);
-    }
-
-    $user->sendEmailVerificationNotification();
-
-    return response()->json(['message' => 'Verification email sent.'], 200);
-})->middleware('throttle:3,1');
-
-/*
-|--------------------------------------------------------------------------
-| Public Lost & Found Routes
-|--------------------------------------------------------------------------
-*/
-
+// Public lost pet routes
 Route::get('/lost-pets', [LostPetController::class, 'index']);
 Route::get('/lost-pets/{pet}', [LostPetController::class, 'show']);
-Route::get('/lost-pets/{pet}/sightings', [SightingController::class, 'index']);
 
-Route::get('/found-reports', [FoundReportController::class, 'index']);
-Route::get('/found-reports/{foundReport}', [FoundReportController::class, 'show']);
-Route::get('/found-reports/{foundReport}/comments', [FoundReportCommentController::class, 'index']);
-
-/*
-|--------------------------------------------------------------------------
-| Protected Routes (Require Authentication via Sanctum)
-|--------------------------------------------------------------------------
-*/
+// Optional public premium feed
+Route::get('/premium/lost-found', [PremiumLostFoundController::class, 'index']);
+Route::get('/premium/lost-found/{id}', [PremiumLostFoundController::class, 'show']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
 
-    // 🐾 Pets
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Stripe / Subscription
+    Route::post('/stripe/checkout', [StripeController::class, 'checkout']);
+    Route::post('/stripe/billing-portal', [StripeController::class, 'billingPortal']);
+    Route::post('/cancel-premium', [StripeController::class, 'cancelPremium']);
+    Route::get('/subscription-status', [StripeController::class, 'subscriptionStatus']);
+
+    // Pets
     Route::get('/pets', [PetController::class, 'index']);
-    Route::get('/pets/{pet}', [PetController::class, 'show']);
     Route::post('/pets', [PetController::class, 'store']);
-    Route::put('/pets/{pet}', [PetController::class, 'update']);
+    Route::get('/pets/{pet}', [PetController::class, 'show']);
     Route::patch('/pets/{pet}', [PetController::class, 'update']);
     Route::delete('/pets/{pet}', [PetController::class, 'destroy']);
+    Route::post('/pets/{pet}/memorial', [PetController::class, 'markMemorial']);
+    Route::delete('/pets/{pet}/memorial', [PetController::class, 'deleteMemorial']);
 
-    // 🐾 Community
-    Route::get('/posts', [PostController::class, 'index']);
-    Route::post('/posts', [PostController::class, 'store']);
-    Route::delete('/posts/{post}', [PostController::class, 'destroy']);
-    Route::post('/posts/{post}/report', [PostController::class, 'report']);
-
-    // ❤️ Likes & Comments
-    Route::post('/posts/{post}/like', [LikeController::class, 'toggle']);
-    Route::get('/posts/{post}/comments', [CommentController::class, 'index']);
-    Route::post('/posts/{post}/comments', [CommentController::class, 'store']);
-    Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
-    Route::delete('/posts/{post}/comments/{comment}', [CommentController::class, 'destroyForPost']);
-
-    // 📦 Inventory
-    Route::get('/inventory', [InventoryController::class, 'index']);
-    Route::post('/inventory', [InventoryController::class, 'store']);
-    Route::put('/inventory/{inventoryItem}', [InventoryController::class, 'update']);
-    Route::patch('/inventory/{inventoryItem}', [InventoryController::class, 'update']);
-    Route::post('/inventory/{inventoryItem}/restock', [InventoryController::class, 'restock']);
-    Route::post('/inventory/{inventoryItem}/consume', [InventoryController::class, 'consume']);
-    Route::delete('/inventory/{inventoryItem}', [InventoryController::class, 'destroy']);
-
-    // 🏥 Appointments
-    Route::get('/appointments', [AppointmentController::class, 'index']);
-    Route::get('/appointments/options', [AppointmentController::class, 'options']);
-    Route::get('/appointments/providers', [AppointmentController::class, 'providers']);
-    Route::get('/appointments/providers/{provider}/slots', [AppointmentController::class, 'slots']);
-    Route::post('/appointments', [AppointmentController::class, 'store']);
-    Route::get('/appointments/{appointment}', [AppointmentController::class, 'show']);
-    Route::put('/appointments/{appointment}', [AppointmentController::class, 'update']);
-    Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy']);
-
-    // 🐾 Lost & Found
+    // Lost Pets
     Route::post('/lost-pets', [LostPetController::class, 'store']);
     Route::patch('/lost-pets/{pet}/resolve', [LostPetController::class, 'resolve']);
-    Route::post('/lost-pets/{pet}/sightings', [SightingController::class, 'store']);
 
-    Route::post('/found-reports', [FoundReportController::class, 'store']);
-    Route::post('/found-reports/{foundReport}/comments', [FoundReportCommentController::class, 'store']);
-
-    // ⏰ Reminders
+    // Reminders
     Route::get('/reminders', [ReminderController::class, 'index']);
     Route::post('/reminders/generate', [ReminderController::class, 'generate']);
     Route::get('/reminders/upcoming', [ReminderController::class, 'upcoming']);
     Route::patch('/reminders/{reminder}/complete', [ReminderController::class, 'complete']);
     Route::patch('/reminders/{reminder}/snooze', [ReminderController::class, 'snooze']);
 
-    // ⭐ Upgrade to Premium
-    Route::post('/upgrade-premium', function (Request $request) {
-        $user = $request->user();
+    // Appointments
+    Route::get('/appointments', [AppointmentController::class, 'index']);
+    Route::get('/appointments/options', [AppointmentController::class, 'options']);
+    Route::post('/appointments', [AppointmentController::class, 'store']);
+    Route::get('/appointments/{appointment}', [AppointmentController::class, 'show']);
+    Route::patch('/appointments/{appointment}', [AppointmentController::class, 'update']);
+    Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy']);
 
-        $user->account_type = 'Premium';
-        $user->subscription_started_at = now();
-        $user->save();
+    // Inventory
+    Route::get('/inventory', [InventoryController::class, 'index']);
+    Route::post('/inventory', [InventoryController::class, 'store']);
+    Route::patch('/inventory/{inventoryItem}', [InventoryController::class, 'update']);
+    Route::delete('/inventory/{inventoryItem}', [InventoryController::class, 'destroy']);
+    Route::post('/inventory/{inventoryItem}/restock', [InventoryController::class, 'restock']);
+    Route::post('/inventory/{inventoryItem}/consume', [InventoryController::class, 'consume']);
 
-        return response()->json([
-            'message' => 'Membership upgraded successfully.',
-            'user' => $user
-        ]);
+    // Community posts
+    Route::get('/posts', [PostController::class, 'index']);
+    Route::post('/posts', [PostController::class, 'store']);
+    Route::post('/posts/{post}/like', [LikeController::class, 'toggle']);
+    Route::post('/posts/{post}/report', [PostController::class, 'report']);
+    Route::delete('/posts/{post}', [PostController::class, 'destroy']);
+
+    // Comments
+    Route::get('/posts/{post}/comments', [CommentController::class, 'index']);
+    Route::post('/posts/{post}/comments', [CommentController::class, 'store']);
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
+    Route::delete('/posts/{post}/comments/{comment}', [CommentController::class, 'destroyForPost']);
+
+    // Premium features
+    Route::prefix('premium')->group(function () {
+        // Premium Pet Intelligence
+        Route::get('/pets/{pet}/health-logs', [PremiumPetController::class, 'healthLogs']);
+        Route::post('/pets/{pet}/health-logs', [PremiumPetController::class, 'storeHealthLog']);
+        Route::delete('/pets/{pet}/health-logs/{log}', [PremiumPetController::class, 'destroyHealthLog']);
+
+        Route::get('/pets/{pet}/reminders', [PremiumPetController::class, 'reminders']);
+        Route::get('/pets/{pet}/dashboard', [PremiumPetController::class, 'dashboard']);
+        Route::get('/pets/{pet}/recommendations', [PremiumPetController::class, 'recommendations']);
+        Route::get('/pets/{pet}/alerts', [PremiumPetController::class, 'alerts']);
+
+        // Premium memorial customisation
+        Route::post('/pets/{pet}/memorial-customise', [PremiumPetController::class, 'customiseMemorial']);
+
+        // AI Vet Chat
+        Route::post('/ai-vet-chat', [AiVetChatController::class, 'chat']);
+
+        // AI Vet Chat Sessions
+        Route::get('/ai-vet-chat/sessions', [AiVetChatController::class, 'sessions']);
+        Route::post('/ai-vet-chat/sessions', [AiVetChatController::class, 'storeSession']);
+        Route::put('/ai-vet-chat/sessions/{session}/transcript', [AiVetChatController::class, 'updateTranscript']);
+        Route::post('/ai-vet-chat/sessions/{session}/end', [AiVetChatController::class, 'endSession']);
+        Route::post('/ai-vet-chat/sessions/{session}/rating', [AiVetChatController::class, 'storeRating']);
+
+        // Premium Lost & Found
+        Route::get('/lost-found', [PremiumLostFoundController::class, 'index']);
+        Route::post('/lost-found', [PremiumLostFoundController::class, 'store']);
+
+        // Unknown Pet Sighting Form
+        Route::post('/report-sighting', [PremiumLostFoundController::class, 'storeUnknownSighting']);
+
+        Route::get('/lost-found/{id}', [PremiumLostFoundController::class, 'show']);
+        Route::patch('/lost-found/{id}/resolve', [PremiumLostFoundController::class, 'resolve']);
     });
 
-    // ⭐ Cancel Premium
-    Route::post('/cancel-premium', function (Request $request) {
-        $user = $request->user();
+    // Sightings
+    Route::get('/lost-pets/{pet}/sightings', [SightingController::class, 'index']);
+    Route::post('/lost-pets/{pet}/sightings', [SightingController::class, 'store']);
 
-        $user->account_type = 'Basic';
-        $user->subscription_started_at = null;
-        $user->save();
+    // Owner dashboard/profile sightings
+    Route::get('/owner/sightings', [SightingController::class, 'ownerSightings']);
 
-        return response()->json([
-            'message' => 'Subscription cancelled successfully.',
-            'user' => $user
-        ]);
-    });
+    // Admin routes
+    Route::prefix('admin')->group(function () {
+        Route::get('/dashboard', [AdminController::class, 'dashboard']);
 
-    // 🔐 Change Password
-    Route::post('/profile/change-password', function (Request $request) {
-        $request->validate([
-            'current_password' => ['required'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
+        Route::get('/lost-pets', [AdminController::class, 'lostPets']);
+        Route::patch('/lost-pets/{id}/approve', [AdminController::class, 'approveLostPet']);
+        Route::patch('/lost-pets/{id}/hide', [AdminController::class, 'hideLostPet']);
 
-        $user = $request->user();
+        Route::get('/users', [AdminController::class, 'users']);
+        Route::patch('/users/{id}/ban', [AdminController::class, 'banUser']);
+        Route::patch('/users/{id}/unban', [AdminController::class, 'unbanUser']);
+        Route::patch('/users/{id}/upgrade', [AdminController::class, 'upgradeUser']);
+        Route::patch('/users/{id}/downgrade', [AdminController::class, 'downgradeUser']);
 
-        if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json([
-                'message' => 'Current password is incorrect.'
-            ], 422);
-        }
-
-        $user->password = Hash::make($request->password);
-        $user->save();
-
-        return response()->json([
-            'message' => 'Password updated successfully.'
-        ]);
-    });
-
-    // 🔔 Save Notification Preferences
-    Route::post('/profile/notifications', function (Request $request) {
-        $validated = $request->validate([
-            'notification_email' => ['required', 'boolean'],
-            'notification_sms' => ['required', 'boolean'],
-        ]);
-
-        $user = $request->user();
-
-        $user->notification_email = $validated['notification_email'];
-        $user->notification_sms = $validated['notification_sms'];
-        $user->save();
-
-        return response()->json([
-            'message' => 'Notification preferences saved.',
-            'user' => $user
-        ]);
-    });
-
-    // 🔓 Logout
-    Route::post('/logout', function (Request $request) {
-        $request->user()->currentAccessToken()?->delete();
-
-        return response()->json([
-            'message' => 'Logged out successfully.'
-        ]);
-    });
-
-    // ❌ Delete Account
-    Route::delete('/profile', function (Request $request) {
-        $user = $request->user();
-
-        $request->user()->currentAccessToken()?->delete();
-        $user->delete();
-
-        return response()->json([
-            'message' => 'Account deleted successfully.'
-        ]);
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Admin Routes
-    |--------------------------------------------------------------------------
-    */
-
-    Route::middleware(['admin'])->group(function () {
-        Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
-
-        Route::get('/admin/lost-pets', [AdminController::class, 'lostReports']);
-        Route::patch('/admin/lost-pets/{pet}/approve', [AdminController::class, 'approveLostReport']);
-        Route::patch('/admin/lost-pets/{pet}/hide', [AdminController::class, 'hideLostReport']);
-
-        Route::get('/admin/reported-posts', [AdminController::class, 'reportedPosts']);
-        Route::patch('/admin/posts/{post}/approve', [AdminController::class, 'approvePost']);
-        Route::patch('/admin/posts/{post}/remove', [AdminController::class, 'removePost']);
-
-        Route::get('/admin/users', [AdminController::class, 'users']);
-        Route::patch('/admin/users/{user}/ban', [AdminController::class, 'banUser']);
-        Route::patch('/admin/users/{user}/unban', [AdminController::class, 'unbanUser']);
+        Route::get('/reported-posts', [AdminController::class, 'reportedPosts']);
+        Route::patch('/posts/{id}/approve', [AdminController::class, 'approvePost']);
+        Route::patch('/posts/{id}/hide', [AdminController::class, 'hidePost']);
     });
 });

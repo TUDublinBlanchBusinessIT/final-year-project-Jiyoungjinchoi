@@ -29,13 +29,13 @@ export default function Login() {
       });
 
       const data = await response.json().catch(() => ({}));
-      console.log("LOGIN RESPONSE:", data);
 
       if (!response.ok) {
         localStorage.removeItem("pawfection_token");
         localStorage.removeItem("pawfection_user");
         localStorage.removeItem("pawfection_user_email");
         localStorage.removeItem("pawfection_role");
+        localStorage.removeItem("pawfection_account_type");
 
         if (response.status === 401) {
           throw new Error("Invalid credentials");
@@ -44,16 +44,31 @@ export default function Login() {
         throw new Error(data.message || "Login failed.");
       }
 
+      const userRole = String(data?.user?.role || "").toLowerCase();
+      const accountType = String(data?.user?.account_type || "basic").toLowerCase();
+
+      const role = userRole === "admin" ? "admin" : "user";
+      const normalizedAccountType = accountType === "premium" ? "premium" : "basic";
+
+      const normalizedUser = {
+        ...data.user,
+        role,
+        account_type: normalizedAccountType,
+      };
+
       localStorage.setItem("pawfection_token", data.token);
-      localStorage.setItem("pawfection_user", JSON.stringify(data.user));
-      localStorage.setItem("pawfection_user_email", data.user.email);
-      localStorage.setItem("pawfection_role", data.user.role || "user");
+      localStorage.setItem("pawfection_user", JSON.stringify(normalizedUser));
+      localStorage.setItem("pawfection_user_email", normalizedUser.email || "");
+      localStorage.setItem("pawfection_role", role);
+      localStorage.setItem("pawfection_account_type", normalizedAccountType);
 
       setStatus({ type: "success", message: "Login successful 🎉" });
 
       setTimeout(() => {
-        if (data.user.role === "admin") {
-          navigate("/admin/dashboard");
+        if (role === "admin") {
+          navigate("/admin-dashboard");
+        } else if (normalizedAccountType === "premium") {
+          navigate("/premium-dashboard");
         } else {
           navigate("/dashboard");
         }
@@ -125,7 +140,9 @@ export default function Login() {
         )}
 
         <form onSubmit={handleLogin} style={{ marginTop: 18, textAlign: "left" }}>
-          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>Email</label>
+          <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>
+            Email
+          </label>
           <input
             type="email"
             value={email}

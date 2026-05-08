@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Post;
 use App\Models\LostPet;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
@@ -180,9 +181,53 @@ class AdminController extends Controller
 
     public function users()
     {
-        $users = User::select('id', 'name', 'email', 'is_banned', 'created_at')
+        $users = User::select(
+                'id',
+                'name',
+                'email',
+                'role',
+                'is_banned',
+                'account_type',
+                'subscription_started_at',
+                'created_at'
+            )
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(function ($user) {
+                $activityCount = DB::table('admin_logs')
+                    ->where('target_type', 'user')
+                    ->where('target_id', $user->id)
+                    ->count();
+
+                $latestActivity = DB::table('admin_logs')
+                    ->leftJoin('users as admins', 'admin_logs.admin_id', '=', 'admins.id')
+                    ->where('admin_logs.target_type', 'user')
+                    ->where('admin_logs.target_id', $user->id)
+                    ->orderByDesc('admin_logs.created_at')
+                    ->select(
+                        'admin_logs.action',
+                        'admin_logs.created_at',
+                        'admins.name as admin_name'
+                    )
+                    ->first();
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'is_banned' => $user->is_banned,
+                    'account_type' => $user->account_type,
+                    'subscription_started_at' => $user->subscription_started_at,
+                    'created_at' => $user->created_at,
+                    'activity_count' => $activityCount,
+                    'latest_activity' => $latestActivity ? [
+                        'action' => $latestActivity->action,
+                        'admin_name' => $latestActivity->admin_name,
+                        'created_at' => $latestActivity->created_at,
+                    ] : null,
+                ];
+            });
 
         return response()->json($users);
     }
@@ -192,14 +237,16 @@ class AdminController extends Controller
         $user->is_banned = true;
         $user->save();
 
-        Log::info('Admin banned user', [
+        $this->logAction($request->user()->id, 'suspended', 'user', $user->id);
+
+        Log::info('Admin suspended user', [
             'admin_id' => $request->user()->id,
-            'banned_user_id' => $user->id,
-            'action' => 'banned',
+            'target_user_id' => $user->id,
+            'action' => 'suspended',
         ]);
 
         return response()->json([
-            'message' => 'User banned successfully.',
+            'message' => 'User suspended successfully.',
             'user' => $user,
         ]);
     }
@@ -209,15 +256,69 @@ class AdminController extends Controller
         $user->is_banned = false;
         $user->save();
 
-        Log::info('Admin unbanned user', [
+        $this->logAction($request->user()->id, 'reactivated', 'user', $user->id);
+
+        Log::info('Admin reactivated user', [
             'admin_id' => $request->user()->id,
-            'unbanned_user_id' => $user->id,
-            'action' => 'unbanned',
+            'target_user_id' => $user->id,
+            'action' => 'reactivated',
         ]);
 
         return response()->json([
-            'message' => 'User unbanned successfully.',
+            'message' => 'User reactivated successfully.',
             'user' => $user,
+        ]);
+    }
+
+    public function upgradeUser(Request $request, User $user)
+    {
+        $user->account_type = 'premium';
+        $user->subscription_started_at = now();
+        $user->save();
+
+        $this->logAction($request->user()->id, 'upgraded', 'user', $user->id);
+
+        Log::info('Admin upgraded user to premium', [
+            'admin_id' => $request->user()->id,
+            'target_user_id' => $user->id,
+            'action' => 'upgraded',
+        ]);
+
+        return response()->json([
+            'message' => 'User upgraded to premium successfully.',
+            'user' => $user,
+        ]);
+    }
+
+    public function downgradeUser(Request $request, User $user)
+    {
+        $user->account_type = 'basic';
+        $user->subscription_started_at = null;
+        $user->save();
+
+        $this->logAction($request->user()->id, 'downgraded', 'user', $user->id);
+
+        Log::info('Admin downgraded user to basic', [
+            'admin_id' => $request->user()->id,
+            'target_user_id' => $user->id,
+            'action' => 'downgraded',
+        ]);
+
+        return response()->json([
+            'message' => 'User downgraded to basic successfully.',
+            'user' => $user,
+        ]);
+    }
+
+    private function logAction($adminId, $action, $targetType, $targetId)
+    {
+        DB::table('admin_logs')->insert([
+            'admin_id' => $adminId,
+            'action' => $action,
+            'target_type' => $targetType,
+            'target_id' => $targetId,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
     }
 }

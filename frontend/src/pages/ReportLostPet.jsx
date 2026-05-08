@@ -52,7 +52,7 @@ export default function ReportLostPet() {
       }
 
       const data = await res.json().catch(() => ({}));
-      const list = Array.isArray(data) ? data : data?.data || [];
+      const list = Array.isArray(data) ? data : data?.data || data?.pets || [];
       setPets(Array.isArray(list) ? list : []);
     } catch {
       setStatus({ type: "error", message: "Failed to load your pets." });

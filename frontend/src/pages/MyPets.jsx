@@ -7,8 +7,8 @@ export default function MyPets() {
   const navigate = useNavigate();
 
   const [userName, setUserName] = useState("User");
+  const [userPlan, setUserPlan] = useState("basic");
 
-  // Pets state
   const [pets, setPets] = useState([]);
   const [petsLoading, setPetsLoading] = useState(false);
   const [petsError, setPetsError] = useState("");
@@ -55,23 +55,38 @@ export default function MyPets() {
   };
 
   useEffect(() => {
-    // Load user name
     try {
       const savedUser = localStorage.getItem("pawfection_user");
+
       if (savedUser) {
         const userObj = JSON.parse(savedUser);
+
         if (userObj?.name && typeof userObj.name === "string") {
           setUserName(userObj.name);
+        } else if (userObj?.username && typeof userObj.username === "string") {
+          setUserName(userObj.username);
         }
+
+        const plan =
+          userObj?.account_type ||
+          userObj?.plan ||
+          userObj?.subscription_type ||
+          "basic";
+
+        setUserPlan(String(plan).toLowerCase());
       } else {
         const fallbackName =
           localStorage.getItem("pawfection_user_name") ||
           localStorage.getItem("user_name") ||
           localStorage.getItem("name");
+
         if (fallbackName) setUserName(fallbackName);
+
+        setUserPlan("basic");
       }
     } catch {
       setUserName("User");
+      setUserPlan("basic");
     }
 
     fetchPets();
@@ -128,18 +143,42 @@ export default function MyPets() {
     }
   };
 
+  const isPremiumUser = userPlan === "premium";
+  const hasReachedPetLimit = !isPremiumUser && pets.length >= 1;
+
+  const handleUpgradeClick = () => {
+    navigate("/profile?tab=subscription");
+  };
+
   const stats = useMemo(() => {
     const petCount = pets?.length || 0;
     return [
-      { label: "Pets", value: String(petCount), sub: "Registered", tone: "blue", icon: "🐾" },
-      { label: "Appointments", value: "0", sub: "Upcoming", tone: "mint", icon: "📅" },
-      { label: "Reminders", value: "0", sub: "Active", tone: "peach", icon: "⏰" },
+      {
+        label: "Pets",
+        value: String(petCount),
+        sub: "Registered",
+        tone: "blue",
+        icon: "🐾",
+      },
+      {
+        label: "Appointments",
+        value: "0",
+        sub: "Upcoming",
+        tone: "mint",
+        icon: "📅",
+      },
+      {
+        label: "Reminders",
+        value: "0",
+        sub: "Active",
+        tone: "peach",
+        icon: "⏰",
+      },
     ];
   }, [pets]);
 
   return (
     <div className="pf2-shell">
-      {/* Sidebar */}
       <aside className="pf2-sidebar">
         <div
           className="pf2-brand"
@@ -164,15 +203,16 @@ export default function MyPets() {
         </nav>
 
         <div className="pf2-sidebar-footer">
-          <button className="pf2-btn pf2-btn-ghost" onClick={() => navigate("/profile")}>
+          <button
+            className="pf2-btn pf2-btn-ghost"
+            onClick={() => navigate("/profile")}
+          >
             View Profile
           </button>
         </div>
       </aside>
 
-      {/* Main */}
       <div className="pf2-main">
-        {/* Topbar */}
         <header className="pf2-topbar">
           <div className="pf2-search">
             <input placeholder="Search pets..." />
@@ -183,7 +223,9 @@ export default function MyPets() {
               <div className="pf2-avatar">{(userName?.[0] || "U").toUpperCase()}</div>
               <div className="pf2-userchip-text">
                 <div className="pf2-userchip-name">{userName}</div>
-                <div className="pf2-userchip-sub">User</div>
+                <div className="pf2-userchip-sub">
+                  {isPremiumUser ? "Premium User" : "Basic User"}
+                </div>
               </div>
             </div>
           </div>
@@ -194,16 +236,60 @@ export default function MyPets() {
             <div>
               <h1 className="pf2-title">My Pets</h1>
               <p className="pf2-subtitle">All pets linked to your account.</p>
+
+              {!isPremiumUser && hasReachedPetLimit && (
+                <p
+                  className="pf2-subtitle"
+                  style={{
+                    color: "#c45b5b",
+                    marginTop: "6px",
+                    fontWeight: "600",
+                  }}
+                >
+                  You’ve reached the Basic plan limit. Upgrade to Premium to add more pets.
+                </p>
+              )}
             </div>
 
-            <div className="pf2-actions">
-              <button className="pf2-btn pf2-btn-primary" onClick={() => navigate("/pets/create")}>
-                + Add Pet
-              </button>
+            <div
+              className="pf2-actions"
+              style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
+            >
+              {hasReachedPetLimit ? (
+                <>
+                  <button
+                    className="pf2-btn pf2-btn-primary"
+                    disabled
+                    title="Basic users can only add 1 pet"
+                    style={{ opacity: 0.6, cursor: "not-allowed" }}
+                  >
+                    + Add Pet
+                  </button>
+
+                  <button
+                    className="pf2-btn"
+                    onClick={handleUpgradeClick}
+                    style={{
+                      background: "linear-gradient(135deg, #8b6ff7, #c084fc)",
+                      color: "#fff",
+                      border: "none",
+                      boxShadow: "0 8px 20px rgba(139, 111, 247, 0.25)",
+                    }}
+                  >
+                    Unlock Premium
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="pf2-btn pf2-btn-primary"
+                  onClick={() => navigate("/pets/create")}
+                >
+                  + Add Pet
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Optional stats row (keeps it consistent with dashboard look) */}
           <section className="pf2-stats">
             {stats.map((s) => (
               <div key={s.label} className={`pf2-stat pf2-${s.tone}`}>
@@ -249,7 +335,7 @@ export default function MyPets() {
                           <div className="pf2-petmeta">
                             <div className="pf2-petname">{pet.name}</div>
                             <div className="pf2-petdesc">
-                              {(pet.breed || pet.species || "Pet")}
+                              {pet.breed || pet.species || "Pet"}
                               {" • "}
                               {pet.age ? `${pet.age} yrs` : "Age n/a"}
                               {pet.weight ? ` • ${pet.weight}kg` : ""}
@@ -258,7 +344,6 @@ export default function MyPets() {
                         </div>
 
                         <div className="pf2-petactions">
-                          {/* ✅ View button = Soon colour */}
                           <button
                             className="pf2-btn pf2-btn-small pf2-btn-soon"
                             onClick={() => navigate(`/pets/${pet.id}`)}
@@ -266,7 +351,6 @@ export default function MyPets() {
                             View
                           </button>
 
-                          {/* ✅ Edit button = Inventory Edit blue */}
                           <button
                             className="pf2-btn pf2-btn-small pf2-btn-edit"
                             onClick={() => navigate(`/pets/${pet.id}/edit`)}

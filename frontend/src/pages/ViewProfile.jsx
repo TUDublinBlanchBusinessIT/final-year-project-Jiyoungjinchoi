@@ -1,15 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import "./ViewProfile.css";
 import PawfectionLogo from "../assets/PawfectionLogo.png";
 
 export default function ViewProfile() {
   const navigate = useNavigate();
+  const location = useLocation();
   const token = localStorage.getItem("pawfection_token");
+  const apiBase = "http://127.0.0.1:8000/api";
 
   const [activeTab, setActiveTab] = useState("profile");
   const [loadingCancel, setLoadingCancel] = useState(false);
   const [cancelMessage, setCancelMessage] = useState("");
+
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   const [settingsMessage, setSettingsMessage] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -21,7 +26,6 @@ export default function ViewProfile() {
   const [petsLoading, setPetsLoading] = useState(false);
 
   const [selectedPetId, setSelectedPetId] = useState("");
-
   const [openSettingSection, setOpenSettingSection] = useState("");
 
   const [passwordForm, setPasswordForm] = useState({
@@ -46,6 +50,38 @@ export default function ViewProfile() {
   const [pets, setPets] = useState([]);
 
   useEffect(() => {
+    loadStoredUser();
+    fetchPets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const paymentStatus = params.get("payment");
+    const tabParam = params.get("tab");
+
+    if (
+      tabParam === "profile" ||
+      tabParam === "subscription" ||
+      tabParam === "settings" ||
+      tabParam === "rainbow"
+    ) {
+      setActiveTab(tabParam);
+    }
+
+    if (paymentStatus === "success") {
+      setActiveTab("subscription");
+      syncSubscriptionStatus("Payment successful. Your premium plan is now active.");
+    }
+
+    if (paymentStatus === "cancelled") {
+      setActiveTab("subscription");
+      setCancelMessage("Payment was cancelled. You are still on the Basic plan.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
+
+  const loadStoredUser = () => {
     const storedUser = localStorage.getItem("pawfection_user");
 
     if (storedUser) {
@@ -74,10 +110,55 @@ export default function ViewProfile() {
             : false,
       });
     }
+  };
 
-    fetchPets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const syncSubscriptionStatus = async (successMessage = "") => {
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${apiBase}/subscription-status`, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) return;
+
+      const storedUser = localStorage.getItem("pawfection_user");
+      const parsedUser = storedUser ? JSON.parse(storedUser) : {};
+
+      const isActivePremium =
+        data?.account_type === "Premium" ||
+        String(data?.subscription_status || "").toLowerCase() === "active";
+
+      const updatedUser = {
+        ...parsedUser,
+        account_type: isActivePremium ? "Premium" : "Basic",
+        subscription_started_at:
+          data?.subscription_started_at || parsedUser.subscription_started_at || null,
+        subscription_status: data?.subscription_status || parsedUser.subscription_status,
+      };
+
+      localStorage.setItem("pawfection_user", JSON.stringify(updatedUser));
+
+      setUser((prev) => ({
+        ...prev,
+        account_type: updatedUser.account_type || "Basic",
+        subscription_started_at: updatedUser.subscription_started_at
+          ? new Date(updatedUser.subscription_started_at).toLocaleDateString()
+          : "Not Provided",
+      }));
+
+      if (isActivePremium && successMessage) {
+        setCancelMessage(successMessage);
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const fetchPets = async () => {
     if (!token) return;
@@ -85,20 +166,20 @@ export default function ViewProfile() {
     setPetsLoading(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/pets", {
+      const response = await fetch(`${apiBase}/pets`, {
         headers: {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to load pets.");
+        throw new Error(data?.message || "Failed to load pets.");
       }
 
-      setPets(Array.isArray(data) ? data : []);
+      setPets(Array.isArray(data) ? data : data?.pets || []);
     } catch (error) {
       console.error(error.message);
     } finally {
@@ -142,8 +223,81 @@ export default function ViewProfile() {
     return "Active";
   }, [isPremium, user.subscription_started_at]);
 
-  const handleUpgrade = () => {
-    navigate("/upgrade");
+  const changeTab = (tabName) => {
+    setActiveTab(tabName);
+    navigate(`/profile?tab=${tabName}`, { replace: true });
+  };
+
+  const handleUpgrade = async () => {
+    setUpgradeLoading(true);
+    setCancelMessage("");
+
+    try {
+      const response = await fetch(`${apiBase}/stripe/checkout`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          plan: "premium_monthly",
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error || data?.message || "Unable to start Stripe checkout."
+        );
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      throw new Error("No Stripe checkout URL was returned.");
+    } catch (error) {
+      setCancelMessage(error.message || "Something went wrong.");
+    } finally {
+      setUpgradeLoading(false);
+    }
+  };
+
+  const handleBillingPortal = async () => {
+    setPortalLoading(true);
+    setCancelMessage("");
+
+    try {
+      const response = await fetch(`${apiBase}/stripe/billing-portal`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error || data?.message || "Unable to open billing portal."
+        );
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      throw new Error("No billing portal URL was returned.");
+    } catch (error) {
+      setCancelMessage(error.message || "Something went wrong.");
+    } finally {
+      setPortalLoading(false);
+    }
   };
 
   const handleCancelSubscription = async () => {
@@ -157,7 +311,7 @@ export default function ViewProfile() {
     setCancelMessage("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/cancel-premium", {
+      const response = await fetch(`${apiBase}/cancel-premium`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -208,18 +362,15 @@ export default function ViewProfile() {
     setPasswordLoading(true);
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/profile/change-password",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(passwordForm),
-        }
-      );
+      const response = await fetch(`${apiBase}/profile/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(passwordForm),
+      });
 
       const data = await response.json();
 
@@ -252,21 +403,18 @@ export default function ViewProfile() {
     setNotificationsLoading(true);
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/profile/notifications",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            notification_email: user.notification_email,
-            notification_sms: user.notification_sms,
-          }),
-        }
-      );
+      const response = await fetch(`${apiBase}/profile/notifications`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          notification_email: user.notification_email,
+          notification_sms: user.notification_sms,
+        }),
+      });
 
       const data = await response.json();
 
@@ -292,7 +440,7 @@ export default function ViewProfile() {
 
   const handleLogout = async () => {
     try {
-      await fetch("http://127.0.0.1:8000/api/logout", {
+      await fetch(`${apiBase}/logout`, {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -319,7 +467,7 @@ export default function ViewProfile() {
     setSettingsMessage("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/profile", {
+      const response = await fetch(`${apiBase}/profile`, {
         method: "DELETE",
         headers: {
           Accept: "application/json",
@@ -359,21 +507,18 @@ export default function ViewProfile() {
     setRainbowMessage("");
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/pets/${selectedPetId}/memorial`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            memorial_message:
-              "Remember me with tears and laughter. Remember me though it hurts to do so, because the pain you have is equal to the love we shared. There is no goodbye if you carry me in your heart. Remember all the joy we shared, because there was so much of it for both of us.",
-          }),
-        }
-      );
+      const response = await fetch(`${apiBase}/pets/${selectedPetId}/memorial`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          memorial_message:
+            "Remember me with tears and laughter. Remember me though it hurts to do so, because the pain you have is equal to the love we shared. There is no goodbye if you carry me in your heart. Remember all the joy we shared, because there was so much of it for both of us.",
+        }),
+      });
 
       const data = await response.json();
 
@@ -401,16 +546,13 @@ export default function ViewProfile() {
     setRainbowMessage("");
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/pets/${petId}/memorial`,
-        {
-          method: "DELETE",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${apiBase}/pets/${petId}/memorial`, {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const data = await response.json();
 
@@ -546,14 +688,23 @@ export default function ViewProfile() {
                     <button
                       className="profile-primary-btn"
                       onClick={handleUpgrade}
+                      disabled={upgradeLoading}
                     >
-                      Upgrade to Premium
+                      {upgradeLoading ? "Redirecting to Stripe..." : "Upgrade to Premium"}
                     </button>
                   </div>
                 )}
 
                 {isPremium && (
                   <div className="profile-action-row">
+                    <button
+                      className="profile-outline-btn"
+                      onClick={handleBillingPortal}
+                      disabled={portalLoading}
+                    >
+                      {portalLoading ? "Opening..." : "Manage Billing"}
+                    </button>
+
                     <button
                       className="profile-danger-btn"
                       onClick={handleCancelSubscription}
@@ -572,14 +723,14 @@ export default function ViewProfile() {
                   <div className="empty-billing-state">
                     <p>Your Premium membership is active.</p>
                     <span>
-                      You currently have access to upgraded Pawfection features and premium account benefits.
+                      You currently have access to upgraded Pawfection features, premium tools, and premium account benefits.
                     </span>
                   </div>
                 ) : (
                   <div className="empty-billing-state">
                     <p>You are currently on the Basic plan.</p>
                     <span>
-                      Upgrade to Premium to unlock more advanced Pawfection features and subscription benefits.
+                      Upgrade securely with Stripe to unlock more advanced Pawfection features and premium benefits.
                     </span>
                   </div>
                 )}
@@ -662,9 +813,7 @@ export default function ViewProfile() {
                       className={
                         user.notification_email ? "toggle-btn active" : "toggle-btn"
                       }
-                      onClick={() =>
-                        handleNotificationToggle("notification_email")
-                      }
+                      onClick={() => handleNotificationToggle("notification_email")}
                     >
                       {user.notification_email ? "On" : "Off"}
                     </button>
@@ -853,30 +1002,28 @@ export default function ViewProfile() {
         <div className="profile-tabs">
           <button
             className={activeTab === "profile" ? "tab-btn active" : "tab-btn"}
-            onClick={() => setActiveTab("profile")}
+            onClick={() => changeTab("profile")}
           >
             My Profile
           </button>
 
           <button
-            className={
-              activeTab === "subscription" ? "tab-btn active" : "tab-btn"
-            }
-            onClick={() => setActiveTab("subscription")}
+            className={activeTab === "subscription" ? "tab-btn active" : "tab-btn"}
+            onClick={() => changeTab("subscription")}
           >
             Subscription
           </button>
 
           <button
             className={activeTab === "settings" ? "tab-btn active" : "tab-btn"}
-            onClick={() => setActiveTab("settings")}
+            onClick={() => changeTab("settings")}
           >
             Settings
           </button>
 
           <button
             className={activeTab === "rainbow" ? "tab-btn active" : "tab-btn"}
-            onClick={() => setActiveTab("rainbow")}
+            onClick={() => changeTab("rainbow")}
           >
             Crossed the Rainbow Bridge 🌈🐾
           </button>

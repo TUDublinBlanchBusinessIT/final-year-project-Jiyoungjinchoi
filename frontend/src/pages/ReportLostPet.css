@@ -1,0 +1,123 @@
+.prl-alert,
+.prl-success,
+.prl-empty {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  font-family: "Fredoka", sans-serif;
+  font-weight: 600;
+  box-shadow: 0 10px 24px rgba(66, 85, 160, 0.08);
+}
+
+.prl-alert {
+  background: #fff1f1;
+  color: #a34747;
+  border: 1px solid rgba(227, 120, 120, 0.2);
+}
+
+.prl-success {
+  background: #eefbf2;
+  color: #25734a;
+  border: 1px solid rgba(84, 182, 120, 0.18);
+}
+
+.prl-empty {
+  background: #fffaf6;
+  color: #7a5c49;
+  border: 1px solid #eadfd6;
+}
+
+.prl-form {
+  display: block;
+}
+
+.prl-formgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.prl-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prl-span2 {
+  grid-column: span 2;
+}
+
+.prl-field label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6f402c;
+}
+
+.prl-field input,
+.prl-field select,
+.prl-field textarea {
+  width: 100%;
+  border: 1px solid #e3d7cf;
+  border-radius: 14px;
+  background: #fff;
+  color: #6f402c;
+  padding: 12px 14px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.prl-field textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.prl-help {
+  font-size: 12px;
+  color: #9a7561;
+}
+
+.prl-inline-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.prl-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #f7ede6;
+  color: #8b5d43;
+  border: 1px solid #ead8ca;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.prl-formactions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.prl-side-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+@media (max-width: 980px) {
+  .prl-formgrid {
+    grid-template-columns: 1fr;
+  }
+
+  .prl-span2 {
+    grid-column: span 1;
+  }
+}

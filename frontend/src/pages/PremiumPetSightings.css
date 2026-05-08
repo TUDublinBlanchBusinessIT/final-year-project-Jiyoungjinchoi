@@ -1,0 +1,979 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Fredoka:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap");
+
+:root {
+  --pps-teal: #35c3a8;
+  --pps-blue: #2fa8df;
+
+  --pps-primary: #7d68f2;
+  --pps-primary-2: #9a83ff;
+  --pps-purple-soft: #efeaff;
+  --pps-purple-dark: #2b1d57;
+
+  --pps-text: #21163f;
+  --pps-text-soft: #706b88;
+  --pps-muted: #8a84a0;
+
+  --pps-card: rgba(255, 255, 255, 0.82);
+  --pps-card-strong: rgba(255, 255, 255, 0.92);
+  --pps-line: rgba(125, 104, 242, 0.14);
+
+  --pps-shadow-sm: 0 14px 30px rgba(43, 29, 87, 0.08);
+  --pps-shadow-md: 0 22px 55px rgba(43, 29, 87, 0.12);
+  --pps-purple-shadow: 0 14px 30px rgba(125, 104, 242, 0.22);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  color: var(--pps-text);
+  font-family: "Nunito", sans-serif;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(154, 131, 255, 0.28), transparent 28%),
+    radial-gradient(circle at 92% 4%, rgba(53, 195, 168, 0.34), transparent 26%),
+    radial-gradient(circle at 50% 95%, rgba(47, 168, 223, 0.24), transparent 32%),
+    linear-gradient(135deg, #c5f3ec 0%, #ccecff 48%, #d8d2ff 100%);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.pps-shell {
+  min-height: 100vh;
+  padding: 18px 22px 40px;
+  color: var(--pps-text);
+  font-family: "Nunito", sans-serif;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(154, 131, 255, 0.28), transparent 28%),
+    radial-gradient(circle at 92% 4%, rgba(53, 195, 168, 0.34), transparent 26%),
+    radial-gradient(circle at 50% 95%, rgba(47, 168, 223, 0.24), transparent 32%),
+    linear-gradient(135deg, #c5f3ec 0%, #ccecff 48%, #d8d2ff 100%);
+}
+
+/* ---------- Header ---------- */
+
+.pps-site-header {
+  max-width: 1540px;
+  margin: 0 auto 22px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 245px 1fr 230px;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  box-shadow: 0 14px 30px rgba(43, 29, 87, 0.1);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.pps-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  cursor: pointer;
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(125, 104, 242, 0.12);
+  box-shadow: none;
+}
+
+.pps-brand-logo {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  padding: 4px;
+  border-radius: 14px;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.pps-brand-copy {
+  min-width: 0;
+}
+
+.pps-brand-title,
+.pps-topnav-item,
+.pps-date-pill,
+.pps-userchip-name,
+.pps-userchip-sub,
+.pps-kicker,
+.pps-card-kicker,
+.pps-chip,
+.pps-stat-label,
+.pps-count-pill,
+.pps-btn {
+  font-family: "Fredoka", sans-serif;
+}
+
+.pps-brand-title {
+  font-size: 1rem;
+  line-height: 1.1;
+  font-weight: 700;
+  color: var(--pps-text);
+}
+
+.pps-brand-sub {
+  margin-top: 3px;
+  font-family: "Fredoka", sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--pps-primary);
+  line-height: 1.25;
+}
+
+.pps-topnav {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.66);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pps-topnav::-webkit-scrollbar {
+  display: none;
+}
+
+.pps-topnav-item {
+  flex: 0 0 auto;
+  text-decoration: none;
+  color: #4c426a;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.pps-topnav-item:hover {
+  background: var(--pps-purple-soft);
+  color: var(--pps-purple-dark);
+}
+
+.pps-topnav-item.active {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--pps-primary) 0%, var(--pps-primary-2) 100%);
+  box-shadow: var(--pps-purple-shadow);
+}
+
+.pps-header-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.pps-date-pill,
+.pps-userchip {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(125, 104, 242, 0.14);
+}
+
+.pps-date-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--pps-purple-dark);
+  white-space: nowrap;
+}
+
+.pps-userchip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 18px;
+}
+
+.pps-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--pps-primary) 0%, var(--pps-primary-2) 100%);
+  color: #ffffff;
+  font-family: "Fredoka", sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.pps-userchip-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--pps-text);
+  line-height: 1.1;
+}
+
+.pps-userchip-sub {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--pps-text-soft);
+  line-height: 1.1;
+}
+
+/* ---------- Main ---------- */
+
+.pps-main {
+  max-width: 1540px;
+  margin: 0 auto;
+}
+
+/* ---------- Hero ---------- */
+
+.pps-hero {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) 340px;
+  gap: 22px;
+  align-items: stretch;
+  padding: 30px;
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at top left, rgba(154, 131, 255, 0.1), transparent 34%),
+    rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  box-shadow: var(--pps-shadow-md);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.pps-kicker,
+.pps-card-kicker {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pps-primary);
+}
+
+.pps-hero-title,
+.pps-pet-content h2,
+.pps-list-head h2,
+.pps-state-card h2 {
+  font-family: "DM Serif Display", serif;
+}
+
+.pps-hero-title {
+  margin: 14px 0 0;
+  font-size: clamp(2.8rem, 5vw, 4.8rem);
+  line-height: 0.96;
+  color: var(--pps-text);
+}
+
+.pps-hero-text {
+  max-width: 660px;
+  margin: 18px 0 0;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--pps-text-soft);
+  font-weight: 700;
+}
+
+.pps-hero-chips {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pps-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(125, 104, 242, 0.14);
+  box-shadow: var(--pps-shadow-sm);
+  font-weight: 700;
+  color: var(--pps-purple-dark);
+}
+
+.pps-hero-stats {
+  display: grid;
+  gap: 14px;
+}
+
+.pps-stat-card {
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(125, 104, 242, 0.12);
+  box-shadow: var(--pps-shadow-sm);
+}
+
+.pps-stat-label {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pps-primary);
+}
+
+.pps-stat-value {
+  margin-top: 8px;
+  font-family: "DM Serif Display", serif;
+  font-size: 42px;
+  line-height: 1;
+  color: var(--pps-text);
+}
+
+.pps-stat-name {
+  font-size: 32px;
+  word-break: break-word;
+}
+
+/* ---------- Cloud decorations ---------- */
+
+.pps-cloud {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  opacity: 0.32;
+  filter: blur(0.2px);
+}
+
+.pps-cloud::before,
+.pps-cloud::after {
+  content: "";
+  position: absolute;
+  background: inherit;
+  border-radius: 50%;
+}
+
+.pps-cloud-one {
+  width: 150px;
+  height: 54px;
+  right: 38px;
+  top: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.pps-cloud-one::before {
+  width: 70px;
+  height: 70px;
+  left: 24px;
+  top: -36px;
+}
+
+.pps-cloud-one::after {
+  width: 58px;
+  height: 58px;
+  right: 26px;
+  top: -24px;
+}
+
+.pps-cloud-two {
+  width: 120px;
+  height: 45px;
+  left: 22px;
+  bottom: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.pps-cloud-two::before {
+  width: 58px;
+  height: 58px;
+  left: 20px;
+  top: -28px;
+}
+
+.pps-cloud-two::after {
+  width: 48px;
+  height: 48px;
+  right: 20px;
+  top: -20px;
+}
+
+.pps-cloud-three {
+  width: 100px;
+  height: 38px;
+  right: 360px;
+  bottom: 32px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.pps-cloud-three::before {
+  width: 48px;
+  height: 48px;
+  left: 16px;
+  top: -24px;
+}
+
+.pps-cloud-three::after {
+  width: 40px;
+  height: 40px;
+  right: 14px;
+  top: -16px;
+}
+
+/* ---------- Cards ---------- */
+
+.pps-pet-card,
+.pps-list-card,
+.pps-state-card {
+  margin-top: 18px;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top left, rgba(154, 131, 255, 0.08), transparent 34%),
+    rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  box-shadow: var(--pps-shadow-sm);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.pps-state-card {
+  padding: 38px 26px;
+  text-align: center;
+}
+
+.pps-error-card {
+  color: #b24d75;
+}
+
+.pps-state-icon {
+  width: 66px;
+  height: 66px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--pps-purple-soft);
+  color: var(--pps-primary);
+  font-family: "Fredoka", sans-serif;
+  font-weight: 800;
+  font-size: 1.35rem;
+}
+
+.pps-state-card h2 {
+  margin: 0;
+  font-size: 34px;
+  color: var(--pps-text);
+}
+
+.pps-state-card p {
+  margin: 10px auto 0;
+  max-width: 620px;
+  color: var(--pps-text-soft);
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+/* ---------- Pet card ---------- */
+
+.pps-pet-card {
+  padding: 22px;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 22px;
+  align-items: stretch;
+}
+
+.pps-pet-image-wrap {
+  overflow: hidden;
+  border-radius: 26px;
+  min-height: 300px;
+  background: linear-gradient(180deg, #dbe6ff, #f8d8e5);
+}
+
+.pps-pet-image {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  object-fit: cover;
+  display: block;
+}
+
+.pps-pet-placeholder {
+  height: 100%;
+  min-height: 300px;
+  display: grid;
+  place-items: center;
+  font-size: 52px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.pps-pet-content {
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.pps-pet-content h2 {
+  margin: 10px 0 0;
+  font-size: 42px;
+  line-height: 1.05;
+  color: var(--pps-text);
+}
+
+.pps-pet-content > p {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: var(--pps-text-soft);
+  font-size: 15px;
+  line-height: 1.7;
+  font-weight: 700;
+}
+
+.pps-pet-details {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.pps-detail-box {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(125, 104, 242, 0.12);
+}
+
+.pps-detail-box span,
+.pps-sighting-info span,
+.pps-sighting-notes span {
+  display: block;
+  font-size: 11px;
+  font-family: "Fredoka", sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pps-primary);
+}
+
+.pps-detail-box strong,
+.pps-sighting-info strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--pps-text);
+  font-weight: 800;
+}
+
+.pps-actions {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pps-btn {
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(125, 104, 242, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--pps-text);
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  box-shadow: var(--pps-shadow-sm);
+}
+
+.pps-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pps-shadow-md);
+}
+
+.pps-btn-primary {
+  border: none;
+  color: white;
+  background: linear-gradient(135deg, var(--pps-primary), var(--pps-primary-2));
+  box-shadow: var(--pps-purple-shadow);
+}
+
+/* ---------- Sightings list ---------- */
+
+.pps-list-card {
+  padding: 22px;
+}
+
+.pps-list-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.pps-list-head h2 {
+  margin: 8px 0 0;
+  font-size: 36px;
+  line-height: 1.05;
+  color: var(--pps-text);
+}
+
+.pps-list-head p {
+  margin: 8px 0 0;
+  color: var(--pps-text-soft);
+  font-weight: 700;
+}
+
+.pps-count-pill {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(125, 104, 242, 0.14);
+  color: var(--pps-purple-dark);
+  font-weight: 800;
+}
+
+.pps-sighting-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.pps-sighting-card {
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(125, 104, 242, 0.12);
+  box-shadow: var(--pps-shadow-sm);
+}
+
+.pps-sighting-top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.pps-sighting-number {
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: linear-gradient(135deg, rgba(125, 104, 242, 0.16), rgba(154, 131, 255, 0.22));
+  color: var(--pps-primary);
+  font-family: "Fredoka", sans-serif;
+  font-weight: 800;
+}
+
+.pps-sighting-top h3 {
+  margin: 0;
+  font-family: "Fredoka", sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--pps-text);
+}
+
+.pps-sighting-top p {
+  margin: 4px 0 0;
+  color: var(--pps-text-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pps-sighting-info-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pps-sighting-info,
+.pps-sighting-notes {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(125, 104, 242, 0.1);
+}
+
+.pps-sighting-notes {
+  margin-top: 12px;
+}
+
+.pps-sighting-notes p {
+  margin: 8px 0 0;
+  color: var(--pps-text-soft);
+  line-height: 1.65;
+  font-weight: 700;
+}
+
+.pps-sighting-image-wrap {
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #dbe6ff, #f8d8e5);
+}
+
+.pps-sighting-image {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  display: block;
+}
+
+/* ---------- Empty state cloud ---------- */
+
+.pps-empty {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 30px;
+}
+
+.pps-empty-cloud {
+  position: relative;
+  width: 170px;
+  height: 68px;
+  margin: 0 auto 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--pps-shadow-sm);
+  display: grid;
+  place-items: center;
+}
+
+.pps-empty-cloud::before,
+.pps-empty-cloud::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  z-index: -1;
+}
+
+.pps-empty-cloud::before {
+  width: 82px;
+  height: 82px;
+  left: 28px;
+  top: -42px;
+}
+
+.pps-empty-cloud::after {
+  width: 66px;
+  height: 66px;
+  right: 28px;
+  top: -28px;
+}
+
+.pps-empty-cloud span {
+  font-size: 30px;
+  position: relative;
+  z-index: 2;
+}
+
+.pps-empty h3 {
+  margin: 0;
+  font-family: "Fredoka", sans-serif;
+  color: var(--pps-text);
+  font-size: 22px;
+}
+
+.pps-empty p {
+  max-width: 540px;
+  margin: 10px auto 0;
+  color: var(--pps-text-soft);
+  line-height: 1.7;
+  font-weight: 700;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1380px) {
+  .pps-site-header {
+    grid-template-columns: 1fr;
+  }
+
+  .pps-topnav {
+    justify-content: flex-start;
+  }
+
+  .pps-header-side {
+    align-items: flex-start;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .pps-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .pps-hero-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1000px) {
+  .pps-pet-card {
+    grid-template-columns: 1fr;
+  }
+
+  .pps-pet-details {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pps-sighting-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .pps-shell {
+    padding: 14px;
+  }
+
+  .pps-site-header,
+  .pps-hero,
+  .pps-pet-card,
+  .pps-list-card,
+  .pps-state-card {
+    border-radius: 24px;
+  }
+
+  .pps-hero {
+    padding: 20px;
+  }
+
+  .pps-hero-title {
+    font-size: 46px;
+  }
+
+  .pps-list-head {
+    flex-direction: column;
+  }
+
+  .pps-count-pill {
+    width: fit-content;
+  }
+}
+
+@media (max-width: 640px) {
+  .pps-topnav {
+    justify-content: flex-start;
+  }
+
+  .pps-topnav-item {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .pps-date-pill,
+  .pps-userchip {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pps-header-side {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pps-hero-title {
+    font-size: 38px;
+  }
+
+  .pps-hero-stats,
+  .pps-pet-details,
+  .pps-sighting-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pps-actions,
+  .pps-btn {
+    width: 100%;
+  }
+
+  .pps-btn {
+    justify-content: center;
+  }
+}
+/* =========================================================
+   MANY SIGHTINGS FIX
+   Keeps reported sightings neat when there are lots of them
+========================================================= */
+
+.pps-list-card {
+  max-height: 780px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pps-list-head {
+  flex-shrink: 0;
+}
+
+.pps-sighting-grid {
+  overflow-y: auto;
+  padding-right: 8px;
+  max-height: 610px;
+  scroll-behavior: smooth;
+}
+
+/* Pretty scrollbar */
+.pps-sighting-grid::-webkit-scrollbar {
+  width: 10px;
+}
+
+.pps-sighting-grid::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+}
+
+.pps-sighting-grid::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--pps-primary), var(--pps-primary-2));
+  border-radius: 999px;
+}
+
+.pps-sighting-grid::-webkit-scrollbar-thumb:hover {
+  background: var(--pps-purple-dark);
+}
+
+/* Make the cards a little tighter when there are many */
+.pps-sighting-card {
+  min-height: fit-content;
+}
+
+/* On small screens, let the page scroll normally */
+@media (max-width: 768px) {
+  .pps-list-card {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .pps-sighting-grid {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+}
